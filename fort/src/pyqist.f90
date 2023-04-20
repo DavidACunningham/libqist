@@ -1,0 +1,113 @@
+module pqdnr
+    use q_inter_nr
+    implicit none
+    contains
+    !! Initializers
+    !! Initializers
+    subroutine pw_init_i(t0, tf,filepath, trajfile)
+        character(len=*), intent(in) :: filepath, trajfile
+        real(dp),            intent(in) ::t0, tf
+        !! The initial and final simulation independent variable (tau)
+        !! The function _returns_ an instance of the type. 
+        call init_i(t0, tf,filepath, trajfile)
+    end subroutine pw_init_i
+     function pw_state(tau) result(res)
+        !! Return a regularized state at time tau
+        integer, parameter :: n=7
+        real(8),     intent(in) :: tau
+        !! The value of tau at which to get the state
+        real(8), dimension(n)   :: res
+        !! The returned state
+        res = state(tau)
+    end function pw_state
+     function pw_stm(tau) result(res)
+        !! Return a regularized stm at time tau
+        integer, parameter :: n=7
+        real(8),     intent(in) :: tau
+        !! The value of tau at which to get the state
+        real(8), dimension(n,n) :: res
+        !! The returned stm
+        res = stm(tau)
+    end function pw_stm
+     function pw_stt(tau) result(res)
+        !! Return a regularized stm at time tau
+        integer, parameter :: n=7
+        real(8),     intent(in) :: tau
+        !! The value of tau at which to get the state
+        real(8), dimension(n,n,n) :: res
+        !! The returned stm
+        res = stt(tau)
+    end function pw_stt
+     function pw_stm_i(tau) result(res)
+        !! Return a regularized stm at time tau
+        integer, parameter :: n=7
+        real(8),     intent(in) :: tau
+        !! The value of tau at which to get the state
+        real(8), dimension(n,n) :: res
+        !! The returned stm
+        res = stm_i(tau)
+    end function pw_stm_i
+     function pw_stt_i(tau) result(res)
+        !! Return a regularized stm at time tau
+        integer, parameter :: n=7
+        real(8),     intent(in) :: tau
+        !! The value of tau at which to get the state
+        real(8), dimension(n,n,n) :: res
+        !! The returned stm
+        res = stt_i(tau)
+    end function pw_stt_i
+
+    !! physical time propagation
+    function pw_prop_once(ta, tb, xa, order) result(res)
+        !! Propagates the relative state xa at time ta
+        !! to time tb. Uses the second-order update
+        !! time-to-tau to adjust tau for the relative
+        !! trajectory.
+        integer :: o 
+        real(8),     intent(in) :: ta, tb, xa(6)
+        integer, intent(in), optional :: order
+        !! xa is the initial relative state 
+        !! should be dimension 6
+        real(8)                 :: res(7)
+        o = 2
+        if (present(order)) o=order
+        res = prop(ta,tb,[xa, 0._dp],o)
+    end function pw_prop_once
+
+    function pw_prop_many(ta, tb, xa, order) result(res)
+        !! Propagates the relative state xa at time ta
+        !! to time tb. Uses the second-order update
+        !! time-to-tau to adjust tau for the relative
+        !! trajectory.
+        integer :: o
+        real(8),     intent(in) :: ta, tb, xa(:,:)
+        integer, intent(in), optional :: order
+        !! xa is the initial relative state 
+        !! should be dimension 6,:
+        real(8)                 :: res(7,size(xa,2))
+        if (present(order)) o=order
+        res = prop(ta,tb,xa, o)
+    end function pw_prop_many
+
+     subroutine pw_stts_ab(taua, taub, stm, stt)
+        !! Return the STM and STT from taua to taub
+        integer, parameter :: n=7
+        real(8),     intent(in)  :: taua, taub
+        real(8),     intent(out) :: stm(n,n), stt(n,n,n)
+        call stts_ab(taua,taub,stm,stt)
+    end subroutine pw_stts_ab
+
+     function pw_zmap(tau,order) result(res)
+        !! Testing procedure that chains an stm and stt with their own
+        !! inverse--you ought to get I and 0, respectively
+        integer, parameter :: n=7
+        real(8),          intent(in) :: tau
+        integer, optional, intent(in) :: order
+        integer                       :: ord
+        real(8)                      :: res
+
+        ord=2
+        if (present(order)) ord=order
+        res = zmap(tau,ord)
+    end function pw_zmap
+end module pqdnr
