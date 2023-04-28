@@ -14,13 +14,33 @@ module globals
                                       stml = n+1, stmu = n+n**2, &
                                       sttl = n+n**2+1, &
                                       sttu = n+n**2+n**3
+    interface mmult
+        module procedure mmult_matmat_q
+        module procedure mmult_matvec_q
+        module procedure mmult_matmat_d
+        module procedure mmult_matvec_d
+    end interface 
     contains
-
-    pure function mmult(matA, matB) result(res)
+    pure function mmult_matmat_q(matA, matB) result(res)
         real(wp), intent(in) :: matA(:,:), matB(:,:)
         real(wp)             :: res(size(matA,1),size(matB,2))
         res = matmul(matA,matB)
-    end function mmult
+    end function mmult_matmat_q
+    pure function mmult_matvec_q(matA, matB) result(res)
+        real(wp), intent(in) :: matA(:,:), matB(:)
+        real(wp)             :: res(size(matB))
+        res = matmul(matA,matB)
+    end function mmult_matvec_q
+    pure function mmult_matmat_d(matA, matB) result(res)
+        real(dp), intent(in) :: matA(:,:), matB(:,:)
+        real(dp)             :: res(size(matA,1),size(matB,2))
+        res = matmul(matA,matB)
+    end function mmult_matmat_d
+    pure function mmult_matvec_d(matA, matB) result(res)
+        real(dp), intent(in) :: matA(:,:), matB(:)
+        real(dp)             :: res(size(matB))
+        res = matmul(matA,matB)
+    end function mmult_matvec_d
     pure function qesolve(a,b,c) result(res)
         !! Returns roots of a quadratic equation
         !! Using stable solution method
