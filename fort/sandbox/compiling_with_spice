@@ -1,0 +1,1 @@
+gfortran -g spicetest.f90 ~/libf/spicelib.a 
