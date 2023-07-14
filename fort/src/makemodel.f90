@@ -1,6 +1,5 @@
 module makemodel
     use globals
-    use frkmain, only: solve_ivp, Odesolution
     use astkindmodule
     use shdatamodule
     use pinesmodule
@@ -21,6 +20,8 @@ module makemodel
         type(PinesData)       :: pdat
         character(len=256)    :: kernelfile
         contains
+            procedure:: init => init_dm
+            procedure :: eoms
             procedure :: get_derivs
             procedure :: acc_kepler
             procedure :: jac_kepler
@@ -29,6 +30,7 @@ module makemodel
             procedure :: jac_nbody
             procedure :: hes_nbody
             procedure :: allderivs_sh
+            procedure :: trajstate
     end type 
 
     contains
@@ -958,4 +960,23 @@ module makemodel
         jac = real(jac_d,wp)
         hes = real(hes_d,wp)
     end subroutine
+
+    function eoms(me,t,y) result(res)
+        class(dynamicsModel), intent(inout) :: me
+        real(wp)            , intent(in)    :: t, y(:)
+        real(wp)                            :: res(size(y))
+
+    end function eoms
+
+    function trajstate(me,time) result(res)
+        class(dynamicsmodel), intent(inout) :: me
+        real(wp),             intent(in)    :: time
+        real(wp)                            :: lt_dum
+        real(dp)                            :: traj_state
+        real(wp)                            :: res(6)
+        call spkgeo( me%traj_id, real(time,dp), "J2000", me%central_body, &
+                   & traj_state, lt_dum)
+        res = real(traj_state,wp)
+    end function trajstate
+
 end module makemodel
