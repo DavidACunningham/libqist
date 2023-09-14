@@ -3,6 +3,7 @@ module makemodel
     use astkindmodule
     use shdatamodule
     use pinesmodule
+    use tensorops
     implicit none
 
     type :: dynamicsModel
@@ -31,11 +32,32 @@ module makemodel
             procedure :: hes_nbody
             procedure :: allderivs_sh
             procedure :: trajstate
-    end type 
+    end type dynamicsModel
 
     contains
 
-    subroutine init_dm(me, kernelfile, traj_id, central_body, bodylist, shgrav, Cbar, Sbar)
+    subroutine init_dm(me, kernelfile, traj_id, central_body, bodylist, &
+                     & shgrav, Cbar, Sbar)
+        ! init_dm: method to initialize dynamicsModel object
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! kernelfile     character      The absolute directory path for the 
+        !                               SPICE metakernel
+        ! traj_id        integer        the integer ID of the reference 
+        !                               trajectory in the SPICE kernel
+        ! central_body   integer        the integer ID of the selected central
+        !                               body in the SPICE kernel
+        ! bodylist       integer (:)    list of integer IDs of the gravitating
+        !                               bodies in the SPICE kernel, other than
+        !                               the central body
+        ! shgrav         logical        TRUE if central body will be modeled
+        !                               by spherical harmonics
+        ! Cbar           real (:,:)     4 pi (Kaula) normalized cosine Stokes 
+        !                               for central body
+        ! Sbar           real (:,:)     4 pi (Kaula) normalized sine Stokes 
+        !                               for central body
+        ! OUTPUTS:
+        ! NONE
         class(dynamicsModel), intent(inout) :: me
         integer,              intent(in)    :: traj_id, & 
                                                central_body, &
@@ -76,6 +98,21 @@ module makemodel
         endif
     end subroutine init_dm
     subroutine get_derivs(me, time, acc, jac, hes)
+        ! get_derivs: method to generate dynamics and dynamics partials around 
+        !             reference trajectory
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! time           real           time in sec past J2000 at which
+        !                               partials are evaluated
+        ! OUTPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! acc            float (6)      time derivative of 6-d state,
+        !                               i.e. the dynamics for the system:
+        !                               (xdot, ydot, zdot, xddot, yddot, zddot)
+        ! jac            float (6,6)    jacobian of dynamics: 
+        !                               jac(i,j) = df_i/dx_j
+        ! hes            float (6,6,6)  hessian of dynamics: 
+        !                               hes(i,j,k) = d^2f_i/(dx_j*dx_k)
         class(dynamicsModel), intent(inout) :: me
         real(wp),             intent(in)    :: time
         real(wp),             intent(out)   :: acc(6), jac(6,6), hes(6,6,6)
@@ -92,36 +129,53 @@ module makemodel
             ! for bodies i = 2. . . N NOTE: SPICE IS NOT THREAD SAFE, DON'T DO THIS IN ||
         do i=1,me%num_bodies
             ! get r from traj to body i (SPKGPS)
-            call spkgps( me%traj_id, time, "J2000", me%central_body, &
-                               & me%nbody_radii(:,i), &     ! (3,num_bodies)
-                               & lt_dum)
+            call spkgps(me%traj_id, time, "J2000", me%central_body, &
+                      & me%nbody_radii(:,i), &     ! (3,num_bodies)
+                      & lt_dum)
             ! get r from central body to body i (SPKGPS)
 
         end do
 
-            ! For central body (i=1)
-                ! Choose point mass or SH model
-                r_up = real(traj_state,wp)
-                acc_2b = acc_kepler(me, me%central_body_mu, r_up)
-                jac_2b = jac_kepler(me, me%central_body_mu, r_up)
-                hes_2b = hes_kepler(me, me%central_body_mu, r_up)
-                ! Compute accel, jac, hess for i=1
-            ! for bodies i = 2. . . N NOTE: CAN BE DONE IN ||
-                ! Compute point mass accel, jac, hess for i=1
+        ! For central body
+            ! Choose point mass or SH model
+        r_up = real(traj_state,wp)
+        if (me%shgrav) then
+            ! PLACEHOLDER
+            ! TODO: Put in extended body gravity
+            acc_2b = acc_kepler(me, me%central_body_mu, r_up)
+            jac_2b = jac_kepler(me, me%central_body_mu, r_up)
+            hes_2b = hes_kepler(me, me%central_body_mu, r_up)
+            ! END PLACEHOLDER
+        else
+            acc_2b = acc_kepler(me, me%central_body_mu, r_up)
+            jac_2b = jac_kepler(me, me%central_body_mu, r_up)
+            hes_2b = hes_kepler(me, me%central_body_mu, r_up)
+        endif
+        ! for bodies i = 2. . . N NOTE: CAN BE DONE IN ||
+        ! Compute point mass accel, jac, hess for i=1
         !$OMP PARALLEL DO
         do i=1,me%num_bodies
-                r_bod_up = real(me%nbody_radii(:,i),wp)
-                acc_nb = acc_nb + acc_nbody(me, me%nbody_mus(i), r_up,r_bod_up)
-                jac_nb = jac_nb + jac_nbody(me, me%nbody_mus(i), r_up,r_bod_up)
-                hes_nb = hes_nb + hes_nbody(me, me%nbody_mus(i), r_up,r_bod_up)
+            r_bod_up = real(me%nbody_radii(:,i),wp)
+            acc_nb   = acc_nb + acc_nbody(me, me%nbody_mus(i), r_up,r_bod_up)
+            jac_nb   = jac_nb + jac_nbody(me, me%nbody_mus(i), r_up,r_bod_up)
+            hes_nb   = hes_nb + hes_nbody(me, me%nbody_mus(i), r_up,r_bod_up)
         end do
         !$OMP END PARALLEL DO
         acc = acc_2b + acc_nb
         jac = jac_2b + jac_nb
         hes = hes_2b + hes_nb
     end subroutine get_derivs
-
     function acc_kepler(me, mu, r) result (res)
+        ! acc_kepler: method to compute Keplerian acceleration
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! mu             real           Gravitational parameter of body
+        ! r              real (3)       Distance from gravitating body to
+        !                               field point
+        ! OUTPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! res            real (6)       Keplerian acceleration vector with
+        !                               zero padding (0, 0, 0, ax, ay, az)
         class(dynamicsModel), intent(in) :: me
         real(wp),             intent(in) :: mu
         real(wp),             intent(in) :: r(3)
@@ -145,8 +199,32 @@ module makemodel
                 res(6) =  -x(3)*x0
                 end function xdot
     end function
-
     function jac_kepler(me, mu, r) result (res)
+        ! jac_kepler: method to compute Keplerian jacobian
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! mu             real           Gravitational parameter of body
+        ! r              real (3)       Distance from gravitating body to
+        !                               field point
+        ! OUTPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! res            real (6,6)     Keplerian Jacobian matrix 
+        !                                         df_i
+        !                               J(i,j) = ------
+        !                                         dx_j
+        !                               
+        !                               [  dr     dv  ]
+        !                               [ ----   ---- ]
+        !                               [  dr     dr  ]
+        !                               [             ]
+        !                               [  dv     dv  ]
+        !                               [ ----   ---- ]
+        !                               [  dr     dv  ]
+        !                               or, if A is the gradient of 
+        !                               Keplerian acceleration f with respect
+        !                               to position vector r:
+        !                               [ 0  I ]
+        !                               [ A  0 ]
         class(dynamicsModel), intent(in) :: me
         real(wp),             intent(in) :: mu
         real(wp),             intent(in) :: r(3)
@@ -211,8 +289,19 @@ module makemodel
                 res(36) =  0
             end function jac
     end function
-    
     function hes_kepler(me, mu, r) result (res)
+        ! jac_kepler: method to compute Keplerian jacobian
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! mu             real           Gravitational parameter of body
+        ! r              real (3)       position vector from gravitating body to
+        !                               field point
+        ! OUTPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! res            real (6,6,6)   Keplerian Hessian tensor H where
+        !                                              df_i 
+        !                               H(i,j,k) = -----------
+        !                                           dx_j dx_k
         class(dynamicsModel), intent(in) :: me
         real(wp),             intent(in) :: mu
         real(wp),             intent(in) :: r(3)
@@ -474,8 +563,19 @@ module makemodel
             end function hes
             ! END AUTOCODE OUTPUT FOR HES
     end function
-
     function acc_nbody(me, mu, r, rbods) result (res)
+        ! acc_nbody: method to compute third-body Keplerian acceleration
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! mu             real           Gravitational parameter of third body
+        ! r              real (3)       Position vector from central body to
+        !                               field point
+        ! rbods          real (3)       Position vector from central body to
+        !                               third body
+        ! OUTPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! res            real (6)       Acceleration vector with
+        !                               zero padding (0, 0, 0, ax, ay, az)
         class(dynamicsModel), intent(in) :: me
         real(wp),             intent(in) :: mu
         real(wp),             intent(in) :: r(3), &
@@ -518,8 +618,35 @@ module makemodel
             end function xdot
             ! END AUTOCODE OUTPUT FOR XDOT
     end function
-
     function jac_nbody(me, mu, r, rbods) result (res)
+        ! acc_nbody: method to compute third-body Keplerian acceleration
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! mu             real           Gravitational parameter of third body
+        ! r              real (3)       Position vector from central body to
+        !                               field point
+        ! rbods          real (3)       Position vector from central body to
+        !                               third body
+        ! OUTPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! NAME           TYPE           DESCRIPTION
+        ! res            real (6,6)     third-body Jacobian matrix 
+        !                                         df_i
+        !                               J(i,j) = ------
+        !                                         dx_j
+        !                               
+        !                               [  dr     dv  ]
+        !                               [ ----   ---- ]
+        !                               [  dr     dr  ]
+        !                               [             ]
+        !                               [  dv     dv  ]
+        !                               [ ----   ---- ]
+        !                               [  dr     dv  ]
+        !                               or, if A is the gradient of 
+        !                               third-body acceleration with respect
+        !                               to position vector r:
+        !                               [ 0  I ]
+        !                               [ A  0 ]
         class(dynamicsModel), intent(in) :: me
         real(wp),             intent(in) :: mu
         real(wp),             intent(in) :: r(3), &
@@ -608,8 +735,21 @@ module makemodel
                 res(36) =  0
             end function jac
     end function
-    
     function hes_nbody(me, mu, r, rbods) result (res)
+        ! jac_kepler: method to compute third body jacobian
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! mu             real           Gravitational parameter of third body
+        ! r              real (3)       position vector from central body to
+        !                               field point
+        ! r              real (3)       position vector from central body to
+        !                               third body
+        ! OUTPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! res            real (6,6,6)   third body Hessian tensor H where
+        !                                              df_i 
+        !                               H(i,j,k) = -----------
+        !                                           dx_j dx_k
         class(dynamicsModel), intent(in) :: me
         real(wp),             intent(in) :: mu
         real(wp),             intent(in) :: r(3), &
@@ -933,18 +1073,37 @@ module makemodel
             end function hes
             ! END AUTOCODE OUTPUT FOR HES
     end function
-
     subroutine allderivs_sh(me, time, r, acc, jac, hes)
+        ! allderivs_sh: compute the dynamics, jacobian, and hessian
+        !               due to the gravitation of an extended body.
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! time           real           time in seconds past J2000 to evaluate
+        ! r              real (3)       position vector from central body to
+        !                               field point
+        ! OUTPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! NAME           TYPE           DESCRIPTION
+        ! acc            float (6)      time derivative of 6-d state,
+        !                               i.e. the dynamics for the system:
+        !                               (xdot, ydot, zdot, xddot, yddot, zddot)
+        ! jac            float (6,6)    jacobian of dynamics: 
+        !                               jac(i,j) = df_i/dx_j
+        ! hes            float (6,6,6)  hessian of dynamics: 
+        !                               hes(i,j,k) = d^2f_i/(dx_j*dx_k)
         class(dynamicsModel), intent(inout)  :: me
         real(wp),             intent(in)     :: time, &
                                               & r(3)
         real(dp)                             :: pot_d, &
                                               & acc_d(3), &
                                               & jac_d(3,3), &
-                                              & hes_d(3,3,3)
-        real(wp),             intent(out)    :: acc(3), &
-                                              & jac(3,3), &
-                                              & hes(3,3,3)
+                                              & hes_d(3,3,3), &
+                                              & acc_wp(3), &
+                                              & jac_wp(3,3), &
+                                              & hes_wp(3,3,3)
+        real(wp),             intent(out)    :: acc(6), &
+                                              & jac(6,6), &
+                                              & hes(6,6,6)
         real(dp)                             :: xform_mat(3,3), &
                                               & r_bf(3)
 
@@ -956,19 +1115,58 @@ module makemodel
                     & me%shdat%maxdeg, me%shdat%maxorder, &
                     & real(r_bf,dp), pot_d, acc_d, jac_d, hes_d &
                     & )
-        acc = real(acc_d,wp)
-        jac = real(jac_d,wp)
-        hes = real(hes_d,wp)
+        ! TODO: add correct velocity transformation
+        acc(4:) = real(acc_d,wp)
+        jac(4:,:3) = real(jac_d,wp)
+        hes(4:,:3,:3) = real(hes_d,wp)
     end subroutine
-
     function eoms(me,t,y) result(res)
+        ! eoms: method to compute dynamics function of extended state vector
+        !       i.e. [xdot, stmdot, sttdot]
+        !TODO: extend with derivatives of time
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! t              real           time in sec past J2000 to evaluate
+        !                               the dynamics
+        ! y              real (258)     Extended dyamics vector:
+        !                               258 = 6 + 6 ** 2 + 6 ** 3
+        !                        y = [x, reshape(stm,(36)), reshape(stt,(216))]
+        ! OUTPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! res            real (258)     third body Hessian tensor H where
         class(dynamicsModel), intent(inout) :: me
         real(wp)            , intent(in)    :: t, y(:)
+        real(wp)                            :: state(n), &
+                                               stm(n,n), &
+                                               stt(n,n,n), &
+                                               statedot(n), &
+                                               stmdot(n,n), &
+                                               sttdot(n,n,n), &
+                                               acc(n), &
+                                               jac(n,n), &
+                                               hes(n,n,n)
         real(wp)                            :: res(size(y))
-
+        state = y(:n)
+        stm = reshape(y((n + 1):(n + n**2)),[n,n])
+        stt = reshape(y((n + n**2 + 1):),[n,n,n])
+        call me%get_derivs(t, acc, jac, hes)
+        ! call amatrix(cc,muu,nn,x,amat)
+        ! call hess(cc,muu,nn,x,hes)
+        stmdot = matmul(jac,stm)
+        sttdot = mattens(jac,stt,n) + quad(stm,hes,n)
+        res = [state, reshape(stmdot,[n**2]), reshape(sttdot,[n**3])]
     end function eoms
-
     function trajstate(me,time) result(res)
+        ! trajstate: method to return reference state at a time
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! time           real           time in sec past J2000 to evaluate
+        !                               the dynamics
+        ! OUTPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! res            real (6)       the reference state in the SPICE
+        !                               J2000 coordinate frame
+        !                               centered on the central body
         class(dynamicsmodel), intent(inout) :: me
         real(wp),             intent(in)    :: time
         real(wp)                            :: lt_dum
@@ -978,5 +1176,4 @@ module makemodel
                    & traj_state, lt_dum)
         res = real(traj_state,wp)
     end function trajstate
-
 end module makemodel
