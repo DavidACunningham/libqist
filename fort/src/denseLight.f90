@@ -364,7 +364,6 @@ module denseLight
         if(allocated(self%y_olds)) deallocate(self%y_olds)
         if(allocated(self%Frevs)) deallocate(self%Frevs)
         if(allocated(self%ys)) deallocate(self%ys)
-
     end subroutine deallocator
     subroutine allocator(self)
         class(lightSol), intent(inout) :: self

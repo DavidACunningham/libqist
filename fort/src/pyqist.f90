@@ -1,5 +1,5 @@
 module pqdnr
-    use q_inter_nr
+    use q_inter
     implicit none
     contains
     !! Initializers
@@ -13,7 +13,7 @@ module pqdnr
     end subroutine pw_init_i
      function pw_state(tau) result(res)
         !! Return a regularized state at time tau
-        integer, parameter :: n=7
+        integer, parameter :: n=6
         real(8),     intent(in) :: tau
         !! The value of tau at which to get the state
         real(8), dimension(n)   :: res
@@ -22,7 +22,7 @@ module pqdnr
     end function pw_state
      function pw_stm(tau) result(res)
         !! Return a regularized stm at time tau
-        integer, parameter :: n=7
+        integer, parameter :: n=6
         real(8),     intent(in) :: tau
         !! The value of tau at which to get the state
         real(8), dimension(n,n) :: res
@@ -31,7 +31,7 @@ module pqdnr
     end function pw_stm
      function pw_stt(tau) result(res)
         !! Return a regularized stm at time tau
-        integer, parameter :: n=7
+        integer, parameter :: n=6
         real(8),     intent(in) :: tau
         !! The value of tau at which to get the state
         real(8), dimension(n,n,n) :: res
@@ -40,7 +40,7 @@ module pqdnr
     end function pw_stt
      function pw_stm_i(tau) result(res)
         !! Return a regularized stm at time tau
-        integer, parameter :: n=7
+        integer, parameter :: n=6
         real(8),     intent(in) :: tau
         !! The value of tau at which to get the state
         real(8), dimension(n,n) :: res
@@ -49,7 +49,7 @@ module pqdnr
     end function pw_stm_i
      function pw_stt_i(tau) result(res)
         !! Return a regularized stm at time tau
-        integer, parameter :: n=7
+        integer, parameter :: n=6
         real(8),     intent(in) :: tau
         !! The value of tau at which to get the state
         real(8), dimension(n,n,n) :: res
@@ -68,7 +68,7 @@ module pqdnr
         integer, intent(in), optional :: order
         !! xa is the initial relative state 
         !! should be dimension 6
-        real(8)                 :: res(7)
+        real(8)                 :: res(6)
         o = 2
         if (present(order)) o=order
         res = prop(ta,tb,[xa, 0._dp],o)

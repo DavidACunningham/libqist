@@ -3,18 +3,21 @@ FC := gfortran
 PFC := f2py
 UTILLIBS := $(HOME)libf/
 SRCDIR := ./
+LIBDIR := ../lib/
 DOP853 := $(UTILLIBS)libdop853.a
 FRK := $(UTILLIBS)libfrk_light.a
+SPICE := $(UTILLIBS)spicelib.a
 EXT_SUFFIX := $(shell python3-config --extension-suffix)
 
 OBJECTS :=  globals.o \
 			tensorops.o \
-			packmod.o \
 			qist.o\
 			q_inter.o\
+		    makemodel.o\
+			genqist.o\
 		    $(DOP853) \
+			$(SPICE) \
 		    $(FRK)
-
 
 PFFLAGS := -lgomp 
 FFLAGS := -O3 -g -mcmodel=large \
@@ -32,6 +35,7 @@ pqftest: pqftest.f90 $(OBJECTS) pyqist.o
 
 %$(EXT_SUFFIX) : $(SRCDIR)%.f90 %.pyf q_inter.o $(OBJECTS)
 	$(PFC) --f90flags='$(FFLAGS)' $(PFFLAGS) -c $^ 
+	-cp -v $@ $(LIBDIR)
 
 %.pyf : %.f90
 	$(PFC) $^ -m $* -h $@ --overwrite-signature

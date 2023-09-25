@@ -1,15 +1,35 @@
 #! /bin/bash
-BUILDDIR=temp
-DLSODE=/home/david/libf/libodepack.a
-cd $BUILDDIR
-gfortran -fPIC -c ../cheby.f90 ../vcheby.f90 ../f3breg.f90 ../tensorops.f90 ../odes.f90 
-ar -r libreg.a cheby.o \
-			    vcheby.o \
-			    f3breg.o \
-			    tensorops.o \
-			    odes.o 
-ar -rcT liball.a $DLSODE ./libreg.a
-mv liball.a ../
-mv libreg.a ../
+HOME=/home/david
+UTILLIBS=$HOME/libf
+SRCDIR=src
+LIBDIR=./lib
+TEMPDIR=temp
+DOP853=$UTILLIBS/libdop853.a
+FRK=$UTILLIBS/libfrk_light.a
+SPICE=$UTILLIBS/spicelib.a
+GENOBJECTS="globals.o \
+  		tensorops.o \
+	    makemodel.o\
+		genqist.o"
+RUNOBJECTS="globals.o \
+			tensorops.o \
+			qist.o\
+			q_inter.o"
+mkdir $TEMPDIR
+cd $SRCDIR
+cp -v $RUNOBJECTS ../$TEMPDIR
+cd ../$TEMPDIR
+ar -x $FRK
+ar -r libqist.a *.o
+rm -v $RUNOBJECTS
+cd ../$SRCDIR
+pwd
+cp -v $GENOBJECTS ../$TEMPDIR
+cd  ../$TEMPDIR
+pwd
+ar -x $SPICE
+ar -r libgenqist.a *.o
 cd ..
-rm $BUILDDIR/*
+mv -v $TEMPDIR/libgenqist.a $LIBDIR
+mv -v $TEMPDIR/libqist.a $LIBDIR
+rm -r $TEMPDIR

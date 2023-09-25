@@ -94,15 +94,15 @@ module qist
         real(dp), dimension(n,n) :: res
         !! The returned stm
         packlin = self%call(t,lind=stml,uind=stmu)
-        res = reshape(packlin,n,[n,n])
+        res = reshape(packlin,[n,n])
     end function stm
     function stm_i(self,t) result(res)
         !! Return a regularized stm at time tau
         class(Itraj), intent(inout) :: self
-        real(dp),     intent(in) :: tau
+        real(dp),     intent(in) :: t
         real(dp), dimension(n,n) :: res
         !! The returned stm
-        res = stminvert(self%stm(tau), n)
+        res = stminvert(self%stm(t), n)
     end function stm_i
     function stt(self,t) result(res)
         !! Return a regularized stm at time t
@@ -128,12 +128,12 @@ module qist
         !! Propagates the relative state xa at ta
         !! to tb
         class(Itraj), intent(inout) :: self
-        real(dp),     intent(in) :: ta, tb, xa(7)
+        real(dp),     intent(in) :: ta, tb, xa(6)
         integer, intent(in), optional :: order
         integer :: ord
         !! xa is the initial relative state 
-        !! should be dimension 7
-        real(dp), dimension(7)   :: res
+        !! should be dimension 6
+        real(dp), dimension(n)   :: res
         real(dp) :: stmab(n,n), sttab(n,n,n)
         ord = 2
         if (present(order)) ord=order
@@ -201,7 +201,7 @@ module qist
 
         res = 0._dp
         eye = 0._dp
-        forall (i=1:n); eye(i,i) = 1._dp
+        do i=1,n; eye(i,i) = 1._dp; end do
         call sttchain(self%stm_i(t),self%stt_i(t), &
                     & self%stm(t), self%stt(t), &
                     & stm, stt, n)

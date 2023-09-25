@@ -124,7 +124,7 @@ module makemodel
         ! at time t (in s past j2000)
             ! For central body (i=1) NOTE: SPICE IS NOT THREAD SAFE, DON'T DO THIS IN ||
                 ! get r from traj to body i (SPKGPS)
-        call spkgeo( me%traj_id, time, "J2000", me%central_body, &
+        call spkgeo( me%traj_id, real(time,dp), "J2000", me%central_body, &
                    & traj_state, lt_dum)
             ! for bodies i = 2. . . N NOTE: SPICE IS NOT THREAD SAFE, DON'T DO THIS IN ||
         do i=1,me%num_bodies
@@ -1169,8 +1169,8 @@ module makemodel
         !                               centered on the central body
         class(dynamicsmodel), intent(inout) :: me
         real(wp),             intent(in)    :: time
-        real(wp)                            :: lt_dum
-        real(dp)                            :: traj_state
+        real(dp)                            :: lt_dum
+        real(dp)                            :: traj_state(6)
         real(wp)                            :: res(6)
         call spkgeo( me%traj_id, real(time,dp), "J2000", me%central_body, &
                    & traj_state, lt_dum)
