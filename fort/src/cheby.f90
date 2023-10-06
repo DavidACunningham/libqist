@@ -36,12 +36,6 @@ module cheby
             real(dp), intent(in) :: fi(n)
             real(dp) :: res(n)
         end function chfit_s
-        pure function chfit_v(n,fi,func_dim) result(res)
-            import
-            integer, intent(in) :: n, func_dim
-            real(dp), intent(in) :: fi(:,:)
-            real(dp) :: res(func_dim,n)
-        end function chfit_v
     end interface chfit
     interface chderiv
         pure function chderiv_s(coeffs,a,b) result(res)
@@ -57,7 +51,10 @@ module cheby
         real(dp)              :: a,b
         contains
             procedure fit
-            procedure call
+            generic, public :: call => call_s, call_v
+            procedure, private :: call_s
+            procedure, private :: call_v
+            procedure deriv
     end type vectorcheb
     contains
         subroutine fit(me, fi, a, b)
@@ -65,13 +62,18 @@ module cheby
             real(dp),          intent(in)    :: fi(:,:), &
                                                 ! (n x ndim)
                                               & a, b
+            integer i
             me%ndim = size(fi,2)
             me%ndeg = size(fi,1)
             me%a    = a
             me%b    = b
-            me%coeffs = chfit(me%ndeg, fi, me%ndim)
+            if (allocated(me%coeffs)) deallocate(me%coeffs)
+            allocate(me%coeffs(me%ndeg,me%ndim))
+            do i=1,me%ndim
+                me%coeffs(:,i) = chfit(me%ndeg, fi(:,i))
+            end do
         end subroutine fit
-        function call(me, x) result(res)
+        function call_s(me, x) result(res)
             class(vectorcheb), intent(in) :: me
             real(dp),          intent(in)    :: x
             real(dp)                         :: res(me%ndim)
@@ -79,7 +81,30 @@ module cheby
             do i=1,me%ndim
                 res(i) = chcall(me%a, me%b, me%coeffs(:,i), x)
             enddo
-        end function call
+        end function call_s
+        function call_v(me, x) result(res)
+            class(vectorcheb), intent(in) :: me
+            real(dp),          intent(in)    :: x(:)
+            real(dp)                         :: res(size(x),me%ndim)
+            integer                          :: i
+            do i=1,me%ndim
+                res(:,i) = chcall(me%a, me%b, me%coeffs(:,i), x)
+            enddo
+        end function call_v
+        function deriv(me) result(res)
+            class(vectorcheb), intent(in) :: me
+            type(vectorcheb)             :: res
+            integer                          :: i
+            res%ndim = me%ndim
+            res%ndeg = me%ndeg-1
+            res%a    = me%a
+            res%b    = me%b
+            if (allocated(res%coeffs)) deallocate(res%coeffs)
+            allocate(res%coeffs(res%ndeg,res%ndim))
+            do i=1,res%ndim
+                res%coeffs(:,i) = chderiv(me%coeffs(:,i), me%a, me%b)
+            enddo
+        end function deriv
 end module cheby
 pure function chnodes(n,a,b) result(res)
     use cheby, only: pi, dp
@@ -210,40 +235,6 @@ pure function chfit_s(n,fi) result(res)
     if (n>1) polyarray(:,2:) = 2.0_dp*polyarray(:,2:)
     res = matmul(fi,polyarray)/n
 end function chfit_s
-
-pure function chfit_v(n,fi,func_dim) result(res)
-    use cheby, only: chnodes, pi, dp
-    implicit none
-    integer, intent(in) :: n, func_dim
-    integer :: j,i
-    real(dp), intent(in) :: fi(:,:)
-    real(dp) :: res(n,func_dim), u(n), polyarray(n,n)
-    ! n: Order of approximation
-    ! a: beginning of range
-    ! b: end of range
-    ! fi: (n x ndim)-dimensional array of function evaluated at chebyshev nodes 
-    !     (see above)
-
-    ! return the list of chebyshev coefficients approximating the function
-    ! encoded by the values of the xi
-
-    ! Generate nodes
-    u = chnodes(n,-1._dp,1._dp)
-    ! Make a matrix with rows that are the chebyshev polynomials for coefficient fits
-    if (n>0) polyarray(:,1) = 1.0_dp
-    if (n>1) polyarray(:,2) = u
-    if (n>2) then
-        do j=3,n 
-            polyarray(:,j) = [(2.0_dp*u(i)*polyarray(i,j-1)-polyarray(i,j-2), i=1,n)]
-        end do
-    end if
-    ! Multiply rows other than row 1 by 2 for the correct curvefit
-    if (n>1) polyarray(:,2:) = 2.0_dp*polyarray(:,2:)
-    ! calculate the coefficients for each element of the output array
-    !               (ndim x n) X (n x n)
-    res = matmul(transpose(fi),polyarray)
-    res = transpose(res)/n
-end function chfit_v
 
 pure function chderiv_s(coeffs,a, b) result(res)
     ! Source: "Modern Computing Methods", Goodwin, E. T., ed., 1961, p. 79

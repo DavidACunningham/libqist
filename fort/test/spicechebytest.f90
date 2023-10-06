@@ -1,16 +1,16 @@
 program main
     use, intrinsic :: iso_fortran_env, only: dp => real64, wp => real128
-    use cheby, only: chnodes, chderiv, chfit, chcall, pi
+    use cheby, only: chnodes, chderiv, chfit, chcall, pi, vectorcheb
     implicit none
     character(len=12) :: arg
-    integer, parameter  :: deg=100, tlen=1000, elindex=3
+    integer, parameter  :: deg=100, tlen=1000, indvar=3
+    type(vectorcheb)    :: pos, vel, acc
     real(dp)            :: a, b
     real(dp)            :: lt_dum, &
                            spkgeo_out(6), spkgps_out(3)
-    real(dp)            :: nodes(deg), fnodes(deg), testpoints(tlen), &
-                           truth(tlen), dtruth(tlen), ddtruth(tlen), &
-                           cheb(tlen), dcheb(tlen), &
-                           coeffs(deg), dcoeffs(deg-1)
+    real(dp)            :: nodes(deg), fnodes(deg,3), testpoints(tlen), &
+                           truth(tlen,3), dtruth(tlen,3), ddtruth(tlen,3), &
+                           cheb(tlen,3), dcheb(tlen,3), ddcheb(tlen,3)
     integer i, bod_id
 
     call FURNSH("/home/david/wrk/nstgro/qist/kernels/mk.tf")
@@ -25,25 +25,31 @@ program main
     do i=1,size(nodes)
         call spkgps(bod_id, nodes(i), "J2000", 399, &
                           & spkgps_out, lt_dum)
-        fnodes(i) = spkgps_out(elindex)
+        fnodes(i,1) = spkgps_out(1)
+        fnodes(i,2) = spkgps_out(2)
+        fnodes(i,3) = spkgps_out(3)
     end do
     do i=1,size(testpoints)
         call spkgeo(bod_id, testpoints(i), "J2000", 399, &
                           & spkgeo_out, lt_dum)
-        truth(i) = spkgeo_out(elindex)
-        dtruth(i) = spkgeo_out(elindex+3)
+        truth(i,1) = spkgeo_out(1)
+        truth(i,2) = spkgeo_out(2)
+        truth(i,3) = spkgeo_out(3)
+        dtruth(i,1) = spkgeo_out(4)
+        dtruth(i,2) = spkgeo_out(5)
+        dtruth(i,3) = spkgeo_out(6)
     end do
-    coeffs = chfit(deg,fnodes)
-    dcoeffs = chderiv(coeffs,a,b)
-    cheb = chcall(a,b,coeffs,testpoints)
-    dcheb = chcall(a,b,dcoeffs,testpoints)
-    call print_to_file("truth", truth)
-    call print_to_file("dtruth", dtruth)
-    call print_to_file("ddtruth", ddtruth)
-    call print_to_file("coeffs", coeffs)
-    call print_to_file("dcoeffs", dcoeffs)
-    call print_to_file("cheb", cheb)
-    call print_to_file("dcheb", dcheb)
+    call pos%fit(fnodes,a,b)
+    vel = pos%deriv()
+    acc = vel%deriv()
+    cheb = pos%call(testpoints)
+    dcheb = vel%call(testpoints)
+    ddcheb = acc%call(testpoints)
+    call print_to_file("truth", truth(:,indvar))
+    call print_to_file("dtruth", dtruth(:,indvar))
+    call print_to_file("cheb", cheb(:,indvar))
+    call print_to_file("dcheb", dcheb(:,indvar))
+    call print_to_file("ddcheb", ddcheb(:,indvar))
     call print_to_file("nodes", nodes)
     call print_to_file("testpoints", testpoints)
     contains
