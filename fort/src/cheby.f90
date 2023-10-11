@@ -44,7 +44,19 @@ module cheby
             real(dp) :: res(size(coeffs)-1)
         end function chderiv_s
     end interface chderiv
-
+    type spice_subset
+        integer               :: nbods, ndeg, central_body
+        integer, allocatable  :: bodlist(:)
+        real(dp)              :: a, b
+        real(dp), allocatable :: pcoeffs(:,:), & !(ndeg,3*nbods)
+                               & vcoeffs(:,:), & !(ndeg,3*nbods)
+                               & acoeffs(:,:)    !(ndeg,3*nbods)
+        contains
+        procedure          :: init => fitspice
+        procedure, private :: call_spice_one
+        procedure, private :: call_spice_sev
+        generic, public    :: call => call_spice_one, call_spice_sev
+    end type spice_subset
     type vectorcheb
         integer               :: ndim, ndeg
         real(dp), allocatable :: coeffs(:,:) !(ndeg, ndim)
@@ -57,6 +69,113 @@ module cheby
             procedure deriv
     end type vectorcheb
     contains
+        subroutine fitspice(me, kernelfile, central_body, bodlist, a, b, ndeg)
+            class(spice_subset), intent(inout) :: me
+            character(len=*),  intent(in)    :: kernelfile
+            integer,             intent(in)    :: central_body, &
+                                                & bodlist(:), &
+                                                & ndeg
+            real(dp),            intent(in)    :: a,b
+            real(dp)                           :: nodes(ndeg), &
+                                                & pfi(ndeg,3*(size(bodlist)+1)), &
+                                                & vfi(ndeg,3*(size(bodlist)+1)), &
+                                                & spkgeo_out(6), lt_dum
+            integer i,j
+            ! load kernel
+            call FURNSH(trim(adjustl(kernelfile)))
+            if (allocated(me%pcoeffs)) deallocate(me%pcoeffs)
+            if (allocated(me%vcoeffs)) deallocate(me%vcoeffs)
+            if (allocated(me%acoeffs)) deallocate(me%acoeffs)
+            if (allocated(me%bodlist)) deallocate(me%bodlist)
+            ! assign type properties
+            me%nbods = size(bodlist) + 1
+            me%ndeg  = ndeg
+            me%a     = a
+            me%b     = b
+            ! allocate bodlist, p/v/acoeffs
+            allocate(me%pcoeffs(ndeg,3*me%nbods), &
+                     me%vcoeffs(ndeg,3*me%nbods), &
+                     me%acoeffs(ndeg,3*me%nbods), &
+                     me%bodlist(me%nbods))
+            ! assign bodies
+            me%bodlist(1) = central_body
+            me%bodlist(2:) = bodlist
+            ! get chebyshev nodes
+            nodes = chnodes(me%ndeg, me%a, me%b)
+            !  for each node, do:
+            do j = 1,me%ndeg
+                ! SPKGEO call at time node(i) for pos/vel of central_body 
+                ! with observer solar_system_barycenter
+                call spkgeo(me%bodlist(1), nodes(j), "J2000", 0, &
+                                  & spkgeo_out, lt_dum)
+                pfi(j,:3) = spkgeo_out(:3)
+                vfi(j,:3) = spkgeo_out(4:)
+            end do
+            ! for each body in bodlist, do:
+            do i=2,me%nbods
+            !  for each node, do:
+                do j=1,me%ndeg
+                    ! SPKGEO call at time node(i) for pos/vel of body(i) with
+                    ! observer central_body
+                    call spkgeo(me%bodlist(i), nodes(j), "J2000", me%bodlist(1), &
+                                      & spkgeo_out, lt_dum)
+                    pfi(j,3*(i-1)+1:3*i) = spkgeo_out(:3)
+                    vfi(j,3*(i-1)+1:3*i) = spkgeo_out(4:)
+                end do
+            end do
+            ! Fit all coeffs
+            do i=1, 3*me%nbods
+                me%pcoeffs(:,i) = chfit(me%ndeg,pfi(:,i))
+                me%vcoeffs(:,i) = chfit(me%ndeg,vfi(:,i))
+                me%acoeffs(:,i) = chderiv(me%vcoeffs(:,i),me%a,me%b)
+            end do
+        end subroutine fitspice
+        function call_spice_one(me,x, bod_id,mode) result(res)
+            class(spice_subset), intent(in) :: me
+            real(dp),            intent(in) :: x
+            integer,             intent(in) :: bod_id
+            character(len=1),    intent(in) :: mode
+            real(dp)                        :: res(3)
+            integer                         :: i
+            i = findloc(me%bodlist,bod_id,dim=1) - 1
+            select case(mode)
+            case ("p")
+                res(1) = chcall(me%a,me%b,me%pcoeffs(:,3*i+1),x)
+                res(2) = chcall(me%a,me%b,me%pcoeffs(:,3*i+2),x)
+                res(3) = chcall(me%a,me%b,me%pcoeffs(:,3*i+3),x)
+            case ("v")
+                res(1) = chcall(me%a,me%b,me%vcoeffs(:,3*i+1),x)
+                res(2) = chcall(me%a,me%b,me%vcoeffs(:,3*i+2),x)
+                res(3) = chcall(me%a,me%b,me%vcoeffs(:,3*i+3),x)
+            case ("a")
+                res(1) = chcall(me%a,me%b,me%acoeffs(:,3*i+1),x)
+                res(2) = chcall(me%a,me%b,me%acoeffs(:,3*i+2),x)
+                res(3) = chcall(me%a,me%b,me%acoeffs(:,3*i+3),x)
+            end select
+        end function
+        function call_spice_sev(me,x,bod_id,mode) result(res)
+            class(spice_subset), intent(in) :: me
+            real(dp),            intent(in) :: x(:)
+            integer,             intent(in) :: bod_id
+            character(len=1),    intent(in) :: mode
+            real(dp)                        :: res(size(x),3)
+            integer                         :: i
+            i = findloc(me%bodlist,bod_id,dim=1) - 1
+            select case(mode)
+            case ("p")
+                res(:,1) = chcall(me%a,me%b,me%pcoeffs(:,3*i+1),x)
+                res(:,2) = chcall(me%a,me%b,me%pcoeffs(:,3*i+2),x)
+                res(:,3) = chcall(me%a,me%b,me%pcoeffs(:,3*i+3),x)
+            case ("v")
+                res(:,1) = chcall(me%a,me%b,me%vcoeffs(:,3*i+1),x)
+                res(:,2) = chcall(me%a,me%b,me%vcoeffs(:,3*i+2),x)
+                res(:,3) = chcall(me%a,me%b,me%vcoeffs(:,3*i+3),x)
+            case ("a")
+                res(:,1) = chcall(me%a,me%b,me%acoeffs(:,3*i+1),x)
+                res(:,2) = chcall(me%a,me%b,me%acoeffs(:,3*i+2),x)
+                res(:,3) = chcall(me%a,me%b,me%acoeffs(:,3*i+3),x)
+            end select
+        end function call_spice_sev
         subroutine fit(me, fi, a, b)
             class(vectorcheb), intent(inout) :: me
             real(dp),          intent(in)    :: fi(:,:), &
@@ -238,11 +357,11 @@ end function chfit_s
 
 pure function chderiv_s(coeffs,a, b) result(res)
     ! Source: "Modern Computing Methods", Goodwin, E. T., ed., 1961, p. 79
+    ! This is done in quad based on advice from the source above
     use cheby, only: dp
     use, intrinsic :: iso_fortran_env, only: qp=>real128
     real(dp), intent(in) :: coeffs(:), a, b
     real(dp)             :: res(size(coeffs)-1)
-    real(dp)             :: primecoeffs(size(coeffs)-1)
     real(qp)             :: quadp(size(coeffs)+1)
     integer              :: deg, i
     deg = size(coeffs)
@@ -252,10 +371,4 @@ pure function chderiv_s(coeffs,a, b) result(res)
     end do
     res = real(quadp(:deg-1)*(2._qp/(b-a)),dp)
     res(1) = res(1)/2.
-    ! primecoeffs = 0._dp
-    ! do i=deg,2,-1
-    !     primecoeffs(i-1) = primecoeffs(i+1) + 2._dp*(i-1)*coeffs(i)
-    ! end do
-    ! res = primecoeffs(:deg-1)*(2._dp/(b-a))
-    ! res(1) = res(1)/2.
 end function chderiv_s
