@@ -4,7 +4,7 @@ program main
     implicit none
     character(len=12) :: arg
     integer, parameter  :: tlen=1000, indvar=1
-    type(spice_subset)    :: spice
+    type(spice_subset)    :: spiceb, spice
     real(dp)            :: a, b
     real(dp)            :: lt_dum, &
                            spkgeo_out(6)
@@ -22,7 +22,13 @@ program main
     call get_command_argument(4, arg)
     read(arg,*) deg
     bodlist = [1, 2, 301, 4, 5, 6, 7, 8, 9]
-    call spice%init("/home/david/wrk/nstgro/qist/kernels/mk.tf", 399, bodlist, a, b, deg)
+    call spiceb%init("/home/david/wrk/nstgro/qist/kernels/mk.tf", 399, bodlist, a, b, deg)
+    open(file="./spiceb.strm",unit=73,access="stream",status="replace")
+    call spiceb%write(73)
+    close(73)
+    open(file="./spiceb.strm",unit=75,access="stream",status="old")
+    call spice%read(75)
+    close(75)
     testpoints = [(a + i*(b-a)/tlen, i=1,tlen)]
     do i=1,size(testpoints)
         call spkgeo(bod_id, testpoints(i), "J2000", 399, &

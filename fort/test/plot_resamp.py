@@ -22,7 +22,7 @@ start_sec = (start_date - epoch).total_seconds()
 stop_sec = (stop_date - epoch).total_seconds()
 body = "Moon"
 # ROUGH RULE OF THUMB: 100 degrees per month for moon
-degree = 300
+degree = 200
 
 subprocess.run(["gfortran", "-g", "./resamptest.f90", "../src/cheby.f90", "/home/david/libf/spicelib.a"])
 subprocess.run(["./a.out", bod_dict[body], start_sec.__repr__(), stop_sec.__repr__(), degree.__repr__()])
@@ -66,7 +66,7 @@ ax2.plot(testpoints,np.abs(np.array(dtruth) - np.array(dcheb)),label="vel error"
 ax2.legend()
 ax[2].set_xlabel("time (s)")
 ax2.set_xlabel("time (s)")
-ax2.set_ylabel("normalized absolute error")
+ax2.set_ylabel("absolute error (km or km/s)")
 ax2.set_yscale("log")
 fig.suptitle(body+" J2000 x-coord, relative to Earth")
 plt.show()

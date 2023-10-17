@@ -140,5 +140,4 @@ module globals
         end if
         res = [real(x1), aimag(x1), real(x2), aimag(x2)]
     end function qesolve
-
 end module globals

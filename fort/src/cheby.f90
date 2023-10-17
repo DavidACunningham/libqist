@@ -53,6 +53,8 @@ module cheby
                                & acoeffs(:,:)    !(ndeg,3*nbods)
         contains
         procedure          :: init => fitspice
+        procedure          :: write => spicewrite
+        procedure          :: read => spiceread
         procedure, private :: call_spice_one
         procedure, private :: call_spice_sev
         generic, public    :: call => call_spice_one, call_spice_sev
@@ -69,6 +71,36 @@ module cheby
             procedure deriv
     end type vectorcheb
     contains
+        subroutine spicewrite(me,unit_num)
+            class(spice_subset), intent(in) :: me
+            integer,             intent(in) :: unit_num
+            write(unit_num) me%nbods
+            write(unit_num) me%ndeg
+            write(unit_num) me%central_body
+            write(unit_num) me%bodlist
+            write(unit_num) me%a
+            write(unit_num) me%b
+            write(unit_num) me%pcoeffs
+            write(unit_num) me%vcoeffs
+            write(unit_num) me%acoeffs
+        end subroutine spicewrite
+        subroutine spiceread(me,unit_num)
+            class(spice_subset), intent(inout) :: me
+            integer,             intent(in) :: unit_num
+            read(unit_num) me%nbods
+            read(unit_num) me%ndeg
+            read(unit_num) me%central_body
+            allocate(me%bodlist(me%nbods))
+            read(unit_num) me%bodlist
+            read(unit_num) me%a
+            read(unit_num) me%b
+            allocate(me%pcoeffs(me%ndeg,3*me%nbods), &
+                   & me%vcoeffs(me%ndeg,3*me%nbods), &
+                   & me%acoeffs(me%ndeg,3*me%nbods))
+            read(unit_num) me%pcoeffs
+            read(unit_num) me%vcoeffs
+            read(unit_num) me%acoeffs
+        end subroutine spiceread
         subroutine fitspice(me, kernelfile, central_body, bodlist, a, b, ndeg)
             class(spice_subset), intent(inout) :: me
             character(len=*),  intent(in)    :: kernelfile
