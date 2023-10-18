@@ -12,6 +12,7 @@ bod_dict = {"Mercury" : "1",
             "Uranus"  : "7",
             "Neptune" : "8",
             "Pluto"   : "9",
+            "Sun"     : "10",
             }
 
 
@@ -20,7 +21,7 @@ start_date = dt.date(2023,10,10)
 stop_date = dt.date(2024,4,10)
 start_sec = (start_date - epoch).total_seconds()
 stop_sec = (stop_date - epoch).total_seconds()
-body = "Moon"
+body = "Sun"
 # ROUGH RULE OF THUMB: 100 degrees per month for moon
 degree = 200
 

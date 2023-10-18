@@ -11,7 +11,7 @@ program main
     real(dp)            :: testpoints(tlen), &
                            truth(tlen,3), dtruth(tlen,3), &
                            cheb(tlen,3), dcheb(tlen,3), ddcheb(tlen,3)
-    integer             :: i, bodlist(9), bod_id, deg
+    integer             :: i, bodlist(6), bod_id, deg
 
     call get_command_argument(1, arg)
     read(arg,*) bod_id
@@ -21,7 +21,7 @@ program main
     read(arg,*) b
     call get_command_argument(4, arg)
     read(arg,*) deg
-    bodlist = [1, 2, 301, 4, 5, 6, 7, 8, 9]
+    bodlist = [10, 2, 301, 4, 5, 6]
     call spiceb%init("/home/david/wrk/nstgro/qist/kernels/mk.tf", 399, bodlist, a, b, deg)
     open(file="./spiceb.strm",unit=73,access="stream",status="replace")
     call spiceb%write(73)

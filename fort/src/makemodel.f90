@@ -1,12 +1,14 @@
 module makemodel
-    use globals
+    use, intrinsic :: iso_fortran_env, only: wp=>real64, dp=>real64
     use astkindmodule
     use shdatamodule
     use pinesmodule
     use tensorops
+    use cheby, only: spice_subset
     implicit none
 
     type :: dynamicsModel
+        type(spice_subset)    :: bod_db
         integer               :: num_bodies, &
                                & central_body, &
                                & traj_id
@@ -36,13 +38,17 @@ module makemodel
 
     contains
 
-    subroutine init_dm(me, kernelfile, traj_id, central_body, bodylist, &
+    subroutine init_dm(me, subspice, traj_id, central_body, bodylist, &
+                     & central_body_mu, central_body_ref_radius, mu_list, &
                      & shgrav, Cbar, Sbar)
         ! init_dm: method to initialize dynamicsModel object
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
-        ! kernelfile     character      The absolute directory path for the 
-        !                               SPICE metakernel
+        ! subspice       spice_subset   spice subset object containing 
+        !                               necessary objects for the model--
+        !                               the traj_id, central_body, and bodylist
+        !                               must all be members of 
+        !                               spice_subset%bodlist
         ! traj_id        integer        the integer ID of the reference 
         !                               trajectory in the SPICE kernel
         ! central_body   integer        the integer ID of the selected central
@@ -50,6 +56,12 @@ module makemodel
         ! bodylist       integer (:)    list of integer IDs of the gravitating
         !                               bodies in the SPICE kernel, other than
         !                               the central body
+        ! central_body_mu . . .
+        !                real          gravitational parameter of central body
+        ! central_body_ref_radius . . . 
+        !                real          reference radius for SH data
+        ! mu_list        real          gravitational parameters of bodies
+        !                               sorted in the same order ad bodylist
         ! shgrav         logical        TRUE if central body will be modeled
         !                               by spherical harmonics
         ! Cbar           real (:,:)     4 pi (Kaula) normalized cosine Stokes 
@@ -59,34 +71,29 @@ module makemodel
         ! OUTPUTS:
         ! NONE
         class(dynamicsModel), intent(inout) :: me
+        type(spice_subset),   intent(in)    :: subspice
         integer,              intent(in)    :: traj_id, & 
                                                central_body, &
                                                bodylist(:)
+        real(wp),             intent(in)    :: central_body_ref_radius, &
+                                               central_body_mu, &
+                                               mu_list(:)
         logical,              intent(in)    :: shgrav
         real(wp),             intent(in)    :: Cbar(:,:), &
                                                Sbar(:,:)
-        character(len=256),   intent(in)    :: kernelfile
-        real(dp)                            :: mudum(1)
-        real(dp)                            :: radii(3)
-        integer                             :: i,N
         me%num_bodies = size(bodylist)
         me%shgrav = shgrav
         me%traj_id = traj_id
-        me%kernelfile = kernelfile
+        me%bod_db = subspice
         call furnsh(me%kernelfile)
         allocate(me%bodylist(me%num_bodies),  &
                  me%nbody_mus(me%num_bodies), &
                  me%nbody_radii(3,me%num_bodies) &
                 )
         me%bodylist = bodylist
-        call bodvcd(central_body, 'RADII', 3, N, radii)
-        call bodvcd(central_body, 'GM', 1, N, mudum)
-        me%central_body_ref_radius = radii(1)
-        me%central_body_mu = real(mudum(1), wp)
-        do i=1,me%num_bodies
-            call bodvcd(bodylist(i), 'GM', 1, N, mudum)
-            me%nbody_mus(i) = real(mudum(1), wp)
-        end do
+        me%central_body_ref_radius = central_body_ref_radius
+        me%central_body_mu = central_body_mu
+        me%nbody_mus = mu_list
 
         if (me%shgrav) then
             call shdat_from_table( me%central_body_ref_radius, & 
@@ -119,23 +126,18 @@ module makemodel
         real(wp)                            :: acc_2b(6), jac_2b(6,6), hes_2b(6,6,6)
         real(wp)                            :: acc_nb(6), jac_nb(6,6), hes_nb(6,6,6)
         real(wp)                            :: r_up(6), r_bod_up(3)
-        real(dp)                            :: traj_state(6), lt_dum
+        real(dp)                            :: traj_state(6)
         integer i
         ! at time t (in s past j2000)
-            ! For central body (i=1) NOTE: SPICE IS NOT THREAD SAFE, DON'T DO THIS IN ||
-                ! get r from traj to body i (SPKGPS)
-        call spkgeo( me%traj_id, real(time,dp), "J2000", me%central_body, &
-                   & traj_state, lt_dum)
-            ! for bodies i = 2. . . N NOTE: SPICE IS NOT THREAD SAFE, DON'T DO THIS IN ||
+            ! get r from central body to traj
+        traj_state(:3) = me%bod_db%call(real(time,dp),me%traj_id,'p')
+        traj_state(4:) = me%bod_db%call(real(time,dp),me%traj_id,'v')
+            ! for bodies i = 2. . .
         do i=1,me%num_bodies
-            ! get r from traj to body i (SPKGPS)
-            call spkgps(me%traj_id, time, "J2000", me%central_body, &
-                      & me%nbody_radii(:,i), &     ! (3,num_bodies)
-                      & lt_dum)
-            ! get r from central body to body i (SPKGPS)
-
+            ! get r from central body to body i
+            me%nbody_radii(:,i) = me%bod_db%call(real(time,dp), &
+                                               & me%bodylist(i),'p')
         end do
-
         ! For central body
             ! Choose point mass or SH model
         r_up = real(traj_state,wp)
@@ -170,15 +172,16 @@ module makemodel
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! mu             real           Gravitational parameter of body
-        ! r              real (3)       Distance from gravitating body to
-        !                               field point
+        ! r              real (:)       Distance from gravitating body to
+        !                               field point in first 3 elements,
+        !                               could be state vector
         ! OUTPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! res            real (6)       Keplerian acceleration vector with
         !                               zero padding (0, 0, 0, ax, ay, az)
         class(dynamicsModel), intent(in) :: me
         real(wp),             intent(in) :: mu
-        real(wp),             intent(in) :: r(3)
+        real(wp),             intent(in) :: r(:)
         real(wp)                         :: res(6)
         res = xdot(r)
         contains 
@@ -204,8 +207,9 @@ module makemodel
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! mu             real           Gravitational parameter of body
-        ! r              real (3)       Distance from gravitating body to
-        !                               field point
+        ! r              real (:)       Distance from gravitating body to
+        !                               field point in first 3 elements,
+        !                               could be state vector
         ! OUTPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! res            real (6,6)     Keplerian Jacobian matrix 
@@ -227,7 +231,7 @@ module makemodel
         !                               [ A  0 ]
         class(dynamicsModel), intent(in) :: me
         real(wp),             intent(in) :: mu
-        real(wp),             intent(in) :: r(3)
+        real(wp),             intent(in) :: r(:)
         real(wp)                         :: res(6,6)
         res = reshape(jac(r),[6,6])
         contains
@@ -294,8 +298,9 @@ module makemodel
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! mu             real           Gravitational parameter of body
-        ! r              real (3)       position vector from gravitating body to
-        !                               field point
+        ! r              real (:)       Distance from gravitating body to
+        !                               field point in first 3 elements,
+        !                               could be state vector
         ! OUTPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! res            real (6,6,6)   Keplerian Hessian tensor H where
@@ -304,7 +309,7 @@ module makemodel
         !                                           dx_j dx_k
         class(dynamicsModel), intent(in) :: me
         real(wp),             intent(in) :: mu
-        real(wp),             intent(in) :: r(3)
+        real(wp),             intent(in) :: r(:)
         real(wp)                         :: res(6,6,6)
         res = reshape(hes(r),[6,6,6])
         contains
@@ -568,8 +573,9 @@ module makemodel
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! mu             real           Gravitational parameter of third body
-        ! r              real (3)       Position vector from central body to
-        !                               field point
+        ! r              real (:)       Position vector from central body to
+        !                               field point in first 3 elements,
+        !                               could be state vector
         ! rbods          real (3)       Position vector from central body to
         !                               third body
         ! OUTPUTS:
@@ -578,7 +584,7 @@ module makemodel
         !                               zero padding (0, 0, 0, ax, ay, az)
         class(dynamicsModel), intent(in) :: me
         real(wp),             intent(in) :: mu
-        real(wp),             intent(in) :: r(3), &
+        real(wp),             intent(in) :: r(:), &
                                             rbods(3)
         real(wp)                         :: res(6)
         real(wp)                         :: xj, yj, zj, mu_j
@@ -623,8 +629,9 @@ module makemodel
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! mu             real           Gravitational parameter of third body
-        ! r              real (3)       Position vector from central body to
-        !                               field point
+        ! r              real (:)       Position vector from central body to
+        !                               field point in first 3 elements,
+        !                               could be state vector
         ! rbods          real (3)       Position vector from central body to
         !                               third body
         ! OUTPUTS:
@@ -649,7 +656,7 @@ module makemodel
         !                               [ A  0 ]
         class(dynamicsModel), intent(in) :: me
         real(wp),             intent(in) :: mu
-        real(wp),             intent(in) :: r(3), &
+        real(wp),             intent(in) :: r(:), &
                                             rbods(3)
         real(wp)                         :: res(6,6)
         real(wp)                         :: xj, yj, zj, mu_j
@@ -740,8 +747,9 @@ module makemodel
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! mu             real           Gravitational parameter of third body
-        ! r              real (3)       position vector from central body to
-        !                               field point
+        ! r              real (:)       Position vector from central body to
+        !                               field point in first 3 elements,
+        !                               could be state vector
         ! r              real (3)       position vector from central body to
         !                               third body
         ! OUTPUTS:
@@ -752,7 +760,7 @@ module makemodel
         !                                           dx_j dx_k
         class(dynamicsModel), intent(in) :: me
         real(wp),             intent(in) :: mu
-        real(wp),             intent(in) :: r(3), &
+        real(wp),             intent(in) :: r(:), &
                                             rbods(3)
         real(wp)                         :: res(6,6,6)
         real(wp)                         :: xj, yj, zj, mu_j
@@ -1169,11 +1177,10 @@ module makemodel
         !                               centered on the central body
         class(dynamicsmodel), intent(inout) :: me
         real(wp),             intent(in)    :: time
-        real(dp)                            :: lt_dum
         real(dp)                            :: traj_state(6)
         real(wp)                            :: res(6)
-        call spkgeo( me%traj_id, real(time,dp), "J2000", me%central_body, &
-                   & traj_state, lt_dum)
+        traj_state(:3) = me%bod_db%call(real(time,dp),me%traj_id,'p')
+        traj_state(4:) = me%bod_db%call(real(time,dp),me%traj_id,'v')
         res = real(traj_state,wp)
     end function trajstate
 end module makemodel
