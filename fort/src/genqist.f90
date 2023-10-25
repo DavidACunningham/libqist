@@ -1,13 +1,15 @@
 module genqist
     use globals
+    use, intrinsic :: iso_fortran_env, only: dp=>real64, qp=>real128
     use makemodel
     use frkmain, only: solve_ivp, Odesolution, RungeKutta
+    use cheby, only: spice_subset
     implicit none
 
     type gqist
         type(dynamicsmodel)   :: dynmod
-        real(wp), allocatable :: initstate(:)
-        real(wp)              :: rtol, atol, t0, tf
+        real(qp), allocatable :: initstate(:)
+        real(qp)              :: rtol, atol, t0, tf
         contains
         procedure init
         procedure integrate
@@ -15,7 +17,15 @@ module genqist
 
     contains
 
-    subroutine init(me,t0, tf, kernelfile, traj_id, central_body, bodylist, &
+    subroutine make_spice_subset(ta,tb, central_body, bod_list, metakernel_filename, output_filename)
+        real(dp), intent(in) :: ta,tb
+        integer,  intent(in) :: central_body, bod_list(:)
+        character(len=*)     :: output_filename, metakernel_filename
+
+    end subroutine make_spice_subset
+
+    subroutine init(me,t0, tf, subspicefile, traj_id, central_body, bodylist, &
+                  & central_body_mu, central_body_ref_radius, mu_list, &
                   & shgrav, Cbar, Sbar)
         ! init_dm: method to initialize dynamicsModel object
         ! INPUTS:
@@ -26,8 +36,8 @@ module genqist
         ! tf             real           highest possible time in seconds past 
         !                               J2000 at which model integration may 
         !                               end
-        ! kernelfile     character      The absolute directory path for the 
-        !                               SPICE metakernel
+        ! subspicefile   character      The absolute directory path for the 
+        !                               spice_subset object
         ! traj_id        integer        the integer ID of the reference 
         !                               trajectory in the SPICE kernel
         ! central_body   integer        the integer ID of the selected central
@@ -35,6 +45,12 @@ module genqist
         ! bodylist       integer (:)    list of integer IDs of the gravitating
         !                               bodies in the SPICE kernel, other than
         !                               the central body
+        ! central_body_mu . . .
+        !                real          gravitational parameter of central body
+        ! central_body_ref_radius . . . 
+        !                real          reference radius for SH data
+        ! mu_list        real          gravitational parameters of bodies
+        !                               sorted in the same order ad bodylist
         ! shgrav         logical        TRUE if central body will be modeled
         !                               by spherical harmonics
         ! Cbar           real (:,:)     4 pi (Kaula) normalized cosine Stokes 
@@ -44,15 +60,26 @@ module genqist
         ! OUTPUTS:
         ! NONE
         class(gqist), intent(inout) :: me
-        real(wp),     intent(in)    :: t0, tf
+        type(spice_subset)          :: subspice
+        real(qp),     intent(in)    :: t0, tf
         integer,              intent(in)    :: traj_id, & 
                                                central_body, &
                                                bodylist(:)
         logical,              intent(in)    :: shgrav
-        real(wp),             intent(in)    :: Cbar(:,:), &
+        real(dp),             intent(in)    :: central_body_ref_radius, &
+                                               central_body_mu, &
+                                               mu_list(:)
+        real(dp),             intent(in)    :: Cbar(:,:), &
                                                Sbar(:,:)
-        character(len=256),   intent(in)    :: kernelfile
-        call me%dynmod%init(kernelfile, traj_id, central_body, bodylist, shgrav, Cbar, Sbar)
+        character(len=*),   intent(in)    :: subspicefile
+
+        open(file=trim(adjustl(subspicefile)),unit=73, &
+           & access="stream", status="old")
+        call subspice%read(73)
+        close(73)
+        call me%dynmod%init(subspice, traj_id, central_body, bodylist, &
+                          & central_body_mu, central_body_ref_radius,  &
+                          & mu_list, shgrav, Cbar, Sbar)
         me%t0 = t0
         me%tf = tf
     end subroutine
@@ -69,7 +96,7 @@ module genqist
         ! res            ODESolution    the dense solution, ready for packing
         class(gqist), intent(inout) :: meqist
         type(ODESolution)           :: res
-        real(wp), intent(in)        :: t0, tf
+        real(qp), intent(in)        :: t0, tf
         logical                     :: boundscheck
         boundscheck = .false.
         if (t0<=meqist%t0) then
@@ -91,14 +118,14 @@ module genqist
                       & meqist%dynmod%trajstate(t0),&
                       & method="DOP853",&
                       & dense_output=.true.,&
-                      & rtol=meqist%rtol*1.E-2_wp, &
-                      & atol=meqist%atol, istep=1._wp)
+                      & rtol=meqist%rtol*1.E-2_qp, &
+                      & atol=meqist%atol, istep=1._qp)
         contains
             function myint_eoms(me, x, y) result(res)
                 class(RungeKutta), intent(inout) :: me
-                real(wp),          intent(in)    :: x, y(:)
-                real(wp)                         :: res(size(y))
+                real(qp),          intent(in)    :: x, y(:)
+                real(qp)                         :: res(size(y))
                 res = meqist%dynmod%eoms(x,y)
-            end function
-    end function integrate
+            end function myint_eoms
+        end function integrate
 end module genqist
