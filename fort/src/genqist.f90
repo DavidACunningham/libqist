@@ -79,7 +79,7 @@ module genqist
         close(73)
         call me%dynmod%init(subspice, traj_id, central_body, bodylist, &
                           & central_body_mu, central_body_ref_radius,  &
-                          & mu_list, shgrav, Cbar, Sbar)
+                          & mu_list, shgrav, Cbar, Sbar,.true.)
         me%t0 = t0
         me%tf = tf
     end subroutine
