@@ -9,7 +9,7 @@ program main
     real(dp)           :: cdum(2,2), sdum(2,2)
 
     call qist%init(0._qp, 2._qp*24._qp*3600._qp, &
-                 & "./twbody_resample.subspice", &
+                 & "./twobody_resample.subspice", &
                  & -999, &
                  &  399, &
                  &  [10, 301, 5], &

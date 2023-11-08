@@ -98,6 +98,8 @@ module genqist
         type(ODESolution)           :: res
         real(qp), intent(in)        :: t0, tf
         logical                     :: boundscheck
+        real(qp)                    :: eye(8,8), hess_init(8,8,8)
+        integer i
         boundscheck = .false.
         if (t0<=meqist%t0) then
             write(*,42,advance='no') "integration start set to ", t0
@@ -113,9 +115,19 @@ module genqist
         if (boundscheck) then
             error stop
         end if
+        eye = 0._qp
+        do i=1,8
+            eye(i,i) = 1._qp
+        end do
+        hess_init = 0._qp
+        meqist%dynmod%tof = tf-t0
         res = solve_ivp(myint_eoms,&
-                      & [t0, tf], &
-                      & meqist%dynmod%trajstate(t0),&
+                      & [0._qp, 1._qp], &
+                      & [meqist%dynmod%trajstate(t0), &
+                         t0, &
+                         (tf - t0), &
+                         reshape(eye,[8**2]), &
+                         reshape(hess_init,[8**3])], &
                       & method="DOP853",&
                       & dense_output=.true.,&
                       & rtol=meqist%rtol*1.E-2_qp, &
@@ -125,7 +137,7 @@ module genqist
                 class(RungeKutta), intent(inout) :: me
                 real(qp),          intent(in)    :: x, y(:)
                 real(qp)                         :: res(size(y))
-                res = meqist%dynmod%eoms(x,y)
+                res = meqist%dynmod%eoms_rails(x,y)
             end function myint_eoms
         end function integrate
 end module genqist

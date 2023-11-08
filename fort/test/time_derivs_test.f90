@@ -6,7 +6,7 @@ program timederivtest
     implicit none
     type(dynamicsModel)  :: dyn
     type(spice_subset)   :: subspice
-    real(qp), parameter  :: t0=0._qp, tf=2._qp*24._qp*3600._qp, test_time=0.879302_qp*tf
+    real(qp), parameter  :: t0=0._qp, tf=2._qp*24._qp*3600._qp, test_time=0.879302_qp*tf, tof = 0.943939*tf
     integer, parameter   :: traj_id = -999, & 
                             central_body = 399, &
                             bodylist(3)= [10,301,5]
@@ -34,27 +34,57 @@ program timederivtest
     call dyn%init(subspice, traj_id, central_body, bodylist, &
                 & central_body_mu, central_body_ref_radius,  &
                 & mu_list, shgrav, Cbar, Sbar,.true.)
+    dyn%tof = tof
     call dyn%get_derivs(test_time, acc_analytic, jac_analytic, hes_analytic)
 
-    test_state = [dyn%trajstate(test_time), test_time, 1.5_qp*tf]
-    jac_findiff = findiff(kepwrap, test_state, 1._qp , 9) + &
-                & findiff(tbwrap,  test_state, 1._qp , 9)
+    test_state = [dyn%trajstate(test_time), test_time, tof]
+    jac_findiff = findiff(kepwrap, test_state, 300._qp , 9) + &
+                & findiff(tbwrap,  test_state, 300._qp , 9)
+    hes_findiff = findiffhes(kepjacwrap, test_state, 300._qp , 9) + &
+                & findiffhes(tbjacwrap,  test_state, 300._qp , 9)
 
+    print *, "ANALYTIC JACOBIAN"
     do i = 1,8
-        print *, jac_findiff(i,:) - jac_analytic(i,:)
-        print *, ""
+        print *, real(jac_analytic(i,:),4)
+        print *,  ""
     end do
+    print *, "FINITE DIFF JACOBIAN"
+    do i = 1,8
+        print *, real(jac_findiff(i,:),4)
+        print *,  ""
+    end do
+    print *, "JACOBIAN ERROR"
+    do i = 1,8
+        print *, real(jac_findiff(i,:) - jac_analytic(i,:),4)
+        print *,  ""
+    end do
+    print *, "JAC ERROR FROB"
+    print *, real(maxval(abs(jac_findiff - jac_analytic)),4)
+    print *, "HES ERROR FROB"
+    print *, real(maxval(abs(hes_findiff - hes_analytic)),4)
     contains
         function tbwrap(x) result(res)
             real(qp), intent(in) :: x(:)
             real(qp)             :: res(size(x))
             res = dyn%fd_acc_nbody(x)
+            res(:3) = 0._qp
         end function tbwrap
         function kepwrap(x) result(res)
             real(qp), intent(in) :: x(:)
             real(qp)             :: res(size(x))
             res = dyn%fd_acc_kepler(x)
         end function kepwrap
+        function tbjacwrap(x) result(res)
+            real(qp), intent(in) :: x(:)
+            real(qp)             :: res(size(x),size(x))
+            res = dyn%fd_jac_nbody(x)
+            res(:3,:) = 0._qp
+        end function tbjacwrap
+        function kepjacwrap(x) result(res)
+            real(qp), intent(in) :: x(:)
+            real(qp)             :: res(size(x),size(x))
+            res = dyn%fd_jac_kepler(x)
+        end function kepjacwrap
         
 ! function findiffhes(j, xstar,eps,order) result(res)
 ! function findiff(f, xstar,eps,order) result(res)
