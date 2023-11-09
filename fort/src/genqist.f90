@@ -26,7 +26,7 @@ module genqist
 
     subroutine init(me,t0, tf, subspicefile, traj_id, central_body, bodylist, &
                   & central_body_mu, central_body_ref_radius, mu_list, &
-                  & shgrav, Cbar, Sbar)
+                  & shgrav, Cbar, Sbar,rails)
         ! init_dm: method to initialize dynamicsModel object
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
@@ -57,6 +57,7 @@ module genqist
         !                               for central body
         ! Sbar           real (:,:)     4 pi (Kaula) normalized sine Stokes 
         !                               for central body
+        ! rails          logical        is the reference state on rails
         ! OUTPUTS:
         ! NONE
         class(gqist), intent(inout) :: me
@@ -65,7 +66,7 @@ module genqist
         integer,              intent(in)    :: traj_id, & 
                                                central_body, &
                                                bodylist(:)
-        logical,              intent(in)    :: shgrav
+        logical,              intent(in)    :: shgrav, rails
         real(dp),             intent(in)    :: central_body_ref_radius, &
                                                central_body_mu, &
                                                mu_list(:)
@@ -79,9 +80,11 @@ module genqist
         close(73)
         call me%dynmod%init(subspice, traj_id, central_body, bodylist, &
                           & central_body_mu, central_body_ref_radius,  &
-                          & mu_list, shgrav, Cbar, Sbar,.true.)
+                          & mu_list, shgrav, Cbar, Sbar,rails)
         me%t0 = t0
         me%tf = tf
+        me%rtol = 1.e-14
+        me%atol = 1.e-14
     end subroutine
     function integrate(meqist, t0, tf) result(res)
         ! integrate: integrate a QIST model
@@ -98,7 +101,7 @@ module genqist
         type(ODESolution)           :: res
         real(qp), intent(in)        :: t0, tf
         logical                     :: boundscheck
-        real(qp)                    :: eye(8,8), hess_init(8,8,8)
+        real(qp)                    :: init_state(8), eye(8,8), hess_init(8,8,8)
         integer i
         boundscheck = .false.
         if (t0<=meqist%t0) then
@@ -121,23 +124,31 @@ module genqist
         end do
         hess_init = 0._qp
         meqist%dynmod%tof = tf-t0
+        if (meqist%dynmod%tgt_on_rails) then
+            init_state(:6) = 0._qp
+        else
+            init_state(:6) = meqist%dynmod%trajstate(t0)
+        endif
+        init_state(7:) = [t0, tf - t0]
         res = solve_ivp(myint_eoms,&
                       & [0._qp, 1._qp], &
-                      & [meqist%dynmod%trajstate(t0), &
-                         t0, &
-                         (tf - t0), &
+                      & [ init_state, &
                          reshape(eye,[8**2]), &
                          reshape(hess_init,[8**3])], &
                       & method="DOP853",&
                       & dense_output=.true.,&
                       & rtol=meqist%rtol*1.E-2_qp, &
-                      & atol=meqist%atol, istep=1._qp)
+                      & atol=meqist%atol, istep=0.5_qp)
         contains
             function myint_eoms(me, x, y) result(res)
                 class(RungeKutta), intent(inout) :: me
                 real(qp),          intent(in)    :: x, y(:)
                 real(qp)                         :: res(size(y))
-                res = meqist%dynmod%eoms_rails(x,y)
+                if (meqist%dynmod%tgt_on_rails) then
+                    res = meqist%dynmod%eoms_rails(x,y)
+                else
+                    res = meqist%dynmod%eoms(x,y)
+                endif
             end function myint_eoms
         end function integrate
 end module genqist

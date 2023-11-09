@@ -19,7 +19,7 @@ program main
                  &  4902.800118_dp, &
                  &  126712764.1_dp], &
                  &  .False., &
-                 &  cdum, sdum)
+                 &  cdum, sdum, .true.)
     sol = qist%integrate(3600._qp, 5*3600._qp)
     
 

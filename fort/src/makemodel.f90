@@ -1839,7 +1839,7 @@ module makemodel
         stm = reshape(y((m + 1):(m + m**2)),[m,m])
         stt = reshape(y((m + m**2 + 1):),[m,m,m])
         me%state = y(:m)
-        call me%get_derivs(t, acc, jac, hes)
+        call me%get_derivs(y(7), acc, jac, hes)
         statedot = acc
         stmdot = matmul(jac,stm)
         sttdot = mattens(jac,stt,m) + quad(stm,hes,m)
@@ -1873,7 +1873,8 @@ module makemodel
         stt = reshape(y((m + m**2 + 1):),[m,m,m])
         me%state = y(:m)
         call me%get_derivs(y(7), acc, jac, hes)
-        statedot = acc
+        statedot = 0._qp
+        statedot(7) = y(8)
         stmdot = matmul(jac,stm)
         sttdot = mattens(jac,stt,m) + quad(stm,hes,m)
         res = [statedot, reshape(stmdot,[m**2]), reshape(sttdot,[m**3])]

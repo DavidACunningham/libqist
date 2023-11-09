@@ -43,6 +43,12 @@ program timederivtest
     hes_findiff = findiffhes(kepjacwrap, test_state, 300._qp , 9) + &
                 & findiffhes(tbjacwrap,  test_state, 300._qp , 9)
 
+    print *, "STATE"
+    print *, real(test_state,4)
+    print *, "ACCEL"
+    print *, real(acc_analytic,4)
+    print *, "FD ACCEL"
+    print *, real(kepwrap(test_state) + tbwrap(test_state),4)
     print *, "ANALYTIC JACOBIAN"
     do i = 1,8
         print *, real(jac_analytic(i,:),4)
