@@ -27,7 +27,7 @@ program main
     call sol%write(75,dp)
     close(75)
 
-    print *, sol%call(3600._qp*2)
+    print *, sol%call(0.33_qp*2)
 
 
     contains
