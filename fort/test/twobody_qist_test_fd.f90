@@ -24,9 +24,9 @@ program main
                                       &  126712764.1_dp]
     real(dp), parameter  :: Cbar(2,2) = 0._dp, &
                             Sbar(2,2) = 0._dp
-    real(qp)             :: init_state(8), eye(8,8), qist_stm(8,8),&
+    real(qp)             :: init_state(8), eye(8,8), fd_stm(8,8),&
                           & analytic_stm(8,8), analytic_stt(8,8,8), & 
-                          & divisor(8,8), init_stt(8**3), qist_stt(8,8,8), &
+                          & divisor(8,8), init_stt(8**3), fd_stt(8,8,8), &
                           & stt_divisor(8,8,8)
     integer i, j
 
@@ -56,14 +56,108 @@ program main
                   & rtol=rtol, &
                   & atol=atol, istep=0.5_qp)
     print *, "Done."
-    call print_to_file("twobody_qist_x", real(base_sol%ys(1,:),8))
-    call print_to_file("twobody_qist_y", real(base_sol%ys(2,:),8))
-    call print_to_file("twobody_qist_z", real(base_sol%ys(3,:),8))
-    call print_to_file("twobody_qist_xdot", real(base_sol%ys(4,:),8))
-    call print_to_file("twobody_qist_ydot", real(base_sol%ys(5,:),8))
-    call print_to_file("twobody_qist_zdot", real(base_sol%ys(6,:),8))
-    call print_to_file("twobody_qist_t", real(base_sol%ts(:),8))
+
+    analytic_stm = reshape(base_sol%ys(9:8+8**2,size(base_sol%ts)), [8,8])
+    analytic_stt = reshape(base_sol%ys(9+8**2:,size(base_sol%ts)), [8,8,8])
+
+    print *, "Integrating finite diff first order"
+    fd_stm = findiff(fd_integrate, init_state, 1.e-4_qp, 9)
+    print *, "Done"
+
+    print *, "Integrating finite diff second order"
+    fd_stt = findiffhes(fd_integrate_jac, init_state, 1.e-4_qp, 9)
+    print *, "Done"
+
+    divisor = 1._qp
+    where (abs(analytic_stm).ge.1.e-14_qp)
+        divisor = analytic_stm
+    end where
+    stt_divisor = 1._qp
+    where (abs(analytic_stt).ge.1.e-10_qp)
+        stt_divisor = analytic_stt
+    end where
+    print *, "FD THEN ANALYTIC STM THEN NORMALIZED ERROR"
+    do i = 1,8
+        print *, real(fd_stm(i,:),4)
+        print *, real(analytic_stm(i,:),4)
+        print *, real((analytic_stm(i,:) - fd_stm(i,:))/divisor(i,:),4)
+        print *,  ""
+    end do
+    print *, "FD THEN ANALYTIC STT THEN NORMALIZED ERROR"
+    do i = 1,8
+    print *, "PAGE", i
+    do j = 1,8
+        print *, real(fd_stt(i,j,:),4)
+        print *, real(analytic_stt(i,j,:),4)
+        print *, real((analytic_stt(i,j,:) - fd_stt(i,j,:))/stt_divisor(i,j,:),4)
+        print *,  ""
+    end do
+    end do
+    ! IF FD and analytic STM agree, integrate reference trajectory with dynamics under test, analytic STM, finite diff STT
+
+    ! Integrate reference trajectory with dynamics under test and analytic STM and analytic STT
+
+    ! Compare FD and analytic STM and analytic STT
+
+    ! Save reference trajectory to SPICE kernel
+
+    ! Integrate QIST trajectory using SPICE kernel
+
+    ! Compare solutions
+
+
+    !!! OLD TEST, BASIC FUNCTIONALITY ONLY
+    ! call qist%init(0._qp, 2._qp*24._qp*3600._qp, &
+    !              & "./twobody_resample.subspice", &
+    !              & -999, &
+    !              &  399, &
+    !              &  [10, 301, 5], &
+    !              &  398600.5_dp, &
+    !              &  6378.137_dp, &
+    !              & [1.32712440041279419e11_dp, &
+    !              &  4902.800118_dp, &
+    !              &  126712764.1_dp], &
+    !              &  .False., &
+    !              &  cdum, sdum, .true.)
+    ! sol = qist%integrate(3600._qp, 5*3600._qp)
+    
+
+    ! open(unit=75, file="test_tbod_sol.odesolution", access="stream", status="replace")
+    ! call sol%write(75,dp)
+    ! close(75)
+
+    ! print *, sol%call(0.33_qp*2)
+
+
     contains
+        function fd_integrate(x) result(res)
+            type(odesolution) :: fd_sol
+            real(qp), intent(in) :: x(:)
+            real(qp)             :: res(size(x))
+            fd_sol = solve_ivp(fd_eoms,&
+                          & [0._qp, 1._qp], &
+                          & x,&
+                          & method="DOP853",&
+                          & dense_output=.false.,&
+                          & rtol=rtol, &
+                          & atol=atol, istep=0.5_qp)
+            res = fd_sol%ys(:,size(fd_sol%ts))
+        end function fd_integrate
+        function fd_integrate_jac(x) result(res)
+            type(odesolution) :: fd_sol
+            real(qp), intent(in) :: x(:)
+            real(qp)             :: res(size(x),size(x)), &
+                                  & finalstate(8+8**2)
+            fd_sol = solve_ivp(fd_eoms,&
+                          & [0._qp, 1._qp], &
+                          & [x, reshape(eye,[8**2])],&
+                          & method="DOP853",&
+                          & dense_output=.false.,&
+                          & rtol=rtol, &
+                          & atol=atol, istep=0.5_qp)
+            finalstate = fd_sol%ys(:,size(fd_sol%ts))
+            res = reshape(finalstate(9:), [8,8])
+        end function fd_integrate_jac
         function fdwrap(x) result(res)
             real(qp), intent(in) :: x(:)
             real(qp)             :: res(size(x))
@@ -78,6 +172,7 @@ program main
             res(:3,:) = 0._qp
             res = res + dyn%fd_jac_kepler(x)
         end function fdjacwrap
+
         function heswrap(x) result(res)
             real(qp), intent(in) :: x(:)
             real(qp)             :: res(8,8,8)
