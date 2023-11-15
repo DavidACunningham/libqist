@@ -38,6 +38,7 @@ program timederivtest
     call dyn%get_derivs(test_time, acc_analytic, jac_analytic, hes_analytic)
 
     test_state = [dyn%trajstate(test_time), test_time, tof]
+    hes_analytic = heswrap(test_state)
     jac_findiff = findiff(kepwrap, test_state, 300._qp , 9) + &
                 & findiff(tbwrap,  test_state, 300._qp , 9)
     hes_findiff = findiffhes(kepjacwrap, test_state, 300._qp , 9) + &
@@ -91,6 +92,12 @@ program timederivtest
             real(qp)             :: res(size(x),size(x))
             res = dyn%fd_jac_kepler(x)
         end function kepjacwrap
+        function heswrap(x) result(res)
+            real(qp), intent(in) :: x(:)
+            real(qp)             :: res(8,8,8)
+            res = dyn%fd_hes_kepler(x)
+            res = res + dyn%fd_hes_nbody(x)
+        end function heswrap
         
 ! function findiffhes(j, xstar,eps,order) result(res)
 ! function findiff(f, xstar,eps,order) result(res)
