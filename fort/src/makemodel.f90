@@ -19,12 +19,9 @@ module makemodel
         real(qp)              :: central_body_ref_radius, &
                                & central_body_rad(3), &
                                & state(8), &
-                               & tof
-        real(qp), allocatable :: nbody_mus(:), &     ! (num_bodies)
                                & central_body_mu, &
-                               & nbody_radii(:,:), & ! (3,num_bodies)
-                               & nbody_vels(:,:), &  ! (3,num_bodies)
-                               & nbody_accs(:,:)     ! (3,num_bodies)
+                               & tof
+        real(qp), allocatable :: nbody_mus(:)     ! (num_bodies)
         type(SHarmData)       :: shdat
         type(PinesData)       :: pdat
         contains
@@ -89,24 +86,21 @@ module makemodel
         integer,              intent(in)    :: traj_id, & 
                                                central_body, &
                                                bodylist(:)
-        real(dp),             intent(in)    :: central_body_ref_radius, &
+        real(qp),             intent(in)    :: central_body_ref_radius, &
                                                central_body_mu, &
                                                mu_list(:)
         logical,              intent(in)    :: shgrav, &
                                              & tgt_on_rails
-        real(dp),             intent(in)    :: Cbar(:,:), &
+        real(qp),             intent(in)    :: Cbar(:,:), &
                                                Sbar(:,:)
         me%num_bodies = size(bodylist)
         me%shgrav = shgrav
         me%traj_id = traj_id
         me%bod_db = subspice
         allocate(me%bodylist(me%num_bodies),  &
-                 me%nbody_mus(me%num_bodies), &
-                 me%nbody_radii(3,me%num_bodies), &
-                 me%nbody_vels(3,me%num_bodies),  &
-                 me%nbody_accs(3,me%num_bodies)   &
-                )
+                 me%nbody_mus(me%num_bodies))
         me%bodylist = bodylist
+        me%central_body = central_body
         me%central_body_ref_radius = real(central_body_ref_radius,qp)
         me%central_body_mu = real(central_body_mu,qp)
         me%nbody_mus = real(mu_list,qp)
@@ -142,6 +136,9 @@ module makemodel
         real(qp),             intent(out)   :: acc(m), jac(m,m), hes(m,m,m)
         real(qp)                            :: acc_2b(m), jac_2b(m,m), hes_2b(m,m,m)
         real(qp)                            :: acc_nb(m), jac_nb(m,m), hes_nb(m,m,m)
+        real(qp)                            :: nbody_radii(3,me%num_bodies), &
+                                               nbody_vels(3,me%num_bodies), &
+                                               nbody_accs(3,me%num_bodies)
         real(qp)                            :: r_bod_up(3), v_bod_up(3), a_bod_up(3), &
                                                y(m)
         integer i
@@ -158,12 +155,12 @@ module makemodel
             ! for bodies i = 2. . .
         do i=1,me%num_bodies
             ! get r from central body to body i
-            me%nbody_radii(:,i) = me%bod_db%call(real(time,dp), &
-                                               & me%bodylist(i),'p')
-            me%nbody_vels(:,i) = me%bod_db%call(real(time,dp), &
-                                               & me%bodylist(i),'v')
-            me%nbody_accs(:,i) = me%bod_db%call(real(time,dp), &
-                                               & me%bodylist(i),'a')
+            nbody_radii(:,i) = real(me%bod_db%call(real(time,dp), &
+                                               & me%bodylist(i),'p'), qp)
+            nbody_vels(:,i) = real(me%bod_db%call(real(time,dp), &
+                                               & me%bodylist(i),'v'), qp)
+            nbody_accs(:,i) = real(me%bod_db%call(real(time,dp), &
+                                               & me%bodylist(i),'a'), qp)
         end do
         ! For central body
             ! Choose point mass or SH model
@@ -184,19 +181,17 @@ module makemodel
         acc_nb = 0._qp
         jac_nb = 0._qp
         hes_nb = 0._qp
-        !$OMP PARALLEL DO
         do i=1,me%num_bodies
-            r_bod_up = real(me%nbody_radii(:,i),qp)
-            v_bod_up = real(me%nbody_vels(:,i),qp)
-            a_bod_up = real(me%nbody_accs(:,i),qp)
+            r_bod_up = nbody_radii(:,i)
+            v_bod_up = nbody_vels(:,i)
+            a_bod_up = nbody_accs(:,i)
             acc_nb   = acc_nb + acc_nbody(me, me%nbody_mus(i), y,r_bod_up)
             jac_nb   = jac_nb + jac_nbody(me, me%nbody_mus(i), y,r_bod_up,v_bod_up)
             hes_nb   = hes_nb + hes_nbody(me, me%nbody_mus(i), y,r_bod_up,v_bod_up,a_bod_up)
         end do
-        !$OMP END PARALLEL DO
         acc = acc_2b 
         acc(4:) = acc(4:) + acc_nb(4:)
-        jac = jac_2b 
+        jac = jac_2b
         jac(4:,:) = jac(4:,:) + jac_nb(4:,:)
         hes = hes_2b
         hes(4:,:,:) = hes(4:,:,:) + hes_nb(4:,:,:)
@@ -1864,22 +1859,20 @@ module makemodel
         real(qp)            , intent(in)    :: t, y(:)
         real(qp)                            :: stm(m,m), &
                                                stt(m,m,m), &
-                                               statedot(m), &
                                                stmdot(m,m), &
                                                sttdot(m,m,m), &
                                                acc(m), &
                                                jac(m,m), &
                                                hes(m,m,m)
         real(qp)                            :: res(size(y))
-        stm = reshape(y((m + 1):(m + m**2)),[m,m])
-        stt = reshape(y((m + m**2 + 1):),[m,m,m])
-        me%state = y(:m)
-        call me%get_derivs(y(7), acc, jac, hes)
-        statedot = 0._qp
-        statedot(7) = y(8)
+        stm = reshape(y((1+1):(1 + m**2)),[m,m])
+        stt = reshape(y((1 + m**2 + 1):),[m,m,m])
+        call me%get_derivs(y(1), acc, jac, hes)
+        res(1) = me%tof
         stmdot = matmul(jac,stm)
         sttdot = mattens(jac,stt,m) + quad(stm,hes,m)
-        res = [statedot, reshape(stmdot,[m**2]), reshape(sttdot,[m**3])]
+        res(1+1:1 + m ** 2) = reshape(stmdot,[m**2])
+        res(1+m**2 + 1:) = reshape(sttdot, [m**3])
     end function eoms_rails
     function trajstate(me,time) result(res)
         ! trajstate: method to return reference state at a time
@@ -2696,10 +2689,10 @@ module makemodel
         t = y(7)
         res = 0._qp
         do i=1,me%num_bodies
-            thisr= me%bod_db%call(real(t,dp), &
-                               & me%bodylist(i),'p')
-            thisv= me%bod_db%call(real(t,dp), &
-                               & me%bodylist(i),'v')
+            thisr= real(me%bod_db%call(real(t,dp), &
+                               & me%bodylist(i),'p'),qp)
+            thisv= real(me%bod_db%call(real(t,dp), &
+                               & me%bodylist(i),'v'),qp)
             res = res + jac(y, thisr, thisv,me%nbody_mus(i))
         end do
         contains
@@ -2830,14 +2823,14 @@ module makemodel
         t = y(7)
         res = 0._qp
         do i=1,me%num_bodies
-            thisr= me%bod_db%call(real(t,dp), &
-                               & me%bodylist(i),'p')
-            thisv= me%bod_db%call(real(t,dp), &
-                               & me%bodylist(i),'v')
-            thisa= me%bod_db%call(real(t,dp), &
-                               & me%bodylist(i),'a')
+            thisr= real(me%bod_db%call(real(t,dp), &
+                               & me%bodylist(i),'p'),qp)
+            thisv= real(me%bod_db%call(real(t,dp), &
+                               & me%bodylist(i),'v'),qp)
+            thisa= real(me%bod_db%call(real(t,dp), &
+                               & me%bodylist(i),'a'),qp)
             thishes =  hes(y, thisr, thisv, thisa, me%nbody_mus(i))
-            res = res + thishes(4:,:,:)
+            res(4:,:,:) = res(4:,:,:) + thishes(4:,:,:)
         end do
         contains
             ! BEGIN AUTOCODE OUTPUT FOR HES

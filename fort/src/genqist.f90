@@ -67,10 +67,10 @@ module genqist
                                                central_body, &
                                                bodylist(:)
         logical,              intent(in)    :: shgrav, rails
-        real(dp),             intent(in)    :: central_body_ref_radius, &
+        real(qp),             intent(in)    :: central_body_ref_radius, &
                                                central_body_mu, &
                                                mu_list(:)
-        real(dp),             intent(in)    :: Cbar(:,:), &
+        real(qp),             intent(in)    :: Cbar(:,:), &
                                                Sbar(:,:)
         character(len=*),   intent(in)    :: subspicefile
 
@@ -101,15 +101,16 @@ module genqist
         type(ODESolution)           :: res
         real(qp), intent(in)        :: t0, tf
         logical                     :: boundscheck
-        real(qp)                    :: init_state(8), eye(8,8), hess_init(8,8,8)
+        real(qp)                    :: eye(8,8), hess_init(8**3)
+        real(qp), allocatable       :: init_state(:)
         integer i
         boundscheck = .false.
-        if (t0<=meqist%t0) then
+        if (t0<meqist%t0) then
             write(*,42,advance='no') "integration start set to ", t0
             write(*,42) " but must be greater than ", meqist%t0
             boundscheck = .true.
         end if
-        if (t0<=meqist%t0) then
+        if (tf>meqist%tf) then
             write(*,42,advance='no') "integration end set to ", tf
             write(*,42) " but must be less than ", meqist%tf
             boundscheck = .true.
@@ -125,19 +126,21 @@ module genqist
         hess_init = 0._qp
         meqist%dynmod%tof = tf-t0
         if (meqist%dynmod%tgt_on_rails) then
-            init_state(:6) = 0._qp
+            allocate(init_state(1))
+            init_state = [t0]
         else
+            allocate(init_state(8))
             init_state(:6) = meqist%dynmod%trajstate(t0)
+            init_state(7:) = [t0, tf - t0]
         endif
-        init_state(7:) = [t0, tf - t0]
+        print *, init_state
         res = solve_ivp(myint_eoms,&
                       & [0._qp, 1._qp], &
                       & [ init_state, &
                          reshape(eye,[8**2]), &
-                         reshape(hess_init,[8**3])], &
-                      & method="DOP853",&
+                         hess_init], &
                       & dense_output=.true.,&
-                      & rtol=meqist%rtol*1.E-2_qp, &
+                      & rtol=meqist%rtol, &
                       & atol=meqist%atol, istep=0.5_qp)
         contains
             function myint_eoms(me, x, y) result(res)

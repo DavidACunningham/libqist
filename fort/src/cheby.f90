@@ -124,6 +124,7 @@ module cheby
             me%ndeg  = ndeg
             me%a     = a
             me%b     = b
+            me%central_body = central_body
             ! allocate bodlist, p/v/acoeffs
             allocate(me%pcoeffs(ndeg,3*me%nbods), &
                      me%vcoeffs(ndeg,3*me%nbods), &
