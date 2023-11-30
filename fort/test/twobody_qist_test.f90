@@ -17,6 +17,7 @@ program main
                             central_body = 399, &
                             bodylist(3)= [10,301,5]
     logical, parameter   :: shgrav = .false.
+<<<<<<< HEAD
     real(qp), parameter  :: central_body_ref_radius=6381.137_qp, &
                             central_body_mu=398600.5_qp, &
                             mu_list(3)= [1.32712440041279419e11_qp, &
@@ -31,6 +32,7 @@ program main
                           & testjac_q(8,8), testhes_q(8,8,8), testjac_b(8,8), testhes_b(8,8,8), testacc(8)
     integer i, j, spkhand, nsteps
     logical, parameter :: debug = .true.
+=======
 
     eye = 0._qp
     init_stt = 0._qp
@@ -142,7 +144,6 @@ program main
         print *, real(qist_stt(i,j,:) - base_stt(i,j,:),4)
     end do
     end do
-
     contains
         function fdwrap(x) result(res)
             real(qp), intent(in) :: x(:)

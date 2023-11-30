@@ -65,6 +65,7 @@ zdot = []
 with open("twobody_qist_zdot.txt", 'r') as f:
     for line in f:
         zdot.append(float(line))
+<<<<<<< HEAD
 
 
 spicex = []
@@ -79,26 +80,7 @@ spicez = []
 with open("spice_resamp_z.txt", 'r') as f:
     for line in f:
         spicez.append(float(line))
-inc = 70*np.pi/180
-x0 = np.array([16000., 5.e-1, inc, np.pi/2, 0, 0]) 
-mu = 3.986e5
-x = []
-for t in time:
-    x.append(kepler_prop_from_periapse(x0,t,mu=mu,output_mode='ijk'))
-kep = np.array(x)
-
-states = np.array([posx,posy,posz,xdot,ydot,zdot]).T
-els = np.array([cart2kep(s,mu=398600.5) for s in states]).T
-kepels = np.array([cart2kep(s,mu=398600.5) for s in kep]).T
-fig = plt.figure()
-ax = fig.add_subplot(projection="3d")
-ax.plot(posx,posy,posz)
 ax.plot(spicex,spicey,spicez)
-plt_sphere(ax,[0,0,0],6378.137)
-
-ax.set_aspect('equal')
-fig2, ax2  = plt.subplots(6,1,sharex='col')
-for ind, a in enumerate(ax2):
     if ind == 4:
         plota = []
         for item in (els[ind] - kepels[ind]):
