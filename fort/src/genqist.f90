@@ -10,6 +10,7 @@ module genqist
         type(dynamicsmodel)   :: dynmod
         real(qp), allocatable :: initstate(:)
         real(qp)              :: rtol, atol, t0, tf
+        logical               :: check
         contains
         procedure init
         procedure integrate
@@ -26,7 +27,7 @@ module genqist
 
     subroutine init(me,t0, tf, subspicefile, traj_id, central_body, bodylist, &
                   & central_body_mu, central_body_ref_radius, mu_list, &
-                  & shgrav, Cbar, Sbar,rails)
+                  & shgrav, Cbar, Sbar,rails,check)
         ! init_dm: method to initialize dynamicsModel object
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
@@ -58,6 +59,8 @@ module genqist
         ! Sbar           real (:,:)     4 pi (Kaula) normalized sine Stokes 
         !                               for central body
         ! rails          logical        is the reference state on rails
+        ! check          logical        whether to compare integrated and rails state
+        !                               during integration
         ! OUTPUTS:
         ! NONE
         class(gqist), intent(inout) :: me
@@ -66,7 +69,7 @@ module genqist
         integer,              intent(in)    :: traj_id, & 
                                                central_body, &
                                                bodylist(:)
-        logical,              intent(in)    :: shgrav, rails
+        logical,              intent(in)    :: shgrav, rails, check
         real(qp),             intent(in)    :: central_body_ref_radius, &
                                                central_body_mu, &
                                                mu_list(:)
@@ -85,6 +88,7 @@ module genqist
         me%tf = tf
         me%rtol = 1.e-14
         me%atol = 1.e-14
+        me%check = check
     end subroutine
     function integrate(meqist, t0, tf) result(res)
         ! integrate: integrate a QIST model
@@ -125,7 +129,7 @@ module genqist
         end do
         hess_init = 0._qp
         meqist%dynmod%tof = tf-t0
-        if (meqist%dynmod%tgt_on_rails) then
+        if (meqist%dynmod%tgt_on_rails.and.(.not.meqist%check)) then
             allocate(init_state(1))
             init_state = [t0]
         else
@@ -148,7 +152,11 @@ module genqist
                 real(qp),          intent(in)    :: x, y(:)
                 real(qp)                         :: res(size(y))
                 if (meqist%dynmod%tgt_on_rails) then
-                    res = meqist%dynmod%eoms_rails(x,y)
+                    if (meqist%check) then
+                        res = meqist%dynmod%eoms_rails_check(x,y)
+                    else
+                        res = meqist%dynmod%eoms_rails(x,y)
+                    endif
                 else
                     res = meqist%dynmod%eoms(x,y)
                 endif

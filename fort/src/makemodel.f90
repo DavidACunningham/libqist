@@ -28,6 +28,7 @@ module makemodel
             procedure:: init => init_dm
             procedure :: eoms
             procedure :: eoms_rails
+            procedure :: eoms_rails_check
             procedure :: get_derivs
             procedure :: acc_kepler
             procedure :: jac_kepler
@@ -115,13 +116,16 @@ module makemodel
             call pinesinit(size(Cbar,1),me%shdat%Cml,me%shdat%Sml,me%pdat)
         endif
     end subroutine init_dm
-    subroutine get_derivs(me, time, acc, jac, hes)
+    subroutine get_derivs(me, time, acc, jac, hes, check)
         ! get_derivs: method to generate dynamics and dynamics partials around 
         !             reference trajectory
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! time           real           time in sec past J2000 at which
         !                               partials are evaluated
+        ! check          logical        indicates whether to check the 
+        !                               integrated target state against
+        !                               the interpolated one 
         ! OUTPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! acc            float (6)      time derivative of 6-d state,
@@ -133,7 +137,9 @@ module makemodel
         !                               hes(i,j,k) = d^2f_i/(dx_j*dx_k)
         class(dynamicsModel), intent(inout) :: me
         real(qp),             intent(in)    :: time
+        logical,  optional,   intent(in)    :: check
         real(qp),             intent(out)   :: acc(m), jac(m,m), hes(m,m,m)
+        logical                             :: checkstate
         real(qp)                            :: acc_2b(m), jac_2b(m,m), hes_2b(m,m,m)
         real(qp)                            :: acc_nb(m), jac_nb(m,m), hes_nb(m,m,m)
         real(qp)                            :: nbody_radii(3,me%num_bodies), &
@@ -142,13 +148,24 @@ module makemodel
         real(qp)                            :: r_bod_up(3), v_bod_up(3), a_bod_up(3), &
                                                y(m)
         integer i
+        if (present(check)) then
+            checkstate = check
+        else
+            checkstate = .false.
+        endif
         ! at time t (in s past j2000)
             ! get r from central body to traj
         if (me%tgt_on_rails) then
-            y(:3) = real(me%bod_db%call(real(time,dp),me%traj_id,'p'), qp)
-            y(4:6) = real(me%bod_db%call(real(time,dp),me%traj_id,'v'), qp)
+            y(:6) = me%trajstate(time)
             y(7) = time
             y(8) = me%tof
+            if (checkstate.and.(maxval(abs(y - me%state)).ge.1.e-10)) then
+                print *, "WARNING: interpolated and integrated target states are different"
+                print *, real(time,4), real(abs(y - me%state),4) 
+                print *, real(time,4), real(me%state(:6),4), sme(me%state(:6))
+                print *, real(time,4), real(y(:6),4), sme(y(:6))
+                print *, real(sme(me%trajstate(0._qp)) - sme(y(:6)),4)
+            endif
         else
             y = me%state
         endif
@@ -195,6 +212,15 @@ module makemodel
         jac(4:,:) = jac(4:,:) + jac_nb(4:,:)
         hes = hes_2b
         hes(4:,:,:) = hes(4:,:,:) + hes_nb(4:,:,:)
+        contains
+            function sme(y) result(res)
+                real(qp), intent(in) :: y(:)
+                real(qp)             :: res
+                real(qp)             :: v, r
+                r = norm2(y(:3))
+                v = norm2(y(4:6))
+                res = v**2/2._qp - me%central_body_mu/r
+            end function sme
     end subroutine get_derivs
     function acc_kepler(me, mu, y) result (res)
         ! acc_kepler: method to compute Keplerian acceleration
@@ -1842,6 +1868,39 @@ module makemodel
         sttdot = mattens(jac,stt,m) + quad(stm,hes,m)
         res = [statedot, reshape(stmdot,[m**2]), reshape(sttdot,[m**3])]
     end function eoms
+    function eoms_rails_check(me,t,y) result(res)
+        ! eoms: method to compute dynamics function of extended state vector
+        !       i.e. [xdot, stmdot, sttdot]
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! t              real           time in sec past J2000 to evaluate
+        !                               the dynamics
+        ! y              real (584)     Extended dyamics vector:
+        !                               258 = 8 + 8 ** 2 + 8 ** 3
+        !                        y = [x, reshape(stm,(64)), reshape(stt,(584))]
+        ! OUTPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! res            real (584)     big vector of dynamics
+        class(dynamicsModel), intent(inout) :: me
+        real(qp)            , intent(in)    :: t, y(:)
+        real(qp)                            :: stm(m,m), &
+                                               stt(m,m,m), &
+                                               statedot(m), &
+                                               stmdot(m,m), &
+                                               sttdot(m,m,m), &
+                                               acc(m), &
+                                               jac(m,m), &
+                                               hes(m,m,m)
+        real(qp)                            :: res(size(y))
+        stm = reshape(y((m + 1):(m + m**2)),[m,m])
+        stt = reshape(y((m + m**2 + 1):),[m,m,m])
+        me%state = y(:m)
+        call me%get_derivs(y(7), acc, jac, hes,check=.true.)
+        statedot = acc
+        stmdot = matmul(jac,stm)
+        sttdot = mattens(jac,stt,m) + quad(stm,hes,m)
+        res = [statedot, reshape(stmdot,[m**2]), reshape(sttdot,[m**3])]
+    end function eoms_rails_check
     function eoms_rails(me,t,y) result(res)
         ! eoms: method to compute dynamics function of extended state vector
         !       i.e. [xdot, stmdot, sttdot]

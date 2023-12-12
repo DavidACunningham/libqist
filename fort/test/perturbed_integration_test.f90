@@ -1,7 +1,6 @@
 program main
     use frkmain, only: solve_ivp, Odesolution, RungeKutta
     use cheby, only: spice_subset
-    use findiffmod
     use genqist, only: gqist
     use tensorops, only: mattens, quad
     use makemodel, only: dynamicsmodel
