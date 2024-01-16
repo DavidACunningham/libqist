@@ -29,7 +29,7 @@ program main
                  &  central_body_ref_radius, &
                  &  mu_list, &
                  &  shgrav, &
-                 &  Cbar, Sbar, rails)
+                 &  Cbar, Sbar, rails, .true.)
     qist%dynmod%tof = tof
     time = [(i*(tof/1000._qp), i=1,1000)]
     do i = 1, 1000
