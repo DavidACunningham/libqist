@@ -12,7 +12,7 @@ program main
     type(odesolution)   :: base_sol, qistsol
     real(qp), parameter  :: t0=0._qp, tf=2._qp*24._qp*3600._qp, tof = tf,&
                             rtol = 1.e-17_qp, atol = 1.e-20_qp
-    integer, parameter   :: traj_id = -999, & 
+    integer, parameter   :: traj_id = -998, & 
                             central_body = 399, &
                             bodylist(3)= [10,301,5]
     logical, parameter   :: shgrav = .false.
@@ -75,9 +75,9 @@ program main
     time = real(dtime,qp)
     ntest = size(dtime)
     allocate(states(6,ntest))
+    time(1) = 80343.0243863275644373278711349111887_qp
     do i = 1, ntest
-        states(:3,i) = real(qist%dynmod%bod_db%call(real(time(i),dp),qist%dynmod%traj_id,'p'),qp)
-        states(4:,i) = real(qist%dynmod%bod_db%call(real(time(i),dp),qist%dynmod%traj_id,'v'),qp)
+        states(:,i) = qist%dynmod%trajstate(time(i))
     end do
     call print_to_file("testx",real(states(1,:),8))
     call print_to_file("testy",real(states(2,:),8))

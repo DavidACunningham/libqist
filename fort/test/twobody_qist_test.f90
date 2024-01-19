@@ -39,8 +39,9 @@ program main
     integer i, j, spkhand, nsteps
     logical              :: run_base, run_qist, rails
 
-    call random_number(trand)
-    trand = trand*tof
+    ! call random_number(trand)
+    ! trand = trand*tof
+    trand = 80343.0243863275644373278711349111887_qp
     call get_command_argument(1,arg)
     read(arg,*) run_base
     call get_command_argument(2,arg)
@@ -77,12 +78,19 @@ program main
                  &  shgrav, &
                  &  Cbar, Sbar, rails,.true.)
     dyn%tof = tof
-    init_state = [dyn%trajstate(t0), t0, tof]
 
     qist%dynmod%tof = tof
+    testjac_b = 0._qp
+    testhes_b = 0._qp
+    testjac_q = 0._qp
+    testhes_q = 0._qp
+    ! qist%dynmod%state = init_state
     call qist%dynmod%get_derivs(trand,testacc, testjac_q, testhes_q)
-    dyn%state = init_state
+    dyn%state = [dyn%trajstate(trand), trand, tof]
+    ! testacc =0._qp
     call dyn%get_derivs(trand, testacc, testjac_b,testhes_b)
+
+    init_state = [dyn%trajstate(t0), t0, tof]
     print *, "JAC"
     do i=1,8
         print *, real(testjac_q(i,:) - testjac_b(i,:),4)
@@ -95,6 +103,8 @@ program main
     print *, ""
     end do 
     end do
+    dyn%state = init_state
+    qist%dynmod%state = init_state
     
     
 
