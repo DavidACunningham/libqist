@@ -156,16 +156,26 @@ module makemodel
         ! at time t (in s past j2000)
             ! get r from central body to traj
         if (me%tgt_on_rails) then
+            ! THE PROBLEM IS SOMEWHERE IN THESE LINES
+            ! At this point I need to check if the so called "not rails" solution
+            ! or the "rails" solution matches with a real perturbed integration
+            ! using the actual EOMs without all the machinery
             y(:6) = me%trajstate(time)
             y(7) = time
             y(8) = me%tof
-            if (checkstate.and.(maxval(abs(y - me%state)).ge.1.e-10)) then
-                print *, "WARNING: interpolated and integrated target states are different"
-                print *, real(time,4), real(abs(y - me%state),4) 
-                print *, real(time,4), real(me%state(:6),4), sme(me%state(:6))
-                print *, real(time,4), real(y(:6),4), sme(y(:6))
-                print *, real(sme(me%trajstate(0._qp)) - sme(y(:6)),4)
-            endif
+            ! THE PROBLEM IS SOMEWHERE BETWEEN THESE LINES
+            ! NOTE: This doesn't work because me%state is always at the previous time step
+            !       of the integrator while me%trajstate(time) is being evaluated at 
+            !       times in the future from the previous integrated time step
+            !       as such, this will never match up. This would need to be included
+            !       in the numerical integrator's step if it were to make any sense.
+            ! if (checkstate.and.(maxval(abs(y - me%state)).ge.1.e-10)) then
+            !     print *, "WARNING: interpolated and integrated target states are different"
+            !     print *, real(time,4), real(abs(y - me%state),4) 
+            !     print *, real(time,4), real(me%state(:6),4), sme(me%state(:6))
+            !     print *, real(time,4), real(y(:6),4), sme(y(:6))
+            !     print *, real(sme(me%trajstate(0._qp)) - sme(y(:6)),4)
+            ! endif
         else
             y = me%state
         endif

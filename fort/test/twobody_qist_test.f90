@@ -84,9 +84,9 @@ program main
     testhes_b = 0._qp
     testjac_q = 0._qp
     testhes_q = 0._qp
-    ! qist%dynmod%state = init_state
-    call qist%dynmod%get_derivs(trand,testacc, testjac_q, testhes_q)
+    qist%dynmod%state = [qist%dynmod%trajstate(trand), trand, tof]
     dyn%state = [dyn%trajstate(trand), trand, tof]
+    call qist%dynmod%get_derivs(trand,testacc, testjac_q, testhes_q)
     ! testacc =0._qp
     call dyn%get_derivs(trand, testacc, testjac_b,testhes_b)
 
