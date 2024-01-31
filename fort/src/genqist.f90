@@ -129,7 +129,7 @@ module genqist
         end do
         hess_init = 0._qp
         meqist%dynmod%tof = tf-t0
-        if (meqist%dynmod%tgt_on_rails.and.(.not.meqist%check)) then
+        if (meqist%dynmod%tgt_on_rails) then
             allocate(init_state(1))
             init_state = [t0]
         else
@@ -152,11 +152,7 @@ module genqist
                 real(qp),          intent(in)    :: x, y(:)
                 real(qp)                         :: res(size(y))
                 if (meqist%dynmod%tgt_on_rails) then
-                    if (meqist%check) then
-                        res = meqist%dynmod%eoms_rails_check(x,y)
-                    else
-                        res = meqist%dynmod%eoms_rails(x,y)
-                    endif
+                    res = meqist%dynmod%eoms_rails(x,y)
                 else
                     res = meqist%dynmod%eoms(x,y)
                 endif
