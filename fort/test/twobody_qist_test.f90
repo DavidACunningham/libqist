@@ -12,10 +12,11 @@ program main
     type(odesolution)   :: base_sol, qist_sol
     character(len=12)   :: arg
     real(qp), parameter  :: t0=0._qp, tf=2._qp*24._qp*3600._qp, tof = tf,&
-                            rtol = 1.e-17_qp, atol = 1.e-20_qp
+                            rtol = 1.e-10_qp, atol = 1.e-13_qp
     integer, parameter   :: traj_id = -998, & 
                             central_body = 399, &
-                            bodylist(3)= [10,301,5]
+                            bodylist(3)= [10,301,5], &
+                            ntest = 1000
     logical, parameter   :: shgrav = .false.
     integer              :: offset
     real(qp), parameter  :: central_body_ref_radius=6381.137_qp, &
@@ -32,8 +33,11 @@ program main
                           & bsolbuf(8+8**2+8**3), &
                           & testjac_q(8,8), testhes_q(8,8,8), &
                           & testjac_b(8,8), testhes_b(8,8,8), &
+                          & stmdiff(8,8), sttdiff(8,8,8), &
                           & testacc(8), &
-                          & trand
+                          & trand, &
+                          & write_state(ntest,6), &
+                          & times(ntest)
                         
     real(qp), allocatable :: qsolbuf(:)
     integer i, j, spkhand, nsteps
@@ -89,23 +93,39 @@ program main
     call qist%dynmod%get_derivs(trand,testacc, testjac_q, testhes_q)
     ! testacc =0._qp
     call dyn%get_derivs(trand, testacc, testjac_b,testhes_b)
+    call random_number(eye)
+    call random_number(init_stt)
+
+    bsolbuf = dyn%eoms(trand, [dyn%state, reshape(eye,[8**2]), init_stt])
+    qsolbuf = qist%dynmod%eoms_rails(trand, [trand, reshape(eye,[8**2]), init_stt])
 
     init_state = [dyn%trajstate(t0), t0, tof]
     print *, "JAC"
     do i=1,8
         print *, real(testjac_q(i,:) - testjac_b(i,:),4)
-        end do
+    end do
     print *, ""
     print *, "HES"
     do i=1,8
-    do j=1,8
-    print *, real(testhes_q(i,j,:) - testhes_b(i,j,:),4)
-    print *, ""
-    end do 
+        do j=1,8
+            print *, real(testhes_q(i,j,:) - testhes_b(i,j,:),4)
+            print *, ""
+        end do 
+    end do
+    print *, "EOM output maximum difference"
+    print *, real(maxval(qsolbuf(2:) - bsolbuf(9:)),4)
+    do i=1, 8**2 + 8**3
+        print *, real(qsolbuf(1+i),4)! - bsolbuf(8+i),4)
     end do
     dyn%state = init_state
     qist%dynmod%state = init_state
     
+
+    eye = 0._qp
+    init_stt = 0._qp
+    do i=1,8
+        eye(i,i) = 1._qp
+    end do
     
 
     if (run_base) then
@@ -126,8 +146,8 @@ program main
 
     if (run_qist) then
         print *, "Integrating QIST"
-        qist%rtol = 1.e-17_qp
-        qist%atol = 1.e-20_qp
+        qist%rtol = 1.e-10_qp
+        qist%atol = 1.e-13_qp
         qist_sol = qist%integrate(t0, tf)
         
 
@@ -136,11 +156,11 @@ program main
         close(75)
 
         print *, "DONE"
-        qsolbuf = qist_sol%call(0.33_qp*2)
+        qsolbuf = qist_sol%call(1._qp)
     end if
 
     if (run_base) then
-        bsolbuf = base_sol%call(0.33_qp*2)
+        bsolbuf = base_sol%call(1._qp)
         base_stm = reshape(bsolbuf(9:8+8**2), [8,8])
         base_stt = reshape(bsolbuf(9+8**2:), [8,8,8])
         print *, "BASE STM"
@@ -154,6 +174,14 @@ program main
             print *, real(base_stt(i,j,:),4)
         end do
         end do
+        times = [((tf-t0)/(ntest-1)*i + t0, i=0,ntest-1)]
+        do i = 1, ntest
+           bsolbuf = base_sol%call(times(i)/tf)
+           write_state(i,:) = bsolbuf(:6)
+        end do
+        call print_to_file("base_sol_x",real(write_state(:,1),dp))
+        call print_to_file("base_sol_y",real(write_state(:,2),dp))
+        call print_to_file("base_sol_z",real(write_state(:,3),dp))
     end if
 
     if (run_qist) then
@@ -172,39 +200,23 @@ program main
         end do
     end if
     if (run_base.and.run_qist)then
+        stmdiff = qist_stm - base_stm
+        sttdiff = qist_stt - base_stt
+        where (base_stm.ne.0._qp) stmdiff=stmdiff/base_stm
+        where (base_stt.ne.0._qp) sttdiff=sttdiff/base_stt
         print *, "STM Diff"
         do i = 1,8
-            print *, real(qist_stm(i,:) - base_stm(i,:),4)
+            print *, real(stmdiff(i,:),4)
         end do
         print *, "STT Diff"
         do i = 1,8
             print *, "PAGE", i
         do j = 1,8
-            print *, real(qist_stt(i,j,:) - base_stt(i,j,:),4)
+            print *, real(sttdiff(i,j,:),4)
         end do
         end do
     end if
     contains
-        function fdwrap(x) result(res)
-            real(qp), intent(in) :: x(:)
-            real(qp)             :: res(size(x))
-            res = dyn%fd_acc_nbody(x)
-            res(:3) = 0._qp
-            res = res + dyn%fd_acc_kepler(x)
-        end function fdwrap
-        function fdjacwrap(x) result(res)
-            real(qp), intent(in) :: x(:)
-            real(qp)             :: res(size(x),size(x))
-            res = dyn%fd_jac_nbody(x)
-            res(:3,:) = 0._qp
-            res = res + dyn%fd_jac_kepler(x)
-        end function fdjacwrap
-        function heswrap(x) result(res)
-            real(qp), intent(in) :: x(:)
-            real(qp)             :: res(8,8,8)
-            res = dyn%fd_hes_kepler(x)
-            res = res + dyn%fd_hes_nbody(x)
-        end function heswrap
         function base_eoms(me, x, y) result(res)
             class(RungeKutta), intent(inout) :: me
             real(qp),          intent(in)    :: x, y(:)

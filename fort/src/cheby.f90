@@ -3,19 +3,19 @@ module cheby
     implicit none
     real(dp), parameter :: pi=4.0_dp*atan(1.0_dp)
     interface chcall
-        pure function chcall_s(a,b,coeffs,x)
+         function chcall_s(a,b,coeffs,x)
             import
             real(dp), intent(in) :: a, b, x, coeffs(:)
             real(dp) :: chcall_s
         end function chcall_s
-        pure function chcall_v(a,b,coeffs,x)
+         function chcall_v(a,b,coeffs,x)
             import
             real(dp), intent(in) :: a, b, x(:), coeffs(:)
             real(dp) :: chcall_v(size(x))
         end function chcall_v
     end interface chcall
     interface chnodes
-        pure function chnodes(n,a,b) result(res)
+         function chnodes(n,a,b) result(res)
             import
             integer, intent(in) :: n
             real(dp), intent(in) :: a, b
@@ -23,14 +23,14 @@ module cheby
         end function
     end interface chnodes
     interface chcall_mult
-        pure function chcall_mult(a,b,coeffs,x) result(res)
+         function chcall_mult(a,b,coeffs,x) result(res)
             import
             real(dp), intent(in) :: a, b, x, coeffs(:)
             real(dp) :: res(size(coeffs))
         end function chcall_mult
     end interface chcall_mult
     interface chfit
-        pure function chfit_s(n,fi) result(res)
+         function chfit_s(n,fi) result(res)
             import
             integer, intent(in) :: n
             real(dp), intent(in) :: fi(n)
@@ -38,7 +38,7 @@ module cheby
         end function chfit_s
     end interface chfit
     interface chderiv
-        pure function chderiv_s(coeffs,a,b) result(res)
+         function chderiv_s(coeffs,a,b) result(res)
             import
             real(dp), intent(in) :: coeffs(:), a, b
             real(dp) :: res(size(coeffs)-1)
@@ -258,7 +258,7 @@ module cheby
             enddo
         end function deriv
 end module cheby
-pure function chnodes(n,a,b) result(res)
+ function chnodes(n,a,b) result(res)
     use cheby, only: pi, dp
     integer, intent(in) :: n
     integer :: i
@@ -277,7 +277,7 @@ pure function chnodes(n,a,b) result(res)
     res = [(cos(pi*(i-0.5_dp)/n)*bma+bpa, i=n,1,-1)]
 end function chnodes
 
-pure function chcall_v(a,b,coeffs,x)
+ function chcall_v(a,b,coeffs,x)
     use cheby, only: chnodes, pi, dp
     implicit none
     integer :: n,j
@@ -305,7 +305,7 @@ pure function chcall_v(a,b,coeffs,x)
     end do
 end function chcall_v
 
-pure function chcall_s(a,b,coeffs,x)
+function chcall_s(a,b,coeffs,x)
     use cheby, only: chnodes, pi, dp
     implicit none
     integer :: n,j
@@ -320,11 +320,17 @@ pure function chcall_s(a,b,coeffs,x)
     ! return the value(s) of a chebyshev polynomial (defined by coeffs)
     ! at a value val
 
+    j = 0
     n=size(coeffs)
     u = (2.0_dp*x-a-b)/(b-a)
     Tjm1 = 1.0_dp
     Tj = u
     chcall_s = Tjm1*coeffs(1)
+    if (size(coeffs).lt.j) then
+        print *, j
+        print * , size(coeffs)
+        error stop
+    end if
     do j=2,n
         Tjp1 = 2.0_dp*u*Tj - Tjm1
         chcall_s = chcall_s + Tj*coeffs(j)
@@ -333,7 +339,7 @@ pure function chcall_s(a,b,coeffs,x)
     end do
 end function chcall_s
 
-pure function chcall_mult(a,b,coeffs,x) result(res)
+ function chcall_mult(a,b,coeffs,x) result(res)
     use cheby, only: chnodes, pi, dp
     implicit none
     integer :: n,j
@@ -361,7 +367,7 @@ pure function chcall_mult(a,b,coeffs,x) result(res)
     end do
 end function chcall_mult
 
-pure function chfit_s(n,fi) result(res)
+ function chfit_s(n,fi) result(res)
     use cheby, only: chnodes, pi, dp
     implicit none
     integer, intent(in) :: n
@@ -388,7 +394,7 @@ pure function chfit_s(n,fi) result(res)
     res = matmul(fi,polyarray)/n
 end function chfit_s
 
-pure function chderiv_s(coeffs,a, b) result(res)
+ function chderiv_s(coeffs,a, b) result(res)
     ! Source: "Modern Computing Methods", Goodwin, E. T., ed., 1961, p. 79
     ! This is done in quad based on advice from the source above
     use cheby, only: dp

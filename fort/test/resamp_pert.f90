@@ -9,10 +9,9 @@ program main
 
     a = 0._dp
     b = 2._dp * 24._dp * 3600._dp
-    deg = 500
-    call read_from_file("twobody_integrated_t",times)
-    ntest = size(times)
-    ! times = [(i*b/500._dp, i=1,500)]
+    deg = 1000
+    ntest = 1000
+    times = [((b-a)/(ntest-1)*i + a, i=0,ntest-1)]
     bodlist = [10, 301, 5, -998]
     call spicea%init("/home/david/wrk/nstgro/qist/kernels/mk.tf", 399, bodlist, a, b, deg)
     open(file="./perturbed_reference.subspice",unit=73,access="stream",status="replace")
@@ -61,5 +60,4 @@ program main
             end do
             close(io)
         end subroutine read_from_file
-
 end program main

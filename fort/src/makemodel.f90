@@ -216,8 +216,8 @@ module makemodel
             jac_nb   = jac_nb + jac_nbody(me, me%nbody_mus(i), y,r_bod_up,v_bod_up)
             hes_nb   = hes_nb + hes_nbody(me, me%nbody_mus(i), y,r_bod_up,v_bod_up,a_bod_up)
         end do
-        acc = acc_2b 
-        acc(4:) = acc(4:) + acc_nb(4:)
+        acc_nb(:3) = 0._qp
+        acc = acc_2b + acc_nb
         jac = jac_2b
         jac(4:,:) = jac(4:,:) + jac_nb(4:,:)
         hes = hes_2b
@@ -970,8 +970,6 @@ module makemodel
         real(qp),             intent(in) :: y(:), &
                                             rbods(3)
         real(qp)                         :: res(size(y))
-        real(qp)                         :: rj(3), mu_j
-        rj = rbods; mu_j = mu;
         res = xdot(y)
         contains
             ! BEGIN AUTOCODE OUTPUT FOR XDOT
@@ -983,21 +981,23 @@ module makemodel
 
                 real(qp), dimension(8) :: res
 
-                x0  =  (rj(1)**2 + rj(2)**2 + rj(3)**2)**(-3.0_qp/2.0_qp)
-                x1  =  rj(1) - y(1)
-                x2  =  rj(2) - y(2)
-                x3  =  rj(3) - y(3)
-                x4  =  (x1**2 + x2**2 + x3**2)**(-3.0_qp/2.0_qp)
-                x5  =  mu_j*y(8)
+                associate(rj => rbods, mu_j => mu)
+                    x0  =  (rj(1)**2 + rj(2)**2 + rj(3)**2)**(-3.0_qp/2.0_qp)
+                    x1  =  rj(1) - y(1)
+                    x2  =  rj(2) - y(2)
+                    x3  =  rj(3) - y(3)
+                    x4  =  (x1**2 + x2**2 + x3**2)**(-3.0_qp/2.0_qp)
+                    x5  =  mu_j*y(8)
 
-                res(1) =  y(4)*y(8)
-                res(2) =  y(5)*y(8)
-                res(3) =  y(6)*y(8)
-                res(4) =  x5*(-rj(1)*x0 + x1*x4)
-                res(5) =  x5*(-rj(2)*x0 + x2*x4)
-                res(6) =  x5*(-rj(3)*x0 + x3*x4)
-                res(7) =  0
-                res(8) =  0
+                    res(1) =  y(4)*y(8)
+                    res(2) =  y(5)*y(8)
+                    res(3) =  y(6)*y(8)
+                    res(4) =  x5*(-rj(1)*x0 + x1*x4)
+                    res(5) =  x5*(-rj(2)*x0 + x2*x4)
+                    res(6) =  x5*(-rj(3)*x0 + x3*x4)
+                    res(7) =  0._qp
+                    res(8) =  0._qp
+                end associate
             end function xdot
             ! END AUTOCODE OUTPUT FOR XDOT
     end function
@@ -1853,8 +1853,8 @@ module makemodel
         ! t              real           time in sec past J2000 to evaluate
         !                               the dynamics
         ! y              real (584)     Extended dyamics vector:
-        !                               258 = 8 + 8 ** 2 + 8 ** 3
-        !                        y = [x, reshape(stm,(64)), reshape(stt,(584))]
+        !                               584 = 8 + 8 ** 2 + 8 ** 3
+        !                        y = [x, reshape(stm,(64)), reshape(stt,(512))]
         ! OUTPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! res            real (584)     big vector of dynamics
@@ -1910,6 +1910,7 @@ module makemodel
         stmdot = matmul(jac,stm)
         sttdot = mattens(jac,stt,m) + quad(stm,hes,m)
         res = [statedot, reshape(stmdot,[m**2]), reshape(sttdot,[m**3])]
+        print *, "ERROR YOU'RE IN THE RAILS CHECK EOM"
     end function eoms_rails_check
     function eoms_rails(me,t,y) result(res)
         ! eoms: method to compute dynamics function of extended state vector
@@ -1918,12 +1919,12 @@ module makemodel
         ! NAME           TYPE           DESCRIPTION
         ! t              real           time in sec past J2000 to evaluate
         !                               the dynamics
-        ! y              real (584)     Extended dyamics vector:
-        !                               258 = 8 + 8 ** 2 + 8 ** 3
-        !                        y = [x, reshape(stm,(64)), reshape(stt,(584))]
+        ! y              real (577)     Extended dyamics vector:
+        !                               577 = 1 + 8 ** 2 + 8 ** 3
+        !                        y = [t, reshape(stm,(64)), reshape(stt,(512))]
         ! OUTPUTS:
         ! NAME           TYPE           DESCRIPTION
-        ! res            real (584)     big vector of dynamics
+        ! res            real (577)     big vector of dynamics
         class(dynamicsModel), intent(inout) :: me
         real(qp)            , intent(in)    :: t, y(:)
         real(qp)                            :: stm(m,m), &
@@ -1940,8 +1941,7 @@ module makemodel
         res(1) = me%tof
         stmdot = matmul(jac,stm)
         sttdot = mattens(jac,stt,m) + quad(stm,hes,m)
-        res(1+1:1 + m ** 2) = reshape(stmdot,[m**2])
-        res(1+m**2 + 1:) = reshape(sttdot, [m**3])
+        res = [me%tof, reshape(stmdot,[m**2]), reshape(sttdot,[m**3])]
     end function eoms_rails
     function trajstate(me,time) result(res)
         ! trajstate: method to return reference state at a time

@@ -75,7 +75,7 @@ program main
     time = real(dtime,qp)
     ntest = size(dtime)
     allocate(states(6,ntest))
-    time(1) = 4544.65312923753203430747638437631968_qp
+    ! time(1) = 4544.65312923753203430747638437631968_qp
     do i = 1, ntest
         states(:,i) = qist%dynmod%trajstate(time(i))
     end do
