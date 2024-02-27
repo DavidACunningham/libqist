@@ -9,7 +9,7 @@ program main
     integer, parameter   :: traj_id = -998, & 
                             central_body = 399, &
                             bodylist(3)= [10,301,5], &
-                            nnodes = 2000
+                            nnodes = 5000
     real(qp), parameter  :: central_body_ref_radius=6378.137_qp, &
                             central_body_mu=398600.5_qp, &
                             mu_list(3)= [1.32712440041279419e11_qp, &

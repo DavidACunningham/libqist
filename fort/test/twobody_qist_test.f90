@@ -93,14 +93,14 @@ program main
     call qist%dynmod%get_derivs(trand,testacc, testjac_q, testhes_q)
     ! testacc =0._qp
     call dyn%get_derivs(trand, testacc, testjac_b,testhes_b)
-    call random_number(eye)
-    call random_number(init_stt)
 
-    bsolbuf = dyn%eoms(trand, [dyn%state, reshape(eye,[8**2]), init_stt])
-    qsolbuf = qist%dynmod%eoms_rails(trand, [trand, reshape(eye,[8**2]), init_stt])
-
-    init_state = [ 4.89858720e-13_qp,  8.00000000e+03_qp,  0.00000000e+00_qp, &
-                  -2.95679332e+00_qp, 1.81051374e-16_qp,  8.12372287e+00_qp, &
+    init_state = [ &
+              4.898587196589413e-13_qp, &
+              8000.0_qp, &
+              0.0_qp, &
+              -2.956795170934981_qp, &
+              1.8105148709099377e-16_qp, &
+              8.123727966096327_qp, &
                   t0, tof]
     print *, "JAC"
     do i=1,8
@@ -113,11 +113,6 @@ program main
             print *, real(testhes_q(i,j,:) - testhes_b(i,j,:),4)
             print *, ""
         end do 
-    end do
-    print *, "EOM output maximum difference"
-    print *, real(maxval(qsolbuf(2:) - bsolbuf(9:)),4)
-    do i=1, 8**2 + 8**3
-        print *, real(qsolbuf(1+i),4)! - bsolbuf(8+i),4)
     end do
     dyn%state = init_state
     qist%dynmod%state = init_state
@@ -150,8 +145,8 @@ program main
 
     if (run_qist) then
         print *, "Integrating QIST"
-        qist%rtol = 1.e-10_qp
-        qist%atol = 1.e-13_qp
+        qist%rtol = 1.e-14_qp
+        qist%atol = 1.e-16_qp
         qist_sol = qist%integrate(t0, tf)
         
 
