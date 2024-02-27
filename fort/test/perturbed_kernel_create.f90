@@ -1,5 +1,6 @@
 program main
     use frkmain, only: solve_ivp, Odesolution, RungeKutta
+    use util, only : print_to_file
     use, intrinsic :: iso_fortran_env, only: dp => real64, qp=>real128
     implicit none
     type(odesolution)    :: base_sol
@@ -8,7 +9,7 @@ program main
     integer, parameter   :: traj_id = -998, & 
                             central_body = 399, &
                             bodylist(3)= [10,301,5], &
-                            nnodes = 1000
+                            nnodes = 2000
     real(qp), parameter  :: central_body_ref_radius=6378.137_qp, &
                             central_body_mu=398600.5_qp, &
                             mu_list(3)= [1.32712440041279419e11_qp, &
@@ -17,12 +18,22 @@ program main
     real(qp)             :: init_state(6)
     integer i, spkhand
     real(qp)             :: times(nnodes), states(nnodes,6)
-    real(dp)             :: dtime(nnodes), x(6,nnodes)
+    real(dp)             :: dtime(nnodes), x(6,nnodes), times_short(1000), states_short(6,1000), a, b
 
     call FURNSH("/home/david/wrk/nstgro/qist/kernels/mk_noorb.tf")
     times = [((tf-t0)/(nnodes-1) * i + t0, i=0,nnodes-1)]
-    init_state = [ 4.89858720e-13_qp,  8.00000000e+03_qp,  0.00000000e+00_qp, &
-                  -2.95679332e+00_qp, 1.81051374e-16_qp,  8.12372287e+00_qp]
+    a = 0._dp
+    b = 2._dp * 24._dp * 3600._dp
+    times_short = [((b-a)/(1000-1)*i + a, i=0,1000-1)]
+    init_state = [ &
+              4.898587196589413e-13_qp, &
+              8000.0_qp, &
+              0.0_qp, &
+              -2.956795170934981_qp, &
+              1.8105148709099377e-16_qp, &
+              8.123727966096327_qp &
+                 ]
+
     print *, "Integrating base case"
     base_sol = solve_ivp(pert_eoms,&
                   & [t0, tf], &
@@ -36,9 +47,15 @@ program main
     print *, shape(base_sol%ys)
     do i=1,nnodes
         states(i,:) = base_sol%call(times(i))
+        if (i.le.1000) then
+            states_short(:,i) = real(base_sol%call(real(times_short(i),qp)),dp)
+        endif
     end do
     dtime = real(times, dp)
     x = transpose(real(states, dp))
+    call print_to_file("integrate_pre_resamp_x",states_short(1,:))
+    call print_to_file("integrate_pre_resamp_y",states_short(2,:))
+    call print_to_file("integrate_pre_resamp_z",states_short(3,:))
     call spkopn("perturbed_ker.bsp", "perturbedkernel",100,spkhand)
     call spkw13( &
            spkhand, & !handle
@@ -68,9 +85,9 @@ program main
             end do
             res = 0._qp
             res = xdot_kep(y)
-            do i = 1, size(bodylist)
-                res = res + xdot_nbody(y, mu_list(i),real(radlist(i,:),qp))
-            end do
+            ! do i = 1, size(bodylist)
+            !     res = res + xdot_nbody(y, mu_list(i),real(radlist(i,:),qp))
+            ! end do
         end function pert_eoms
         function xdot_kep(y) result(res)
             implicit none
@@ -79,7 +96,7 @@ program main
                                   & x0
 
             real(qp), dimension(6) :: res
-            x0  =  central_body_mu/(y(1)**2 + y(2)**2 + y(3)**2)**(3.0_qp/2.0_qp)
+            x0  =  central_body_mu/sqrt(sum(y(:3)**2))**3.0_qp
             res(1) =  y(4)
             res(2) =  y(5)
             res(3) =  y(6)

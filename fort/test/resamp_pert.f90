@@ -9,7 +9,7 @@ program main
 
     a = 0._dp
     b = 2._dp * 24._dp * 3600._dp
-    deg = 1000
+    deg = 2000
     ntest = 1000
     times = [((b-a)/(ntest-1)*i + a, i=0,ntest-1)]
     bodlist = [10, 301, 5, -998]
@@ -27,6 +27,7 @@ program main
     call print_to_file('spice_resamp_x', states(1,:))
     call print_to_file('spice_resamp_y', states(2,:))
     call print_to_file('spice_resamp_z', states(3,:))
+    call print_to_file('times_resamp', times)
     contains
         subroutine print_to_file(fname, var)
             integer io,j

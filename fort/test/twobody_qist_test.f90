@@ -12,7 +12,7 @@ program main
     type(odesolution)   :: base_sol, qist_sol
     character(len=12)   :: arg
     real(qp), parameter  :: t0=0._qp, tf=2._qp*24._qp*3600._qp, tof = tf,&
-                            rtol = 1.e-10_qp, atol = 1.e-13_qp
+                            rtol = 1.e-17_qp, atol = 1.e-20_qp
     integer, parameter   :: traj_id = -998, & 
                             central_body = 399, &
                             bodylist(3)= [10,301,5], &
@@ -40,7 +40,7 @@ program main
                           & times(ntest)
                         
     real(qp), allocatable :: qsolbuf(:)
-    integer i, j, spkhand, nsteps
+    integer i, j, nsteps
     logical              :: run_base, run_qist, rails
 
     ! call random_number(trand)
@@ -99,7 +99,9 @@ program main
     bsolbuf = dyn%eoms(trand, [dyn%state, reshape(eye,[8**2]), init_stt])
     qsolbuf = qist%dynmod%eoms_rails(trand, [trand, reshape(eye,[8**2]), init_stt])
 
-    init_state = [dyn%trajstate(t0), t0, tof]
+    init_state = [ 4.89858720e-13_qp,  8.00000000e+03_qp,  0.00000000e+00_qp, &
+                  -2.95679332e+00_qp, 1.81051374e-16_qp,  8.12372287e+00_qp, &
+                  t0, tof]
     print *, "JAC"
     do i=1,8
         print *, real(testjac_q(i,:) - testjac_b(i,:),4)
@@ -127,6 +129,8 @@ program main
         eye(i,i) = 1._qp
     end do
     
+    print *, "Initial State"
+    print *, real(init_state,4)
 
     if (run_base) then
     print *, init_state

@@ -180,15 +180,15 @@ module makemodel
             y = me%state
         endif
             ! for bodies i = 2. . .
-        do i=1,me%num_bodies
-            ! get r from central body to body i
-            nbody_radii(:,i) = real(me%bod_db%call(real(time,dp), &
-                                               & me%bodylist(i),'p'), qp)
-            nbody_vels(:,i) = real(me%bod_db%call(real(time,dp), &
-                                               & me%bodylist(i),'v'), qp)
-            nbody_accs(:,i) = real(me%bod_db%call(real(time,dp), &
-                                               & me%bodylist(i),'a'), qp)
-        end do
+        ! do i=1,me%num_bodies
+        !     ! get r from central body to body i
+        !     nbody_radii(:,i) = real(me%bod_db%call(real(time,dp), &
+        !                                        & me%bodylist(i),'p'), qp)
+        !     nbody_vels(:,i) = real(me%bod_db%call(real(time,dp), &
+        !                                        & me%bodylist(i),'v'), qp)
+        !     nbody_accs(:,i) = real(me%bod_db%call(real(time,dp), &
+        !                                        & me%bodylist(i),'a'), qp)
+        ! end do
         ! For central body
             ! Choose point mass or SH model
         if (me%shgrav) then
@@ -208,14 +208,14 @@ module makemodel
         acc_nb = 0._qp
         jac_nb = 0._qp
         hes_nb = 0._qp
-        do i=1,me%num_bodies
-            r_bod_up = nbody_radii(:,i)
-            v_bod_up = nbody_vels(:,i)
-            a_bod_up = nbody_accs(:,i)
-            acc_nb   = acc_nb + acc_nbody(me, me%nbody_mus(i), y,r_bod_up)
-            jac_nb   = jac_nb + jac_nbody(me, me%nbody_mus(i), y,r_bod_up,v_bod_up)
-            hes_nb   = hes_nb + hes_nbody(me, me%nbody_mus(i), y,r_bod_up,v_bod_up,a_bod_up)
-        end do
+        ! do i=1,me%num_bodies
+        !     r_bod_up = nbody_radii(:,i)
+        !     v_bod_up = nbody_vels(:,i)
+        !     a_bod_up = nbody_accs(:,i)
+        !     acc_nb   = acc_nb + acc_nbody(me, me%nbody_mus(i), y,r_bod_up)
+        !     jac_nb   = jac_nb + jac_nbody(me, me%nbody_mus(i), y,r_bod_up,v_bod_up)
+        !     hes_nb   = hes_nb + hes_nbody(me, me%nbody_mus(i), y,r_bod_up,v_bod_up,a_bod_up)
+        ! end do
         acc_nb(:3) = 0._qp
         acc = acc_2b + acc_nb
         jac = jac_2b
