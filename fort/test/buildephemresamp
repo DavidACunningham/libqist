@@ -1,0 +1,1 @@
+gfortran -g -fopenmp -mcmodel=large -ffree-line-length-none -o ephem resamp_bodies.f90 ../src/cheby.f90 ~/libf/spicelib.a

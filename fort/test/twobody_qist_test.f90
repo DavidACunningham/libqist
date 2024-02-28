@@ -12,7 +12,7 @@ program main
     type(odesolution)   :: base_sol, qist_sol
     character(len=12)   :: arg
     real(qp), parameter  :: t0=0._qp, tf=2._qp*24._qp*3600._qp, tof = tf,&
-                            rtol = 1.e-17_qp, atol = 1.e-20_qp
+                            rtol = 1.e-14_qp, atol = 1.e-20_qp
     integer, parameter   :: traj_id = -998, & 
                             central_body = 399, &
                             bodylist(3)= [10,301,5], &
@@ -146,7 +146,7 @@ program main
     if (run_qist) then
         print *, "Integrating QIST"
         qist%rtol = 1.e-14_qp
-        qist%atol = 1.e-16_qp
+        qist%atol = 1.e-20_qp
         qist_sol = qist%integrate(t0, tf)
         
 

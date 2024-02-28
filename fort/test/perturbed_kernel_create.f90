@@ -85,9 +85,9 @@ program main
             end do
             res = 0._qp
             res = xdot_kep(y)
-            ! do i = 1, size(bodylist)
-            !     res = res + xdot_nbody(y, mu_list(i),real(radlist(i,:),qp))
-            ! end do
+            do i = 1, size(bodylist)
+                res = res + xdot_nbody(y, mu_list(i),real(radlist(i,:),qp))
+            end do
         end function pert_eoms
         function xdot_kep(y) result(res)
             implicit none

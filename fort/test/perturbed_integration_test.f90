@@ -36,7 +36,7 @@ program main
     do i=1,8
         eye(i,i) = 1._qp
     end do
-    open(file=trim(adjustl("/home/david/wrk/nstgro/qist/libqist/fort/test/twobody_resample.subspice")),unit=73, &
+    open(file=trim(adjustl("/home/david/wrk/nstgro/qist/libqist/fort/test/resampled_celestial_bodies.subspice" )),unit=73, &
        & access="stream", status="old")
     call subspice%read(73)
     close(73)
@@ -46,17 +46,17 @@ program main
     dyn%tof = tof
 
     init_state = [dyn%trajstate(t0), t0, tof]
-    ! print *, "Integrating base case"
-    ! base_sol = solve_ivp(fd_eoms,&
-    !               & [0._qp, 1._qp], &
-    !               & [init_state, &
-    !                  reshape(eye,[8**2]), &
-    !                  init_stt], &
-    !               & method="DOP853",&
-    !               & dense_output=.false.,&
-    !               & rtol=rtol, &
-    !               & atol=atol, istep=0.5_qp)
-    ! print *, "Done."
+    print *, "Integrating base case"
+    base_sol = solve_ivp(fd_eoms,&
+                  & [0._qp, 1._qp], &
+                  & [init_state, &
+                     reshape(eye,[8**2]), &
+                     init_stt], &
+                  & method="DOP853",&
+                  & dense_output=.false.,&
+                  & rtol=rtol, &
+                  & atol=atol, istep=0.5_qp)
+    print *, "Done."
     print *,  "Initializing QIST"
     call qist%init(t0, tf, &
                  & "./perturbed_reference.subspice", &
