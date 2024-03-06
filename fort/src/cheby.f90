@@ -215,14 +215,14 @@ module cheby
                                                 ! (n x ndim)
                                               & a, b
             integer i
-            me%ndim = size(fi,2)
-            me%ndeg = size(fi,1)
-            me%a    = a
-            me%b    = b
+            me%ndeg  = size(fi,1)
+            me%ndim  = size(fi,2)
+            me%a     = a
+            me%b     = b
             if (allocated(me%coeffs)) deallocate(me%coeffs)
-            allocate(me%coeffs(me%ndeg,me%ndim))
-            do i=1,me%ndim
-                me%coeffs(:,i) = chfit(me%ndeg, fi(:,i))
+            allocate(me%coeffs(me%ndeg, me%ndim))
+            do i=1, me%ndim
+                me%coeffs(:,i) = chfit(me%ndeg,fi(:,i))
             end do
         end subroutine fit
         function call_s(me, x) result(res)
