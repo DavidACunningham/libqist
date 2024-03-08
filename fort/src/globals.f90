@@ -7,16 +7,16 @@ module globals
     use, intrinsic :: iso_fortran_env, only: wp => real128, dp => real64
     implicit none
     ! Convenience variables for indexing dynamical state and packed state
-    integer, parameter :: n=6, &
+    integer, parameter :: n=8, &
                           statesize=n+n**2+n**3,&
                           ! plen = Packed state LENgth
-                          plen = n+n*(n-1) + n**2*(n-1)/2, &
+                          plen = n + ((n-2)**2 + 6) + (n-2)*(n*(n-1)/2), &
                           ! stmlp = STM Lower index, Packed
-                          stmlp = n+1, &
+                          stmlp = n + 1, &
                           ! stmup = STM Upper index, Packed
-                          stmup = n+n*(n-1), &
+                          stmup = n + (n-2)**2 + n-2, &
                           ! sttlp = STT Lower index, Packed
-                          sttlp = n+n*(n-1)+1, &
+                          sttlp = n + (n-2)**2 + n-2 + 1, &
                           ! sttup = STT Upper index, Packed
                           sttup = plen, &
                           ! stml = STM Lower index, unpacked
