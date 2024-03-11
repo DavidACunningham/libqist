@@ -1,5 +1,6 @@
 module genqist
     use globals
+    use denselight, only: lightsol, qistpack
     use, intrinsic :: iso_fortran_env, only: dp=>real64, qp=>real128
     use makemodel
     use frkmain, only: solve_ivp, Odesolution, RungeKutta
@@ -14,6 +15,7 @@ module genqist
         contains
         procedure init
         procedure integrate
+        procedure :: pack => packsol
     end type gqist
 
     contains
@@ -90,7 +92,7 @@ module genqist
         me%atol = 1.e-14
         me%check = check
     end subroutine
-    function integrate(meqist, t0, tf) result(res)
+    function integrate(thisqist, t0, tf) result(res)
         ! integrate: integrate a QIST model
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
@@ -101,7 +103,7 @@ module genqist
         ! OUTPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! res            ODESolution    the dense solution, ready for packing
-        class(gqist), intent(inout) :: meqist
+        class(gqist), intent(inout) :: thisqist
         type(ODESolution)           :: res
         real(qp), intent(in)        :: t0, tf
         logical                     :: boundscheck
@@ -109,14 +111,14 @@ module genqist
         real(qp), allocatable       :: init_state(:)
         integer i
         boundscheck = .false.
-        if (t0<meqist%t0) then
+        if (t0<thisqist%t0) then
             write(*,42,advance='no') "integration start set to ", t0
-            write(*,42) " but must be greater than ", meqist%t0
+            write(*,42) " but must be greater than ", thisqist%t0
             boundscheck = .true.
         end if
-        if (tf>meqist%tf) then
+        if (tf>thisqist%tf) then
             write(*,42,advance='no') "integration end set to ", tf
-            write(*,42) " but must be less than ", meqist%tf
+            write(*,42) " but must be less than ", thisqist%tf
             boundscheck = .true.
         end if
         42 format (a,f5.3)
@@ -128,13 +130,13 @@ module genqist
             eye(i,i) = 1._qp
         end do
         hess_init = 0._qp
-        meqist%dynmod%tof = tf-t0
-        if (meqist%dynmod%tgt_on_rails) then
+        thisqist%dynmod%tof = tf-t0
+        if (thisqist%dynmod%tgt_on_rails) then
             allocate(init_state(1))
             init_state = [t0]
         else
             allocate(init_state(8))
-            init_state(:6) = meqist%dynmod%trajstate(t0)
+            init_state(:6) = thisqist%dynmod%trajstate(t0)
             init_state(7:) = [t0, tf - t0]
         endif
         print *, init_state
@@ -144,18 +146,24 @@ module genqist
                          reshape(eye,[8**2]), &
                          hess_init], &
                       & dense_output=.true.,&
-                      & rtol=meqist%rtol, &
-                      & atol=meqist%atol, istep=0.5_qp)
+                      & rtol=thisqist%rtol, &
+                      & atol=thisqist%atol, istep=0.5_qp)
         contains
             function myint_eoms(me, x, y) result(res)
                 class(RungeKutta), intent(inout) :: me
                 real(qp),          intent(in)    :: x, y(:)
                 real(qp)                         :: res(size(y))
-                if (meqist%dynmod%tgt_on_rails) then
-                    res = meqist%dynmod%eoms_rails(x,y)
+                if (thisqist%dynmod%tgt_on_rails) then
+                    res = thisqist%dynmod%eoms_rails(x,y)
                 else
-                    res = meqist%dynmod%eoms(x,y)
+                    res = thisqist%dynmod%eoms(x,y)
                 endif
             end function myint_eoms
         end function integrate
+    subroutine packsol(me,solfile,light) 
+        class(gqist),   intent(inout)  :: me
+        character(len=*), intent(in)   :: solfile
+        type(lightSol),    intent(out) :: light
+        call light%convert_from_file_and_pack(solfile,qistpack)
+    end subroutine packsol
 end module genqist

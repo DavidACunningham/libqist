@@ -17,7 +17,7 @@ module qist
         !! All type variables accessed through getter/setter methods
         real(dp)               :: t0, tf 
         logical                :: initq
-        type(lightSol)         :: gw
+        type(lightSol)         :: reftraj
         character(len=1000)    :: densefilename
 
     contains
@@ -52,7 +52,7 @@ module qist
         self%t0               = t0
         self%tf               = tf
         open(unit=49, file=filepath//trajfile, status="old", access="stream")
-        call self%gw%read(49)
+        call self%reftraj%read(49)
         close(49)
         ! Make sure the chebyshev order in the file is good to go
         ! Set the coefficient filename
@@ -73,7 +73,7 @@ module qist
         if (present(lind)) l=lind
         if (present(uind)) u=uind
         allocate(res(u-l+1))
-        res = self%gw%call(t,l,u)
+        res = self%reftraj%call(t,l,u)
     end function
     function state(self,t) result(res)
         !! Return a regularized state at time t

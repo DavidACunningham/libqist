@@ -1,18 +1,22 @@
 program main
     use frkmain, only: solve_ivp, Odesolution, RungeKutta
     use cheby, only: spice_subset
+    use denselight, only: lightsol
     use genqist, only: gqist
+    use qist, only: itraj
     use tensorops, only: mattens, quad
     use makemodel, only: dynamicsmodel
     use, intrinsic :: iso_fortran_env, only: dp => real64, qp=>real128
     implicit none
-    type(gqist)         :: qist
-    type(spice_subset)   :: subspice
+    type(gqist)         :: qist_i
+    type(itraj)         :: it
+    type(spice_subset)  :: subspice
     type(dynamicsModel) :: dyn
     type(odesolution)   :: base_sol, qist_sol
+    type(lightsol)      :: packedsol
     character(len=12)   :: arg
     real(qp), parameter  :: t0=0._qp, tf=2._qp*24._qp*3600._qp, tof = tf,&
-                            rtol = 1.e-14_qp, atol = 1.e-20_qp
+                            rtol = 1.e-10_qp, atol = 1.e-20_qp
     integer, parameter   :: traj_id = -998, & 
                             central_body = 399, &
                             bodylist(3)= [10,301,5], &
@@ -37,7 +41,11 @@ program main
                           & testacc(8), &
                           & trand, &
                           & write_state(ntest,6), &
-                          & times(ntest)
+                          & times(ntest), &
+                          & itraj_stm(8,8), &
+                          & itraj_stt(8,8,8), &
+                          & itraj_diff1(8,8), &
+                          & itraj_diff2(8,8,8)
                         
     real(qp), allocatable :: qsolbuf(:)
     integer i, j, nsteps
@@ -71,7 +79,7 @@ program main
     call dyn%init(subspice, traj_id, central_body, bodylist, &
                 & central_body_mu, central_body_ref_radius,  &
                 & mu_list, shgrav, Cbar, Sbar,.false.)
-    call qist%init(t0, tf, &
+    call qist_i%init(t0, tf, &
                  & "./perturbed_reference.subspice", &
                  &  traj_id, &
                  &  399, &
@@ -83,14 +91,14 @@ program main
                  &  Cbar, Sbar, rails,.true.)
     dyn%tof = tof
 
-    qist%dynmod%tof = tof
+    qist_i%dynmod%tof = tof
     testjac_b = 0._qp
     testhes_b = 0._qp
     testjac_q = 0._qp
     testhes_q = 0._qp
-    qist%dynmod%state = [qist%dynmod%trajstate(trand), trand, tof]
+    qist_i%dynmod%state = [qist_i%dynmod%trajstate(trand), trand, tof]
     dyn%state = [dyn%trajstate(trand), trand, tof]
-    call qist%dynmod%get_derivs(trand,testacc, testjac_q, testhes_q)
+    call qist_i%dynmod%get_derivs(trand,testacc, testjac_q, testhes_q)
     ! testacc =0._qp
     call dyn%get_derivs(trand, testacc, testjac_b,testhes_b)
 
@@ -115,7 +123,7 @@ program main
         end do 
     end do
     dyn%state = init_state
-    qist%dynmod%state = init_state
+    qist_i%dynmod%state = init_state
     
 
     eye = 0._qp
@@ -145,14 +153,24 @@ program main
 
     if (run_qist) then
         print *, "Integrating QIST"
-        qist%rtol = 1.e-14_qp
-        qist%atol = 1.e-20_qp
-        qist_sol = qist%integrate(t0, tf)
+        qist_i%rtol = 1.e-10_qp
+        qist_i%atol = 1.e-20_qp
+        qist_sol = qist_i%integrate(t0, tf)
         
 
         open(unit=75, file="qist_sol_perturbed.odesolution", access="stream", status="replace")
-        call qist_sol%write(75,qp)
+        call qist_sol%write(75,dp)
         close(75)
+        call qist_i%pack("qist_sol_perturbed.odesolution",packedsol)
+        open(unit=59, file="qist_sol_packed.lightsol", access='stream', status='replace')
+        call packedsol%write(59)
+        close(59)
+
+        call it%init(real(t0,dp), 1._dp, &
+                     "/home/david/wrk/nstgro/qist/libqist/fort/test/",&
+                     "qist_sol_packed.lightsol")
+        itraj_stm = real(it%stm(1._dp),qp)
+        itraj_stt = real(it%stt(1._dp),qp)
 
         print *, "DONE"
         qsolbuf = qist_sol%call(1._qp)
@@ -197,12 +215,27 @@ program main
             print *, real(qist_stt(i,j,:),4)
         end do
         end do
+        print *, "ITRAJ STM"
+        do i = 1,8
+            print *, real(itraj_stm(i,:),4)
+        end do
+        print *, "ITRAJ STT"
+        do i = 1,8
+            print *, "PAGE", i
+        do j = 1,8
+            print *, real(itraj_stt(i,j,:),4)
+        end do
+        end do
     end if
     if (run_base.and.run_qist)then
         stmdiff = qist_stm - base_stm
         sttdiff = qist_stt - base_stt
+        itraj_diff1 = itraj_stm - qist_stm
+        itraj_diff2 = itraj_stt - qist_stt
         where (base_stm.ne.0._qp) stmdiff=stmdiff/base_stm
         where (base_stt.ne.0._qp) sttdiff=sttdiff/base_stt
+        where (qist_stm.ne.0._qp) itraj_diff1=itraj_diff1/qist_stm
+        where (qist_stt.ne.0._qp) itraj_diff2=itraj_diff2/qist_stt
         print *, "STM Diff"
         do i = 1,8
             print *, real(stmdiff(i,:),4)
@@ -212,6 +245,17 @@ program main
             print *, "PAGE", i
         do j = 1,8
             print *, real(sttdiff(i,j,:),4)
+        end do
+        end do
+        print *, "ITRAJ STM Diff"
+        do i = 1,8
+            print *, real(itraj_diff1(i,:),4)
+        end do
+        print *, "ITRAJ STT Diff"
+        do i = 1,8
+            print *, "PAGE", i
+        do j = 1,8
+            print *, real(itraj_diff2(i,j,:),4)
         end do
         end do
     end if
