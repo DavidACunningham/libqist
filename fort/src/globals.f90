@@ -10,13 +10,13 @@ module globals
     integer, parameter :: n=8, &
                           statesize=n+n**2+n**3,&
                           ! plen = Packed state LENgth
-                          plen = n + ((n-2)**2 + 6) + (n-2)*(n*(n-1)/2), &
+                          plen = n + n*(n-2) + (n-2)*(n*(n+1)/2), &
                           ! stmlp = STM Lower index, Packed
                           stmlp = n + 1, &
                           ! stmup = STM Upper index, Packed
-                          stmup = n + (n-2)**2 + n-2, &
+                          stmup = n + n*(n-2), &
                           ! sttlp = STT Lower index, Packed
-                          sttlp = n + (n-2)**2 + n-2 + 1, &
+                          sttlp = n + n*(n-2)+ 1, &
                           ! sttup = STT Upper index, Packed
                           sttup = plen, &
                           ! stml = STM Lower index, unpacked
