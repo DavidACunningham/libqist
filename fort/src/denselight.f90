@@ -48,7 +48,7 @@ module denseLight
         572, 573, 574, 577, 578, 579,&
         580, 581, 582 &
                                           ], &
-                          ncoeff = 8
+                          ncoeff = 7
 
     type lightSol
         integer               :: ndim, n_segments, fs(3)
