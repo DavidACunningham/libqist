@@ -16,7 +16,7 @@ program main
     type(lightsol)      :: packedsol
     character(len=12)   :: arg
     real(qp), parameter  :: t0=0._qp, tf=2._qp*24._qp*3600._qp, tof = tf,&
-                            rtol = 1.e-6_qp, atol = 1.e-10_qp
+                            rtol = 1.e-14_qp, atol = 1.e-20_qp
     integer, parameter   :: traj_id = -998, & 
                             central_body = 399, &
                             bodylist(3)= [10,301,5], &
@@ -153,8 +153,8 @@ program main
 
     if (run_qist) then
         print *, "Integrating QIST"
-        qist_i%rtol = 1.e-6_qp
-        qist_i%atol = 1.e-10_qp
+        qist_i%rtol = 1.e-14_qp
+        qist_i%atol = 1.e-20_qp
         qist_sol = qist_i%integrate(t0, tf)
         print *, "DONE"
         
@@ -181,6 +181,12 @@ program main
         itraj_stt = real(it%stt(1._dp),qp)
 
         qsolbuf = qist_sol%call(1._qp)
+        print *, "UNPACKED DENSE SOLUTION"
+        do i=1,size(qsolbuf)
+            print *, qsolbuf(i)
+        end do
+        print *, "PACKED DENSE SOLUTION"
+        print *, it%call(1._dp)
     end if
 
     if (run_base) then

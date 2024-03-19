@@ -8,24 +8,24 @@ module globals
     implicit none
     ! Convenience variables for indexing dynamical state and packed state
     integer, parameter :: n=8, &
-                          statesize=n+n**2+n**3,&
+                          statesize=1+n**2+n**3,&
                           ! plen = Packed state LENgth
-                          plen = n + n*(n-2) + (n-2)*(n*(n+1)/2), &
+                          plen = 1 + n*(n-2) + (n-2)*(n*(n+1)/2), &
                           ! stmlp = STM Lower index, Packed
-                          stmlp = n + 1, &
+                          stmlp = 1 + 1, &
                           ! stmup = STM Upper index, Packed
-                          stmup = n + n*(n-2), &
+                          stmup = 1 + n*(n-2), &
                           ! sttlp = STT Lower index, Packed
-                          sttlp = n + n*(n-2)+ 1, &
+                          sttlp = 1 + n*(n-2)+ 1, &
                           ! sttup = STT Upper index, Packed
                           sttup = plen, &
                           ! stml = STM Lower index, unpacked
-                          stml = n+1, & 
+                          stml = 1+1, & 
                           ! stmu = STM Upper index, unpacked
-                          stmu = n+n**2, &
+                          stmu = 1+n**2, &
                           ! sttl = STT Lower index, unpacked
-                          sttl = n+n**2+1, &
-                          sttu = n+n**2+n**3
+                          sttl = 1+n**2+1, &
+                          sttu = 1+n**2+n**3
     interface mmult
         ! Wraps interface to locally-defined matrix multiplication functions
         module procedure mmult_matmat_q
