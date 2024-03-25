@@ -28,7 +28,6 @@ module makemodel
             procedure:: init => init_dm
             procedure :: eoms
             procedure :: eoms_rails
-            procedure :: eoms_rails_check
             procedure :: get_derivs
             procedure :: acc_kepler
             procedure :: jac_kepler
@@ -44,6 +43,8 @@ module makemodel
             procedure :: fd_hes_nbody
             procedure :: allderivs_sh
             procedure :: trajstate
+            procedure :: new_bodies
+            procedure :: new_gravstatus
     end type dynamicsModel
 
     contains
@@ -116,16 +117,39 @@ module makemodel
             call pinesinit(size(Cbar,1),me%shdat%Cml,me%shdat%Sml,me%pdat)
         endif
     end subroutine init_dm
-    subroutine get_derivs(me, time, acc, jac, hes, check)
+    subroutine new_bodies(me, bodylist, mulist)
+        class(dynamicsModel), intent(inout) :: me
+        integer,              intent(in)    :: bodylist(:)
+        real(dp),             intent(in)    :: mulist(:)
+        if (allocated(me%bodylist)) deallocate(me%bodylist)
+        if (allocated(me%nbody_mus)) deallocate(me%nbody_mus)
+        me%num_bodies = size(bodylist)
+        allocate(me%bodylist(me%num_bodies),  &
+                 me%nbody_mus(me%num_bodies))
+        me%bodylist = bodylist
+        me%nbody_mus = real(mulist,qp)
+    end subroutine new_bodies
+    subroutine new_gravstatus(me, shgrav, Cbar, Sbar)
+        class(dynamicsModel), intent(inout) :: me
+        logical,              intent(in)    :: shgrav
+        real(dp),             intent(in)    :: Cbar(:,:), Sbar(:,:)
+        me%shgrav = shgrav
+        if (me%shgrav) then
+            call shdat_from_table( real(me%central_body_ref_radius,dp), & 
+                                 & real(me%central_body_mu,dp), &
+                                 & real(Cbar,dp), real(Sbar,dp), &
+                                 & size(Cbar,1),size(Cbar,2), me%shdat &
+                                 )
+            call pinesinit(size(Cbar,1),me%shdat%Cml,me%shdat%Sml,me%pdat)
+        endif
+    end subroutine new_gravstatus
+    subroutine get_derivs(me, time, acc, jac, hes)
         ! get_derivs: method to generate dynamics and dynamics partials around 
         !             reference trajectory
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! time           real           time in sec past J2000 at which
         !                               partials are evaluated
-        ! check          logical        indicates whether to check the 
-        !                               integrated target state against
-        !                               the interpolated one 
         ! OUTPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! acc            float (6)      time derivative of 6-d state,
@@ -137,9 +161,7 @@ module makemodel
         !                               hes(i,j,k) = d^2f_i/(dx_j*dx_k)
         class(dynamicsModel), intent(inout) :: me
         real(qp),             intent(in)    :: time
-        logical,  optional,   intent(in)    :: check
         real(qp),             intent(out)   :: acc(m), jac(m,m), hes(m,m,m)
-        logical                             :: checkstate
         real(qp)                            :: acc_2b(m), jac_2b(m,m), hes_2b(m,m,m)
         real(qp)                            :: acc_nb(m), jac_nb(m,m), hes_nb(m,m,m)
         real(qp)                            :: nbody_radii(3,me%num_bodies), &
@@ -148,11 +170,6 @@ module makemodel
         real(qp)                            :: r_bod_up(3), v_bod_up(3), a_bod_up(3), &
                                                y(m)
         integer i
-        if (present(check)) then
-            checkstate = check
-        else
-            checkstate = .false.
-        endif
         ! at time t (in s past j2000)
             ! get r from central body to traj
         if (me%tgt_on_rails) then
@@ -1861,40 +1878,6 @@ module makemodel
         sttdot = mattens(jac,stt,m) + quad(stm,hes,m)
         res = [statedot, reshape(stmdot,[m**2]), reshape(sttdot,[m**3])]
     end function eoms
-    function eoms_rails_check(me,t,y) result(res)
-        ! eoms: method to compute dynamics function of extended state vector
-        !       i.e. [xdot, stmdot, sttdot]
-        ! INPUTS:
-        ! NAME           TYPE           DESCRIPTION
-        ! t              real           time in sec past J2000 to evaluate
-        !                               the dynamics
-        ! y              real (584)     Extended dyamics vector:
-        !                               258 = 8 + 8 ** 2 + 8 ** 3
-        !                        y = [x, reshape(stm,(64)), reshape(stt,(584))]
-        ! OUTPUTS:
-        ! NAME           TYPE           DESCRIPTION
-        ! res            real (584)     big vector of dynamics
-        class(dynamicsModel), intent(inout) :: me
-        real(qp)            , intent(in)    :: t, y(:)
-        real(qp)                            :: stm(m,m), &
-                                               stt(m,m,m), &
-                                               statedot(m), &
-                                               stmdot(m,m), &
-                                               sttdot(m,m,m), &
-                                               acc(m), &
-                                               jac(m,m), &
-                                               hes(m,m,m)
-        real(qp)                            :: res(size(y))
-        stm = reshape(y((m + 1):(m + m**2)),[m,m])
-        stt = reshape(y((m + m**2 + 1):),[m,m,m])
-        me%state = y(:m)
-        call me%get_derivs(y(7), acc, jac, hes,check=.true.)
-        statedot = acc
-        stmdot = matmul(jac,stm)
-        sttdot = mattens(jac,stt,m) + quad(stm,hes,m)
-        res = [statedot, reshape(stmdot,[m**2]), reshape(sttdot,[m**3])]
-        print *, "ERROR YOU'RE IN THE RAILS CHECK EOM"
-    end function eoms_rails_check
     function eoms_rails(me,t,y) result(res)
         ! eoms: method to compute dynamics function of extended state vector
         !       i.e. [xdot, stmdot, sttdot]

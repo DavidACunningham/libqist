@@ -16,6 +16,7 @@ module genqist
         procedure init
         procedure integrate
         procedure :: pack => packsol
+        procedure :: bounds
     end type gqist
 
     contains
@@ -92,6 +93,55 @@ module genqist
         me%atol = 1.e-14
         me%check = check
     end subroutine
+    subroutine model_accuracy_check(me_qist, t0, tf, &
+                                    bodylist, mulist, &
+                                    shgrav, Cbars, Sbars,&
+                                    spicepoints, testpoints, testtimes)
+        integer,      parameter     :: npoints=500
+        class(gqist), intent(inout) :: me_qist
+        integer,      intent(in)    :: bodylist(:)
+        real(dp),     intent(in)    :: t0, tf
+        real(dp),     intent(in)    :: mulist(:), &
+                                       Cbars(:,:), &
+                                       Sbars(:,:)
+        logical,      intent(in)    :: shgrav
+        logical                     :: boundscheck
+        real(dp),     intent(out)   :: testpoints(6,npoints), &
+                                       spicepoints(6,npoints), &
+                                       testtimes(npoints)
+        type(ODESolution)           :: testsol
+        integer i
+
+        me_qist%dynmod%tgt_on_rails = .false.
+        ! Change bodylist and SHGrav Parameters
+        call me_qist%dynmod%new_bodies(bodylist, mulist)
+        call me_qist%dynmod%new_gravstatus(shgrav, Cbars,Sbars)
+        boundscheck = me_qist%bounds(real(t0,qp), real(tf,qp))
+        me_qist%dynmod%tof = tf-t0
+        testsol = solve_ivp(test_eoms,&
+                      & [real(t0,qp), real(tf,qp)], &
+                        me_qist%dynmod%trajstate(real(t0,qp)), &
+                      & dense_output=.true.,&
+                      & rtol=me_qist%rtol, &
+                      & atol=me_qist%atol, istep=0.5_qp)
+        testtimes = [(t0 + (tf-t0)/npoints * i, i=0,npoints-1)]
+        do i=1,npoints
+            testpoints(:,i) = real(testsol%call( &
+                                     real(testtimes(i),qp)), dp)
+            spicepoints(:,i) = real(me_qist%dynmod%trajstate( &
+                                     real(testtimes(i),qp)), dp)
+        end do
+        contains
+            function test_eoms(me, x, y) result(res)
+                class(RungeKutta), intent(inout) :: me
+                real(qp),          intent(in)    :: x, y(:)
+                real(qp)                         :: acc(6), jac(6,6), hes(6,6,6)
+                real(qp)                         :: res(size(y))
+                call me_qist%dynmod%get_derivs(x,acc,jac,hes)
+                res = acc
+            end function test_eoms
+        ! Compare integrated and spice solutions
+    end subroutine model_accuracy_check
     function integrate(thisqist, t0, tf) result(res)
         ! integrate: integrate a QIST model
         ! INPUTS:
@@ -110,18 +160,7 @@ module genqist
         real(qp)                    :: eye(8,8), hess_init(8**3)
         real(qp), allocatable       :: init_state(:)
         integer i
-        boundscheck = .false.
-        if (t0<thisqist%t0) then
-            write(*,42,advance='no') "integration start set to ", t0
-            write(*,42) " but must be greater than ", thisqist%t0
-            boundscheck = .true.
-        end if
-        if (tf>thisqist%tf) then
-            write(*,42,advance='no') "integration end set to ", tf
-            write(*,42) " but must be less than ", thisqist%tf
-            boundscheck = .true.
-        end if
-        42 format (a,f5.3)
+        boundscheck = thisqist%bounds(t0,tf)
         if (boundscheck) then
             error stop
         end if
@@ -139,7 +178,6 @@ module genqist
             init_state(:6) = thisqist%dynmod%trajstate(t0)
             init_state(7:) = [t0, tf - t0]
         endif
-        print *, init_state
         res = solve_ivp(myint_eoms,&
                       & [0._qp, 1._qp], &
                       & [ init_state, &
@@ -166,4 +204,21 @@ module genqist
         type(lightSol),    intent(out) :: light
         call light%convert_from_file_and_pack(solfile,qistpack)
     end subroutine packsol
+    function bounds(me, t0, tf) result(res)
+        class(gqist), intent(in) :: me
+        real(qp),     intent(in) :: t0, tf
+        logical                  :: res
+        res = .false.
+        if (t0<me%t0) then
+            write(*,42,advance='no') "integration start set to ", t0
+            write(*,42) " but must be greater than ", me%t0
+            res = .true.
+        end if
+        if (tf>me%tf) then
+            write(*,42,advance='no') "integration end set to ", tf
+            write(*,42) " but must be less than ", me%tf
+            res = .true.
+        end if
+        42 format (a,f5.3)
+    end function bounds
 end module genqist

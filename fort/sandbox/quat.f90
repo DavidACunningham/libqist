@@ -1,8 +1,10 @@
 module quat
     use, intrinsic :: iso_fortran_env, only: dp => real64, qp => real128
+    use cheby, only: vectorcheb
     implicit none
     integer, parameter :: wp = dp
     real(wp), parameter :: pi = 4._wp*atan(1._wp)
+    
 
     type :: quaternion
         real(dp) :: q(4)
@@ -35,6 +37,17 @@ module quat
     interface operator (.T.)
         module procedure qconj
     end interface
+
+    type rothist
+        type(vectorcheb) :: els
+        type(quaternion) :: qstat
+        integer          :: degree
+        real(dp)         :: t0, tf
+
+        contains
+            procedure :: init => init_rot
+            procedure :: dcm
+    end type rothist
 
     contains
         pure function norm(q) result(res)
