@@ -1,6 +1,6 @@
 module quat
     use, intrinsic :: iso_fortran_env, only: dp => real64, qp => real128
-    use cheby, only: vectorcheb
+    use cheby, only: vectorcheb, chnodes
     implicit none
     integer, parameter :: wp = dp
     real(wp), parameter :: pi = 4._wp*atan(1._wp)
@@ -16,7 +16,30 @@ module quat
         procedure axang
         procedure rotate_vec
     end type quaternion
+    type  rothist
+        type(vectorcheb)             :: els
+        type(quaternion)             :: qstat
+        integer                      :: degree
+        real(dp)                     :: t0, tf
+        procedure(fit_func), pointer :: fit => null()
 
+        contains
+            procedure :: init => init_rot
+            procedure :: dcm
+            procedure :: dcmdot
+            procedure, private :: renorm
+    end type rothist
+
+    abstract interface 
+        function fit_func(me, ta, tb) result(res)
+            ! Function wrapping the interpolant target
+            import :: wp, rothist
+            implicit none
+            class(rothist), intent(inout) :: me
+            real(wp), intent(in) :: ta, tb
+            real(wp)             :: res(4)
+        end function fit_func
+    end interface
     interface operator (*)
         module procedure qmul
         module procedure smul1
@@ -38,18 +61,66 @@ module quat
         module procedure qconj
     end interface
 
-    type rothist
-        type(vectorcheb) :: els
-        type(quaternion) :: qstat
-        integer          :: degree
-        real(dp)         :: t0, tf
-
-        contains
-            procedure :: init => init_rot
-            procedure :: dcm
-    end type rothist
 
     contains
+        subroutine init_rot(me, fit, t0, tf, order, qstat)
+            class(rothist),     intent(inout) :: me
+            procedure(fit_func)               :: fit
+            real(wp),           intent(in)    :: t0,tf, qstat(4)
+            integer,            intent(in)    :: order
+            real(wp)                          :: nodes(order), &
+                                               & vals(order,4), &
+                                               & first(4)
+            integer i
+            me%fit => fit
+            nodes = chnodes(order, t0, tf)
+            first = me%fit(t0, (t0+nodes(1))/10._wp)
+            vals(1,:) = fitwrap(t0, nodes(1), first)
+            do i = 2, order
+                vals(i,:) = fitwrap(t0,nodes(i), vals(i-1,:))
+            end do
+            call me%els%fit(vals, t0,tf)
+            me%qstat%q = qstat
+                contains
+                    function fitwrap(a, b, prev) result(res)
+                        real(wp), intent(in) :: a, b, prev(4)
+                        real(wp)             :: res(4), cur(4), dot
+                        cur = me%fit(a, b)
+                        dot = dot_product(prev,cur)
+                        if (dot.lt.0._wp) then
+                            res = -cur
+                        else
+                            res = cur
+                        end if
+                    end function fitwrap
+        end subroutine
+        function dcm(me, t) result(res)
+            class(rothist), intent(inout) :: me
+            type(quaternion)              :: qtot, qdyn
+            real(wp),       intent(in)    :: t
+            real(wp)                      :: res(3,3)
+            real(wp)                      :: q(4)
+            q = me%els%call(t)
+            call me%renorm(q)
+            qdyn%q = q
+            qtot = qdyn*me%qstat
+            res = qtot%asdcm()
+        end function
+        function dcmdot(me, t) result(res)
+            class(rothist), intent(inout) :: me
+            real(wp),       intent(in)    :: t
+            real(wp)                      :: res(3,3)
+            real(wp)                      :: q(4)
+
+        end function
+        subroutine renorm(me, q)
+            class(rothist), intent(in) :: me
+            real(dp),    intent(inout) :: q(4)
+            real(dp)                   :: q_raw(4), norm
+            q_raw = q
+            norm = sqrt(sum(q_raw**2))
+            q = q_raw/norm
+        end subroutine
         pure function norm(q) result(res)
             class(quaternion), intent(in) :: q
             real(wp) :: res
