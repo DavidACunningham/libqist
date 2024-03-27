@@ -168,6 +168,7 @@ module quat
             real(wp)                      :: res(3,3)
             real(wp)                      :: q(4)
             q = me%elsdot%call(t)
+            call me%renorm(q)
             qdot%q = q
             res = qdot%asdcm()
         end function
@@ -178,6 +179,7 @@ module quat
             real(wp)                      :: res(4)
             real(wp)                      :: q(4)
             q = me%elsdot%call(t)
+            call me%renorm(q)
             qdot%q = q
             res = qdot%q
         end function

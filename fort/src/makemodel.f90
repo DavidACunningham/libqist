@@ -5,11 +5,13 @@ module makemodel
     use pinesmodule
     use tensorops
     use cheby, only: spice_subset
+    use quat, only: rothist
     implicit none
     integer :: m=8
 
     type :: dynamicsModel
         type(spice_subset)    :: bod_db
+        type(rothist)         :: rot
         integer               :: num_bodies, &
                                & central_body, &
                                & traj_id
@@ -51,7 +53,7 @@ module makemodel
 
     subroutine init_dm(me, subspice, traj_id, central_body, bodylist, &
                      & central_body_mu, central_body_ref_radius, mu_list, &
-                     & shgrav, Cbar, Sbar, tgt_on_rails)
+                     & shgrav, Cbar, Sbar, rot)
         ! init_dm: method to initialize dynamicsModel object
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
@@ -83,18 +85,19 @@ module makemodel
         !                               be integrated
         ! OUTPUTS:
         ! NONE
-        class(dynamicsModel), intent(inout) :: me
-        type(spice_subset),   intent(in)    :: subspice
-        integer,              intent(in)    :: traj_id, & 
-                                               central_body, &
-                                               bodylist(:)
-        real(qp),             intent(in)    :: central_body_ref_radius, &
-                                               central_body_mu, &
-                                               mu_list(:)
-        logical,              intent(in)    :: shgrav, &
-                                             & tgt_on_rails
-        real(qp),             intent(in)    :: Cbar(:,:), &
-                                               Sbar(:,:)
+        class(dynamicsModel), intent(inout)           :: me
+        type(spice_subset),   intent(in)              :: subspice
+        type(rothist),        intent(in), optional    :: rot
+        integer,              intent(in)              :: traj_id, & 
+                                                         central_body, &
+                                                         bodylist(:)
+        real(qp),             intent(in)              :: central_body_ref_radius, &
+                                                         central_body_mu, &
+                                                         mu_list(:)
+        logical,              intent(in)              :: shgrav
+        real(qp),             intent(in)              :: Cbar(:,:), &
+                                                         Sbar(:,:)
+        real(dp)                                      :: rotmat(3,3)
         me%num_bodies = size(bodylist)
         me%shgrav = shgrav
         me%traj_id = traj_id
@@ -109,6 +112,12 @@ module makemodel
         me%tgt_on_rails = tgt_on_rails
 
         if (me%shgrav) then
+            if (present(rot)) then
+                me%rot = rot
+            else
+                print *, "Error: rotation history required. None provided"
+                error stop
+            endif
             call shdat_from_table( real(me%central_body_ref_radius,dp), & 
                                  & real(me%central_body_mu,dp), &
                                  & real(Cbar,dp), real(Sbar,dp), &
