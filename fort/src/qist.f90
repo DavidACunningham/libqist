@@ -73,7 +73,7 @@ module qist
         if (present(lind)) l=lind
         if (present(uind)) u=uind
         allocate(res(u-l+1))
-        res = self%reftraj%call(t,l,u)
+        res = self%reftraj%call(t/self%tf,l,u)
     end function
     function state(self,t) result(res)
         !! Return a regularized state at time t
@@ -82,7 +82,7 @@ module qist
         !! The value of t at which to get the state
         real(dp), dimension(n)   :: res
         !! The returned state
-        res = self%call(t,uind=n)
+        res = self%call(t,uind=1)
     end function state
     function stm(self,t) result(res)
         class(Itraj), intent(inout) :: self

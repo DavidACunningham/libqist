@@ -1,5 +1,5 @@
 module denseLight
-    use frkmain_d, only: ODESolution, DOP853DenseOutput
+    use frkmin, only: ODESolution, DOP853DenseOutput
     use, intrinsic :: iso_fortran_env, only: wp=>real64
     implicit none
     integer, parameter :: qistpack(265) = [ &  

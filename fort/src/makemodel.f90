@@ -109,7 +109,6 @@ module makemodel
         me%central_body_ref_radius = real(central_body_ref_radius,qp)
         me%central_body_mu = real(central_body_mu,qp)
         me%nbody_mus = real(mu_list,qp)
-        me%tgt_on_rails = tgt_on_rails
 
         if (me%shgrav) then
             if (present(rot)) then
