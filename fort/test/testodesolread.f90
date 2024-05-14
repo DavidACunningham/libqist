@@ -1,5 +1,5 @@
 program main
-    use frkmain_d, only: Odesolution
+    use frkmin, only: Odesolution
     use, intrinsic :: iso_fortran_env, only: dp => real64, qp=>real128
     implicit none
     type(Odesolution) :: qist_sol

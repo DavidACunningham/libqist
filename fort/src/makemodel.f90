@@ -1,8 +1,6 @@
 module makemodel
     use, intrinsic :: iso_fortran_env, only: wp=>real64, dp=>real64, qp=>real128
-    use astkindmodule
-    use shdatamodule
-    use pinesmodule
+    use tinysh
     use tensorops
     use cheby, only: spice_subset
     use quat, only: rothist
@@ -14,7 +12,8 @@ module makemodel
         type(rothist)         :: rot
         integer               :: num_bodies, &
                                & central_body, &
-                               & traj_id
+                               & traj_id, &
+                               & degord
         integer,  allocatable :: bodylist(:) ! num_bodies
         logical               :: shgrav, &
                                & tgt_on_rails
@@ -24,7 +23,6 @@ module makemodel
                                & central_body_mu, &
                                & tof
         real(qp), allocatable :: nbody_mus(:)     ! (num_bodies)
-        type(SHarmData)       :: shdat
         type(PinesData)       :: pdat
         contains
             procedure:: init => init_dm
@@ -53,7 +51,7 @@ module makemodel
 
     subroutine init_dm(me, subspice, traj_id, central_body, bodylist, &
                      & central_body_mu, central_body_ref_radius, mu_list, &
-                     & shgrav, Cbar, Sbar, rot)
+                     & shgrav, Cbar, Sbar, rails,rot)
         ! init_dm: method to initialize dynamicsModel object
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
@@ -94,7 +92,7 @@ module makemodel
         real(qp),             intent(in)              :: central_body_ref_radius, &
                                                          central_body_mu, &
                                                          mu_list(:)
-        logical,              intent(in)              :: shgrav
+        logical,              intent(in)              :: shgrav, rails
         real(qp),             intent(in)              :: Cbar(:,:), &
                                                          Sbar(:,:)
         real(dp)                                      :: rotmat(3,3)
@@ -102,6 +100,7 @@ module makemodel
         me%shgrav = shgrav
         me%traj_id = traj_id
         me%bod_db = subspice
+        me%tgt_on_rails = rails
         allocate(me%bodylist(me%num_bodies),  &
                  me%nbody_mus(me%num_bodies))
         me%bodylist = bodylist
@@ -117,12 +116,9 @@ module makemodel
                 print *, "Error: rotation history required. None provided"
                 error stop
             endif
-            call shdat_from_table( real(me%central_body_ref_radius,dp), & 
-                                 & real(me%central_body_mu,dp), &
-                                 & real(Cbar,dp), real(Sbar,dp), &
-                                 & size(Cbar,1),size(Cbar,2), me%shdat &
-                                 )
-            call pinesinit(size(Cbar,1),me%shdat%Cml,me%shdat%Sml,me%pdat)
+            me%degord = size(Cbar,1)
+            call pinesinit(me%degord,transpose(real(Cbar,dp)), &
+                         & transpose(real(Sbar,dp)),me%pdat)
         endif
     end subroutine init_dm
     subroutine new_bodies(me, bodylist, mulist)
@@ -143,12 +139,9 @@ module makemodel
         real(dp),             intent(in)    :: Cbar(:,:), Sbar(:,:)
         me%shgrav = shgrav
         if (me%shgrav) then
-            call shdat_from_table( real(me%central_body_ref_radius,dp), & 
-                                 & real(me%central_body_mu,dp), &
-                                 & real(Cbar,dp), real(Sbar,dp), &
-                                 & size(Cbar,1),size(Cbar,2), me%shdat &
-                                 )
-            call pinesinit(size(Cbar,1),me%shdat%Cml,me%shdat%Sml,me%pdat)
+            me%degord = size(Cbar,1)
+            call pinesinit(me%degord,transpose(real(Cbar,dp)), &
+                         & transpose(real(Sbar,dp)),me%pdat)
         endif
     end subroutine new_gravstatus
     subroutine get_derivs(me, time, acc, jac, hes)
@@ -1844,8 +1837,8 @@ module makemodel
         ! to/from body fixed frame in xform_mat
         r_bf = mmult(xform_mat,r_bf)
 
-        call shpines( me%shdat%Rbody, me%shdat%GM, me%pdat, &
-                    & me%shdat%maxdeg, me%shdat%maxorder, &
+        call shpines( real(me%central_body_ref_radius,dp), real(me%central_body_mu,dp), me%pdat, &
+                    & me%degord, me%degord, &
                     & real(r_bf,dp), pot_d, acc_d, jac_d, hes_d &
                     & )
         ! TODO: add correct velocity transformation

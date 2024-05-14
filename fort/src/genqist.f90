@@ -3,7 +3,7 @@ module genqist
     use denselight, only: lightsol, qistpack
     use, intrinsic :: iso_fortran_env, only: dp=>real64, qp=>real128
     use makemodel
-    use frkmain, only: solve_ivp, Odesolution, RungeKutta
+    use frkmin_q, only: solve_ivp, Odesolution, RungeKutta
     use cheby, only: spice_subset
     implicit none
 
@@ -11,7 +11,6 @@ module genqist
         type(dynamicsmodel)   :: dynmod
         real(qp), allocatable :: initstate(:)
         real(qp)              :: rtol, atol, t0, tf
-        logical               :: check
         contains
         procedure init
         procedure integrate
@@ -30,7 +29,7 @@ module genqist
 
     subroutine init(me,t0, tf, subspicefile, traj_id, central_body, bodylist, &
                   & central_body_mu, central_body_ref_radius, mu_list, &
-                  & shgrav, Cbar, Sbar,rails,check)
+                  & shgrav, Cbar, Sbar,rails)
         ! init_dm: method to initialize dynamicsModel object
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
@@ -72,7 +71,7 @@ module genqist
         integer,              intent(in)    :: traj_id, & 
                                                central_body, &
                                                bodylist(:)
-        logical,              intent(in)    :: shgrav, rails, check
+        logical,              intent(in)    :: shgrav, rails
         real(qp),             intent(in)    :: central_body_ref_radius, &
                                                central_body_mu, &
                                                mu_list(:)
@@ -91,7 +90,6 @@ module genqist
         me%tf = tf
         me%rtol = 1.e-14
         me%atol = 1.e-14
-        me%check = check
     end subroutine
     subroutine model_accuracy_check(me_qist, t0, tf, &
                                     bodylist, mulist, &

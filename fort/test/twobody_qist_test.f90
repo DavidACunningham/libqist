@@ -1,5 +1,5 @@
 program main
-    use frkmain, only: solve_ivp, Odesolution, RungeKutta
+    use frkmin_q, only: solve_ivp, Odesolution, RungeKutta
     use cheby, only: spice_subset
     use denselight, only: lightsol
     use genqist, only: gqist
@@ -78,7 +78,7 @@ program main
     close(73)
     call dyn%init(subspice, traj_id, central_body, bodylist, &
                 & central_body_mu, central_body_ref_radius,  &
-                & mu_list, shgrav, Cbar, Sbar,.false.)
+                & mu_list, shgrav, Cbar, Sbar,rails)
     call qist_i%init(t0, tf, &
                  & "./perturbed_reference.subspice", &
                  &  traj_id, &
@@ -88,7 +88,7 @@ program main
                  &  central_body_ref_radius, &
                  &  mu_list, &
                  &  shgrav, &
-                 &  Cbar, Sbar, rails,.true.)
+                 &  Cbar, Sbar,rails)
     dyn%tof = tof
 
     qist_i%dynmod%tof = tof
@@ -143,7 +143,6 @@ program main
                   & [init_state, &
                      reshape(eye,[8**2]), &
                      init_stt], &
-                  & method="DOP853",&
                   & dense_output=.true.,&
                   & rtol=rtol, &
                   & atol=atol, istep=0.5_qp)

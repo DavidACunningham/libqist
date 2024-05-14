@@ -1,5 +1,5 @@
 program main
-    use frkmain, only: solve_ivp, Odesolution, RungeKutta
+    use frkmin_q, only: solve_ivp, Odesolution, RungeKutta
     use cheby, only: spice_subset
     use findiffmod
     use genqist, only: gqist
@@ -137,7 +137,6 @@ program main
             fd_sol = solve_ivp(fd_eoms,&
                           & [0._qp, 1._qp], &
                           & x,&
-                          & method="DOP853",&
                           & dense_output=.false.,&
                           & rtol=rtol, &
                           & atol=atol, istep=0.5_qp)
@@ -151,7 +150,6 @@ program main
             fd_sol = solve_ivp(fd_eoms,&
                           & [0._qp, 1._qp], &
                           & [x, reshape(eye,[8**2])],&
-                          & method="DOP853",&
                           & dense_output=.false.,&
                           & rtol=rtol, &
                           & atol=atol, istep=0.5_qp)

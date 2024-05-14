@@ -1,5 +1,5 @@
 program main
-    use frkmain, only: solve_ivp, Odesolution, RungeKutta
+    use frkmin_q, only: solve_ivp, Odesolution, RungeKutta
     use cheby, only: spice_subset
     use genqist, only: gqist
     use tensorops, only: mattens, quad
@@ -42,7 +42,7 @@ program main
     close(73)
     call dyn%init(subspice, traj_id, central_body, bodylist, &
                 & central_body_mu, central_body_ref_radius,  &
-                & mu_list, shgrav, Cbar, Sbar,.true.)
+                & mu_list, shgrav, Cbar, Sbar)
     dyn%tof = tof
 
     init_state = [dyn%trajstate(t0), t0, tof]
@@ -52,7 +52,6 @@ program main
                   & [init_state, &
                      reshape(eye,[8**2]), &
                      init_stt], &
-                  & method="DOP853",&
                   & dense_output=.false.,&
                   & rtol=rtol, &
                   & atol=atol, istep=0.5_qp)

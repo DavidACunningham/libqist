@@ -1,6 +1,6 @@
 program main
     use util, only: print_to_file
-    use frkmain, only: solve_ivp, Odesolution, RungeKutta
+    use frkmin_q, only: solve_ivp, Odesolution, RungeKutta
     use, intrinsic :: iso_fortran_env, only: dp => real64, qp=>real128
     implicit none
     type(odesolution)    :: base_sol
@@ -25,7 +25,6 @@ program main
     base_sol = solve_ivp(xdot_kep,&
                   & [t0, tf], &
                   & init_state, &
-                  & method="DOP853",&
                   & dense_output=.true.,&
                   & rtol=rtol, &
                   & atol=atol)
