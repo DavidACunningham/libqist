@@ -20,12 +20,169 @@ module genqist
 
     contains
 
-    subroutine make_spice_subset(ta,tb, central_body, bod_list, metakernel_filename, output_filename)
-        real(dp), intent(in) :: ta,tb
-        integer,  intent(in) :: central_body, bod_list(:)
-        character(len=*)     :: output_filename, metakernel_filename
+    subroutine make_spice_subset(namefile)
+        character(len=*), intent(in)  :: namefile
+        character(len=1000)           :: resample_filepath, metakernel_filepath
+        real(dp)                      :: t0,tf
+        integer                       :: central_body, deg, n_bodies
+        integer                       :: body_list(30)
+        type(spice_subset)            :: subspice
+        integer                       :: stat, num
+        namelist /RESAMPLE_CONFIG/ metakernel_filepath, &
+                                   resample_filepath, &
+                                   t0, &
+                                   tf, &
+                                   central_body, &
+                                   body_list, &
+                                   deg
 
+        ! Defaults go here
+        body_list = 0
+        ! Read in namelist
+        inquire(file=namefile, iostat=stat)
+        if (stat .ne. 0) then 
+            print *, "ERROR: Bad spice resample namelist filename"
+            stop
+        end if
+        open(file=namefile, status="old", &
+             iostat=stat,newunit=num)
+        read(unit=num, nml=RESAMPLE_CONFIG, iostat=stat)
+        if (stat .ne. 0) then 
+            print *, "ERROR: bad build config namelist format"
+            stop
+        end if
+        close(num)
+        ! Set number of bodies
+        n_bodies = findloc(body_list,0,dim=1)-1
+        ! Print status
+        print *, "Resampling SPICE bodies ", body_list(:n_bodies)
+        print *, "Relative to body ", central_body
+        print *, "from J2000 + ", t0
+        print *, "to J2000 + ", tf
+        print *, "degree of fit: ", deg
+        ! Pass to fitter
+        call subspice%init( &
+                           adjustl(trim(metakernel_filepath)), & ! Spice kernel
+                           central_body, &    ! central body
+                           body_list(:n_bodies), & ! list of bodies to resample
+                           t0, & ! epoch start
+                           tf, & ! epoch end
+                           deg & ! degree of fit
+                          )
+        print *, "writing resampled SPICE to ", adjustl(trim(resample_filepath))
+        open(file=adjustl(trim(resample_filepath)),newunit=num,access="stream",&
+             status="replace",iostat=stat)
+        call subspice%write(num)
+        if (stat .ne. 0) then 
+            print *, "ERROR: resample file not written"
+            stop
+        end if
+        close(num)
     end subroutine make_spice_subset
+
+    subroutine make_qist_model(namefile)
+        character(len=*), intent(in)  :: namefile
+        type(gqist)         :: qist_i
+        type(odesolution)   :: qist_sol
+        type(lightsol)      :: packedsol
+        character(len=1000) :: resample_filepath, qist_filepath
+        real(qp)            :: t0, tf, tof, &
+                                rtol, atol
+        integer             :: reference_trajectory_id, & 
+                               central_body_id, &
+                               body_list(30)
+        logical             :: shgrav
+        integer             :: stat, num, n_bodies
+        real(qp)            :: central_body_ref_radius, &
+                               central_body_mu, & 
+                               mu_list(30)
+        real(qp), parameter  :: Cbar(2,2) = 0._qp, &
+                                Sbar(2,2) = 0._qp
+        logical              :: rails
+        namelist /QIST_CONFIG/ resample_filepath, &
+                               qist_filepath, &
+                               t0, &
+                               tf, &
+                               rtol, &
+                               atol, &
+                               reference_trajectory_id, &
+                               central_body_id, &
+                               central_body_ref_radius, &
+                               central_body_mu, &
+                               body_list, &
+                               shgrav, &
+                               mu_list
+        ! Defaults go here
+        rails = .true.
+        mu_list = 0._qp
+        body_list = 0._qp
+        rtol = 1.e-10_qp
+        atol = 1.e-12_qp
+        ! Read in namelist
+        inquire(file=namefile, iostat=stat)
+        if (stat .ne. 0) then 
+            print *, "ERROR: Bad QIST config namelist filename"
+            stop
+        end if
+        open(file=namefile, status="old", &
+             iostat=stat,newunit=num)
+        read(unit=num, nml=QIST_CONFIG, iostat=stat)
+        if (stat .ne. 0) then 
+            print *, "ERROR: bad QIST config namelist format"
+            stop
+        end if
+        close(num)
+        ! Set number of bodies
+        n_bodies = findloc(body_list,0,dim=1)-1
+        tof = tf
+        ! Print status
+        print *, "Generating QIST model for reference trajectory ", reference_trajectory_id
+        print *, "Using ephemeris data from ", trim(adjustl(resample_filepath))
+        print *, "Relative to body ", central_body_id
+        print *, "With perturbations from bodies ", body_list(:n_bodies)
+        print *, "From J2000 + ", t0
+        print *, "To J2000 + ", tf
+        print *, ""
+        ! Initialize QIST
+        call qist_i%init(t0, tf, &
+                     &  trim(adjustl(resample_filepath)), &
+                     &  reference_trajectory_id, &
+                     &  central_body_id, &
+                     &  body_list(:n_bodies), &
+                     &  central_body_mu, &
+                     &  central_body_ref_radius, &
+                     &  mu_list(:n_bodies), &
+                     &  shgrav, &
+                     &  Cbar, Sbar,rails)
+        qist_i%dynmod%tof = tof
+        print *, "Integrating QIST. . ."
+        qist_i%rtol = rtol
+        qist_i%atol = atol
+        ! Integrate model
+        qist_sol = qist_i%integrate(t0, tf)
+        print *, "DONE"
+
+        print *, "Writing QIST solution. . ."
+        open(newunit=num, file="temp_qist_sol.odesolution", iostat=stat, &
+             access="stream", status="replace")
+        call qist_sol%write(num,dp)
+        close(num)
+        print *, "DONE"
+        print *, "Packing solution and writing out. . ."
+        call qist_i%pack("temp_qist_sol.odesolution",packedsol)
+        print *, "DONE"
+        print *, "Writing QIST model to file ", trim(adjustl(qist_filepath)), ". . ."
+        open(newunit=num, file=trim(adjustl(qist_filepath)), iostat=stat, &
+             access='stream', status='replace')
+        call packedsol%write(num)
+        print *, "DONE"
+        close(num)
+        print *, "Cleaning up temp file. . ."
+        open(newunit=num, file="temp_qist_sol.odesolution", iostat=stat, &
+             status="old")
+        close(num, status="delete")
+        print *, "DONE"
+    end subroutine make_qist_model
 
     subroutine init(me,t0, tf, subspicefile, traj_id, central_body, bodylist, &
                   & central_body_mu, central_body_ref_radius, mu_list, &
@@ -88,8 +245,8 @@ module genqist
                           & mu_list, shgrav, Cbar, Sbar,rails)
         me%t0 = t0
         me%tf = tf
-        me%rtol = 1.e-14
-        me%atol = 1.e-14
+        me%rtol = 1.e-10
+        me%atol = 1.e-12
     end subroutine
     subroutine model_accuracy_check(me_qist, t0, tf, &
                                     bodylist, mulist, &
@@ -176,6 +333,7 @@ module genqist
             init_state(:6) = thisqist%dynmod%trajstate(t0)
             init_state(7:) = [t0, tf - t0]
         endif
+        thisqist%dynmod%state = [thisqist%dynmod%trajstate(t0), t0, tf-t0]
         res = solve_ivp(myint_eoms,&
                       & [0._qp, 1._qp], &
                       & [ init_state, &
