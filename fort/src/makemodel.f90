@@ -180,8 +180,9 @@ module makemodel
         else
             y = me%state
         endif
-            ! for bodies i = 2. . .
-        do i=1,me%num_bodies
+        ! for bodies i = 2. .
+        ! if num_bodies==0 loop will not run (Fortran standard behavior)
+        do i=1,me%num_bodies 
             ! get r from central body to body i
             nbody_radii(:,i) = real(me%bod_db%call(real(time,dp), &
                                                & me%bodylist(i),'p'), qp)

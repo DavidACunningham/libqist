@@ -5,5 +5,5 @@
     tf = 172800.,
     central_body = 399,
     body_list = 301 -998 10 5,
-    deg = 2000
+    deg = 1000
 /

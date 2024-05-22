@@ -12,10 +12,12 @@ module genqist
         real(qp), allocatable :: initstate(:)
         real(qp)              :: rtol, atol, t0, tf
         contains
-        procedure init
+        generic, public :: init => gq_namelist_init, var_init
         procedure integrate
         procedure :: pack => packsol
         procedure :: bounds
+        procedure, private :: gq_namelist_init
+        procedure, private :: var_init
     end type gqist
 
     contains
@@ -80,6 +82,82 @@ module genqist
         close(num)
     end subroutine make_spice_subset
 
+    subroutine gq_namelist_init(me,namefile)
+        character(len=*), intent(in)    :: namefile
+        class(gqist),      intent(inout) :: me
+        character(len=1000) :: resample_filepath, qist_filepath
+        real(qp)            :: t0, tf, tof, &
+                                rtol, atol
+        integer             :: reference_trajectory_id, & 
+                               central_body_id, &
+                               body_list(30)
+        logical             :: shgrav
+        integer             :: stat, num, n_bodies
+        real(qp)            :: central_body_ref_radius, &
+                               central_body_mu, & 
+                               mu_list(30)
+        real(qp), parameter  :: Cbar(2,2) = 0._qp, &
+                                Sbar(2,2) = 0._qp
+        logical              :: rails
+        namelist /QIST_CONFIG/ resample_filepath, &
+                               qist_filepath, &
+                               t0, &
+                               tf, &
+                               rtol, &
+                               atol, &
+                               reference_trajectory_id, &
+                               central_body_id, &
+                               central_body_ref_radius, &
+                               central_body_mu, &
+                               body_list, &
+                               shgrav, &
+                               mu_list
+        ! Defaults go here
+        rails = .true.
+        mu_list = 0._qp
+        body_list = 0._qp
+        rtol = 1.e-10_qp
+        atol = 1.e-12_qp
+        ! Read in namelist
+        inquire(file=namefile, iostat=stat)
+        if (stat .ne. 0) then 
+            print *, "ERROR: Bad QIST config namelist filename"
+            stop
+        end if
+        open(file=namefile, status="old", &
+             iostat=stat,newunit=num)
+        read(unit=num, nml=QIST_CONFIG, iostat=stat)
+        if (stat .ne. 0) then 
+            print *, "ERROR: bad QIST config namelist format"
+            stop
+        end if
+        close(num)
+        ! Set number of bodies
+        n_bodies = findloc(body_list,0,dim=1)-1
+        tof = tf
+        ! Print status
+        print *, "Generating QIST model for reference trajectory ", reference_trajectory_id
+        print *, "Using ephemeris data from ", trim(adjustl(resample_filepath))
+        print *, "Relative to body ", central_body_id
+        print *, "With perturbations from bodies ", body_list(:n_bodies)
+        print *, "From J2000 + ", t0
+        print *, "To J2000 + ", tf
+        print *, ""
+        ! Initialize QIST
+        call me%init(t0, tf, &
+                     &  trim(adjustl(resample_filepath)), &
+                     &  reference_trajectory_id, &
+                     &  central_body_id, &
+                     &  body_list(:n_bodies), &
+                     &  central_body_mu, &
+                     &  central_body_ref_radius, &
+                     &  mu_list(:n_bodies), &
+                     &  shgrav, &
+                     &  Cbar, Sbar,rails)
+        me%dynmod%tof = tof
+        me%rtol = rtol
+        me%atol = atol
+    end subroutine gq_namelist_init
     subroutine make_qist_model(namefile)
         character(len=*), intent(in)  :: namefile
         type(gqist)         :: qist_i
@@ -184,7 +262,7 @@ module genqist
         print *, "DONE"
     end subroutine make_qist_model
 
-    subroutine init(me,t0, tf, subspicefile, traj_id, central_body, bodylist, &
+    subroutine var_init(me,t0, tf, subspicefile, traj_id, central_body, bodylist, &
                   & central_body_mu, central_body_ref_radius, mu_list, &
                   & shgrav, Cbar, Sbar,rails)
         ! init_dm: method to initialize dynamicsModel object
@@ -273,6 +351,7 @@ module genqist
         call me_qist%dynmod%new_gravstatus(shgrav, Cbars,Sbars)
         boundscheck = me_qist%bounds(real(t0,qp), real(tf,qp))
         me_qist%dynmod%tof = tf-t0
+        me_qist%dynmod%tgt_on_rails = .false.
         testsol = solve_ivp(test_eoms,&
                       & [real(t0,qp), real(tf,qp)], &
                         me_qist%dynmod%trajstate(real(t0,qp)), &
@@ -290,10 +369,11 @@ module genqist
             function test_eoms(me, x, y) result(res)
                 class(RungeKutta), intent(inout) :: me
                 real(qp),          intent(in)    :: x, y(:)
-                real(qp)                         :: acc(6), jac(6,6), hes(6,6,6)
+                real(qp)                         :: acc(8), jac(8,8), hes(8,8,8)
                 real(qp)                         :: res(size(y))
+                me_qist%dynmod%state = [y, 0._qp, 1._qp]
                 call me_qist%dynmod%get_derivs(x,acc,jac,hes)
-                res = acc
+                res = acc(:6)
             end function test_eoms
         ! Compare integrated and spice solutions
     end subroutine model_accuracy_check

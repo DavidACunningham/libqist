@@ -1,9 +1,9 @@
 &QIST_CONFIG
-    resample_filepath = "/home/david/wrk/nstgro/qist/libqist/fort/test/perturbed_reference.subspice"
+    resample_filepath = "/home/david/wrk/nstgro/qist/libqist/fort/data/20240524resampled.subspice"
     qist_filepath = "/home/david/wrk/nstgro/qist/libqist/fort/data/20240524_perturbed_test.qist",
-    t0 = 0.,
+    t0 = 7200.,
     tf = 172800.,
-    rtol = 1.e-5,
+    rtol = 1.e-14,
     atol = 1.e-20,
     reference_trajectory_id = -998,
     central_body_id = 399,
