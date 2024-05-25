@@ -144,7 +144,6 @@ module tensorops
         real(wp) :: res(n,n)
         res = vectens1(v,reshape(t,[n,n,n],order=[2,1,3]),n)
     end function vectens2
-
     pure function q_vectens3(v,t,n) result(res)
         implicit none
         integer, intent(in) :: n
@@ -265,7 +264,6 @@ module tensorops
         inter = mattens(transpose(istm1),inter,n)
         sttab = reshape(inter,[n,n,n],order=[3,2,1])
     end subroutine q_sttchain_invert
-
     pure subroutine q_sttchain(istm,istt,stm,stt,stmab,sttab,n) 
         implicit none
         integer, intent(in) :: n
@@ -812,7 +810,6 @@ module tensorops
         inter(64) =  -x107
         res = reshape(inter,[8,8])
     end function d_stminv8
-
     pure subroutine sttchain_loop(istm,istt,stm,stt,stmab,sttab,n)
         implicit none
         integer i, a, b
@@ -828,5 +825,4 @@ module tensorops
         enddo; enddo; enddo
         sttab = reshape(sttab,shape=[n,n,n],order=[2,3,1])
     end subroutine sttchain_loop
-
 end module tensorops

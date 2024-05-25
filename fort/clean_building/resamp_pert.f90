@@ -3,5 +3,7 @@
 program main
     use, intrinsic :: iso_fortran_env, only: dp => real64
     use genqist, only: make_spice_subset
-    call make_spice_subset("./resample_config.nml")
+    character(len=1000) :: arg
+    call get_command_argument(1,arg)
+    call make_spice_subset(trim(adjustl(arg)))
 end program main

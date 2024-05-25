@@ -11,11 +11,11 @@ module genqist
         type(dynamicsmodel)   :: dynmod
         real(qp), allocatable :: initstate(:)
         real(qp)              :: rtol, atol, t0, tf
+        character(len=1000)   :: filepath_var
         contains
         generic, public :: init => gq_namelist_init, var_init
         procedure integrate
         procedure :: pack => packsol
-        procedure :: bounds
         procedure, private :: gq_namelist_init
         procedure, private :: var_init
     end type gqist
@@ -134,7 +134,7 @@ module genqist
         close(num)
         ! Set number of bodies
         n_bodies = findloc(body_list,0,dim=1)-1
-        tof = tf
+        tof = tf - t0
         ! Print status
         print *, "Generating QIST model for reference trajectory ", reference_trajectory_id
         print *, "Using ephemeris data from ", trim(adjustl(resample_filepath))
@@ -154,6 +154,7 @@ module genqist
                      &  mu_list(:n_bodies), &
                      &  shgrav, &
                      &  Cbar, Sbar,rails)
+        me%filepath_var = qist_filepath
         me%dynmod%tof = tof
         me%rtol = rtol
         me%atol = atol
@@ -163,81 +164,11 @@ module genqist
         type(gqist)         :: qist_i
         type(odesolution)   :: qist_sol
         type(lightsol)      :: packedsol
-        character(len=1000) :: resample_filepath, qist_filepath
-        real(qp)            :: t0, tf, tof, &
-                                rtol, atol
-        integer             :: reference_trajectory_id, & 
-                               central_body_id, &
-                               body_list(30)
-        logical             :: shgrav
-        integer             :: stat, num, n_bodies
-        real(qp)            :: central_body_ref_radius, &
-                               central_body_mu, & 
-                               mu_list(30)
-        real(qp), parameter  :: Cbar(2,2) = 0._qp, &
-                                Sbar(2,2) = 0._qp
-        logical              :: rails
-        namelist /QIST_CONFIG/ resample_filepath, &
-                               qist_filepath, &
-                               t0, &
-                               tf, &
-                               rtol, &
-                               atol, &
-                               reference_trajectory_id, &
-                               central_body_id, &
-                               central_body_ref_radius, &
-                               central_body_mu, &
-                               body_list, &
-                               shgrav, &
-                               mu_list
-        ! Defaults go here
-        rails = .true.
-        mu_list = 0._qp
-        body_list = 0._qp
-        rtol = 1.e-10_qp
-        atol = 1.e-12_qp
-        ! Read in namelist
-        inquire(file=namefile, iostat=stat)
-        if (stat .ne. 0) then 
-            print *, "ERROR: Bad QIST config namelist filename"
-            stop
-        end if
-        open(file=namefile, status="old", &
-             iostat=stat,newunit=num)
-        read(unit=num, nml=QIST_CONFIG, iostat=stat)
-        if (stat .ne. 0) then 
-            print *, "ERROR: bad QIST config namelist format"
-            stop
-        end if
-        close(num)
-        ! Set number of bodies
-        n_bodies = findloc(body_list,0,dim=1)-1
-        tof = tf
-        ! Print status
-        print *, "Generating QIST model for reference trajectory ", reference_trajectory_id
-        print *, "Using ephemeris data from ", trim(adjustl(resample_filepath))
-        print *, "Relative to body ", central_body_id
-        print *, "With perturbations from bodies ", body_list(:n_bodies)
-        print *, "From J2000 + ", t0
-        print *, "To J2000 + ", tf
-        print *, ""
-        ! Initialize QIST
-        call qist_i%init(t0, tf, &
-                     &  trim(adjustl(resample_filepath)), &
-                     &  reference_trajectory_id, &
-                     &  central_body_id, &
-                     &  body_list(:n_bodies), &
-                     &  central_body_mu, &
-                     &  central_body_ref_radius, &
-                     &  mu_list(:n_bodies), &
-                     &  shgrav, &
-                     &  Cbar, Sbar,rails)
-        qist_i%dynmod%tof = tof
+        integer             :: stat, num
+        call qist_i%init(namefile)
         print *, "Integrating QIST. . ."
-        qist_i%rtol = rtol
-        qist_i%atol = atol
         ! Integrate model
-        qist_sol = qist_i%integrate(t0, tf)
+        qist_sol = qist_i%integrate(qist_i%t0, qist_i%tf)
         print *, "DONE"
 
         print *, "Writing QIST solution. . ."
@@ -249,8 +180,8 @@ module genqist
         print *, "Packing solution and writing out. . ."
         call qist_i%pack("temp_qist_sol.odesolution",packedsol)
         print *, "DONE"
-        print *, "Writing QIST model to file ", trim(adjustl(qist_filepath)), ". . ."
-        open(newunit=num, file=trim(adjustl(qist_filepath)), iostat=stat, &
+        print *, "Writing QIST model to file ", trim(adjustl(qist_i%filepath_var)), ". . ."
+        open(newunit=num, file=trim(adjustl(qist_i%filepath_var)), iostat=stat, &
              access='stream', status='replace')
         call packedsol%write(num)
         print *, "DONE"
@@ -338,7 +269,6 @@ module genqist
                                        Cbars(:,:), &
                                        Sbars(:,:)
         logical,      intent(in)    :: shgrav
-        logical                     :: boundscheck
         real(dp),     intent(out)   :: testpoints(6,npoints), &
                                        spicepoints(6,npoints), &
                                        testtimes(npoints)
@@ -349,7 +279,6 @@ module genqist
         ! Change bodylist and SHGrav Parameters
         call me_qist%dynmod%new_bodies(bodylist, mulist)
         call me_qist%dynmod%new_gravstatus(shgrav, Cbars,Sbars)
-        boundscheck = me_qist%bounds(real(t0,qp), real(tf,qp))
         me_qist%dynmod%tof = tf-t0
         me_qist%dynmod%tgt_on_rails = .false.
         testsol = solve_ivp(test_eoms,&
@@ -391,14 +320,9 @@ module genqist
         class(gqist), intent(inout) :: thisqist
         type(ODESolution)           :: res
         real(qp), intent(in)        :: t0, tf
-        logical                     :: boundscheck
         real(qp)                    :: eye(8,8), hess_init(8**3)
         real(qp), allocatable       :: init_state(:)
         integer i
-        boundscheck = thisqist%bounds(t0,tf)
-        if (boundscheck) then
-            error stop
-        end if
         eye = 0._qp
         do i=1,8
             eye(i,i) = 1._qp
@@ -440,21 +364,4 @@ module genqist
         type(lightSol),    intent(out) :: light
         call light%convert_from_file_and_pack(solfile,qistpack)
     end subroutine packsol
-    function bounds(me, t0, tf) result(res)
-        class(gqist), intent(in) :: me
-        real(qp),     intent(in) :: t0, tf
-        logical                  :: res
-        res = .false.
-        if (t0<me%t0) then
-            write(*,42,advance='no') "integration start set to ", t0
-            write(*,42) " but must be greater than ", me%t0
-            res = .true.
-        end if
-        if (tf>me%tf) then
-            write(*,42,advance='no') "integration end set to ", tf
-            write(*,42) " but must be less than ", me%tf
-            res = .true.
-        end if
-        42 format (a,f5.3)
-    end function bounds
 end module genqist

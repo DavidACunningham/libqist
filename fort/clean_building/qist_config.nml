@@ -2,8 +2,8 @@
     resample_filepath = "/home/david/wrk/nstgro/qist/libqist/fort/data/20240524resampled.subspice"
     qist_filepath = "/home/david/wrk/nstgro/qist/libqist/fort/data/20240524_perturbed_test.qist",
     t0 = 7200.,
-    tf = 172800.,
-    rtol = 1.e-14,
+    tf = 171800.,
+    rtol = 1.e-16,
     atol = 1.e-20,
     reference_trajectory_id = -998,
     central_body_id = 399,

@@ -1,0 +1,9 @@
+&RESAMPLE_CONFIG
+    metakernel_filepath = "/home/david/wrk/nstgro/qist/kernels/mk_jwst.tf",
+    resample_filepath = "/home/david/wrk/nstgro/qist/libqist/fort/data/20240523_jwst_resample.subspice",
+    t0 = 767693669.,
+    tf = 783704869.1825052,
+    central_body = 399,
+    body_list = 301 -170 10 5 6 7 8 1 2 4,
+    deg = 4000
+/

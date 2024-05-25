@@ -6,58 +6,73 @@ module qist
     use denseLight, only: lightSol
     implicit none
     private
-    !! THIS IS DUMB AND FOR DEBUGGING AND ALSO A HACK
-    !! FOR INTEGRATING INVERSES AT QUAD PRECISION
-    ! integer, parameter, public :: dp=wp
-
-    !! THIS IS NOT DUMB AND SHOULD GIVE THE DEFAULT BEHAVIOR
-    ! integer, parameter :: dp=selected_real_kind(15)
-
     type, public :: Itraj
-        !! All type variables accessed through getter/setter methods
-        real(dp)               :: t0, tf 
-        logical                :: initq
-        type(lightSol)         :: reftraj
-        character(len=1000)    :: densefilename
-
-    contains
-        !! Convenience procedures/check state
-        procedure :: init 
-        procedure call
-        procedure :: state 
-        procedure :: stm 
-        procedure :: stm_i 
-        procedure :: stt
-        procedure :: stt_i 
-        generic, public :: prop => prop_once, prop_many
-        procedure, private :: prop_once
-        procedure, private :: prop_many
-
-        procedure stts_ab
-        procedure zmap
+        real(dp)                 :: t0, tf 
+        logical                  :: initq
+        type(lightSol)           :: reftraj
+        contains
+            generic,   public    :: init => init_nml, init_var
+            procedure            :: call
+            procedure            :: state 
+            procedure            :: stm 
+            procedure            :: stm_i 
+            procedure            :: stt
+            procedure            :: stt_i 
+            generic,   public    :: prop => prop_once, prop_many
+            procedure, private   :: prop_once
+            procedure, private   :: prop_many
+            procedure, private   :: init_nml
+            procedure, private   :: init_var
+            procedure stts_ab
+            procedure zmap
     end type Itraj
-
     contains
     ! Initializer
-    subroutine init(self, t0, tf, filepath, trajfile)
-        character(len=*), intent(in) :: filepath, trajfile
-        !! The filename where the chebyshev coefficients are located
-        real(dp),            intent(in) :: t0, tf
-        !! The initial and final simulation independent variable (t)
-        class(Itraj),        intent(out):: self
-        !! The function _returns_ an instance of the type. 
-        ! print *, "Initializing reference model"
+    subroutine init_nml(self, namefile)
+        character(len=*), intent(in) :: namefile
+        real(dp)                     :: t0, tf
+        character(len=1000)          :: qist_filepath
+        integer                      :: stat, num
+        class(Itraj),  intent(inout) :: self
+        namelist /ITRAJ_CONFIG/ qist_filepath, &
+                                t0, &
+                                tf
+        inquire(file=trim(adjustl(namefile)), iostat=stat)
+        if (stat .ne. 0) then 
+            print *, "ERROR: Bad ITRAJ config namelist filename"
+            print *, "error code ", stat
+            stop
+        end if
+        open(file=namefile, status="old", &
+             iostat=stat,newunit=num)
+        read(unit=num, nml=ITRAJ_CONFIG, iostat=stat)
+        if (stat .ne. 0) then 
+            print *, "ERROR: bad ITRAJ config namelist format"
+            print *, "error code ", stat
+            stop
+        end if
+        close(num)
+        call self%init(t0,tf,qist_filepath)
+    end subroutine init_nml
+    subroutine init_var(self, t0, tf, trajfile)
+        character(len=*), intent(in) :: trajfile
+        real(dp),         intent(in) :: t0, tf
+        integer                      :: stat, num
+        class(Itraj),  intent(inout) :: self
         self%initq=.true.
-        ! The initializer is running
         self%t0               = t0
         self%tf               = tf
-        open(unit=49, file=filepath//trajfile, status="old", access="stream")
-        call self%reftraj%read(49)
-        close(49)
-        ! Make sure the chebyshev order in the file is good to go
-        ! Set the coefficient filename
-        ! Allocate the chebyshev coefficient array in memory
-    end subroutine init
+        inquire(file=trim(adjustl(trajfile)), iostat=stat)
+        if (stat.ne.0) then
+            print *, "ERROR: Trajectory file not found."
+            print *, "error code ", stat
+            stop
+        end if
+        open(newunit=num, file=trim(adjustl(trajfile)), &
+             status="old", access="stream",iostat=stat)
+        call self%reftraj%read(num)
+        close(num)
+    end subroutine init_var
     !! Calling functions 
     function call(self,t,lind,uind) result(res)
         !! Return a (uind-lind)-dimensional at t
@@ -73,7 +88,7 @@ module qist
         if (present(lind)) l=lind
         if (present(uind)) u=uind
         allocate(res(u-l+1))
-        res = self%reftraj%call(t/self%tf,l,u)
+        res = self%reftraj%call((t-self%t0)/(self%tf-self%t0),l,u)
     end function
     function state(self,t) result(res)
         !! Return a regularized state at time t
@@ -141,9 +156,9 @@ module qist
         res(6,6) = packlin(37)
         res(6,7) = packlin(43)
         res(6,8) = packlin(49)
-        res(7,7)=1._wp
-        res(7,8)=1._wp
-        res(8,8)=1._wp
+        res(7,7)=1._dp
+        res(7,8)=1._dp
+        res(8,8)=1._dp
     end function stm
     function stm_i(self,t) result(res)
         !! Return a regularized stm at time tau

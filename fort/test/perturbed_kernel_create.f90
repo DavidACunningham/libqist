@@ -70,6 +70,7 @@ program main
            dtime & ! epochs
           )
       call spkcls(spkhand)
+      return
     contains
         function pert_eoms(me,x,y) result(res)
             class(RungeKutta), intent(inout) :: me
@@ -116,7 +117,7 @@ program main
             real(qp), intent(in) :: y (:), mu, rj(3)
             real(qp)             :: &
                                   & x0, x1, x2, x3, x4
-            real(qp), dimension(8) :: res
+            real(qp), dimension(6) :: res
             x0  =  (rj(1)**2 + rj(2)**2 + rj(3)**2)**(-3.0_qp/2.0_qp)
             x1  =  rj(1) - y(1)
             x2  =  rj(2) - y(2)

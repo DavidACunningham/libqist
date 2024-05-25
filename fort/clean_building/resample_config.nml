@@ -2,7 +2,7 @@
     metakernel_filepath = "/home/david/wrk/nstgro/qist/kernels/mk.tf",
     resample_filepath = "/home/david/wrk/nstgro/qist/libqist/fort/data/20240524resampled.subspice",
     t0 = 0.,
-    tf = 172800.,
+    tf = 172000.,
     central_body = 399,
     body_list = 301 -998 10 5,
     deg = 1000

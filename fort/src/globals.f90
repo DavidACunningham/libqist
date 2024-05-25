@@ -72,7 +72,7 @@ module globals
         ! NAME    TYPE          COMMENTS
         ! res     real128 (:)   output matrix
         real(wp), intent(in) :: matA(:), matB(:,:)
-        real(wp)             :: res(size(matA))
+        real(wp)             :: res(size(matB,2))
         res = matmul(matA,matB)
     end function mmult_matvec_vecfirst_q
     pure function mmult_matmat_d(matA, matB) result(res)
@@ -111,7 +111,7 @@ module globals
         ! NAME    TYPE          COMMENTS
         ! res     real64 (:)   output matrix
         real(dp), intent(in) :: matA(:), matB(:,:)
-        real(dp)             :: res(size(matA))
+        real(dp)             :: res(size(matB,2))
         res = matmul(matA,matB)
     end function mmult_matvec_vecfirst_d
     pure function qesolve(a,b,c) result(res)
