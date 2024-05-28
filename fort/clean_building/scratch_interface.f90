@@ -11,8 +11,8 @@ program main
     call it%init(trim(adjustl(arg)))
     xa = 0._dp
     xa(:3) = [10., 10., 10.]
-    time = 769269009.185_dp + 5._dp*24._dp*3600._dp
-    timeb = time + 3600._dp*24._dp*1._dp
+    time = it%t0 + 3600._dp
+    timeb = (it%tf-it%t0)/2 + time
     call it%stts_ab(time, timeb, stm, stt)
     ! stm = it%stm(time)
     ! stt = it%stt(time)
@@ -30,4 +30,6 @@ program main
     xb = it%prop(time, timeb, xa, 2)
     print *, "XB"
     print *, real(xb, 4)
+    print *, "T_elapsed"
+    print *, real((timeb-time)/it%tof,4)
 end program main

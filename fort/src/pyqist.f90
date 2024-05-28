@@ -1,19 +1,25 @@
-module pqdnr
+module pq
     use q_inter
     implicit none
     contains
     !! Initializers
     !! Initializers
-    subroutine pw_init_i(t0, tf,filepath, trajfile)
-        character(len=*), intent(in) :: filepath, trajfile
+    subroutine pw_init_v(t0, tf, trajfile)
+        character(len=*), intent(in) :: trajfile
         real(dp),            intent(in) ::t0, tf
         !! The initial and final simulation independent variable (tau)
         !! The function _returns_ an instance of the type. 
-        call init_i(t0, tf,filepath, trajfile)
-    end subroutine pw_init_i
+        call init_v(t0, tf, trajfile)
+    end subroutine pw_init_v
+    subroutine pw_init_n(namefile)
+        character(len=*), intent(in) :: namefile
+        !! The initial and final simulation independent variable (tau)
+        !! The function _returns_ an instance of the type. 
+        call init_n(namefile)
+    end subroutine pw_init_n
      function pw_state(tau) result(res)
         !! Return a regularized state at time tau
-        integer, parameter :: n=6
+        integer, parameter :: n=8
         real(8),     intent(in) :: tau
         !! The value of tau at which to get the state
         real(8), dimension(n)   :: res
@@ -22,7 +28,7 @@ module pqdnr
     end function pw_state
      function pw_stm(tau) result(res)
         !! Return a regularized stm at time tau
-        integer, parameter :: n=6
+        integer, parameter :: n=8
         real(8),     intent(in) :: tau
         !! The value of tau at which to get the state
         real(8), dimension(n,n) :: res
@@ -31,7 +37,7 @@ module pqdnr
     end function pw_stm
      function pw_stt(tau) result(res)
         !! Return a regularized stm at time tau
-        integer, parameter :: n=6
+        integer, parameter :: n=8
         real(8),     intent(in) :: tau
         !! The value of tau at which to get the state
         real(8), dimension(n,n,n) :: res
@@ -40,7 +46,7 @@ module pqdnr
     end function pw_stt
      function pw_stm_i(tau) result(res)
         !! Return a regularized stm at time tau
-        integer, parameter :: n=6
+        integer, parameter :: n=8
         real(8),     intent(in) :: tau
         !! The value of tau at which to get the state
         real(8), dimension(n,n) :: res
@@ -49,7 +55,7 @@ module pqdnr
     end function pw_stm_i
      function pw_stt_i(tau) result(res)
         !! Return a regularized stm at time tau
-        integer, parameter :: n=6
+        integer, parameter :: n=8
         real(8),     intent(in) :: tau
         !! The value of tau at which to get the state
         real(8), dimension(n,n,n) :: res
@@ -68,10 +74,10 @@ module pqdnr
         integer, intent(in), optional :: order
         !! xa is the initial relative state 
         !! should be dimension 6
-        real(8)                 :: res(6)
+        real(8)                 :: res(8)
         o = 2
         if (present(order)) o=order
-        res = prop(ta,tb,[xa, 0._dp],o)
+        res = prop(ta,tb,[xa, 0._dp, 0._dp],o)
     end function pw_prop_once
 
     function pw_prop_many(ta, tb, xa, order) result(res)
@@ -84,14 +90,14 @@ module pqdnr
         integer, intent(in), optional :: order
         !! xa is the initial relative state 
         !! should be dimension 6,:
-        real(8)                 :: res(7,size(xa,2))
+        real(8)                 :: res(8,size(xa,2))
         if (present(order)) o=order
         res = prop(ta,tb,xa, o)
     end function pw_prop_many
 
      subroutine pw_stts_ab(taua, taub, stm, stt)
         !! Return the STM and STT from taua to taub
-        integer, parameter :: n=7
+        integer, parameter :: n=8
         real(8),     intent(in)  :: taua, taub
         real(8),     intent(out) :: stm(n,n), stt(n,n,n)
         call stts_ab(taua,taub,stm,stt)
@@ -110,4 +116,4 @@ module pqdnr
         if (present(order)) ord=order
         res = zmap(tau,ord)
     end function pw_zmap
-end module pqdnr
+end module pq

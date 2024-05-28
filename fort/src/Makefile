@@ -15,9 +15,12 @@ OBJECTS :=  globals.o \
 			q_inter.o\
 		    makemodel.o\
 			genqist.o\
-		    $(DOP853) \
-			$(SPICE) \
-		    $(FRK)
+			frkmin.o \
+			frkmin_q.o \
+			tinysh.o \
+			denselight.o \
+			cheby.o \
+			$(SPICE)
 
 PFFLAGS := -lgomp 
 FFLAGS := -O3 -g -mcmodel=large \
@@ -28,10 +31,24 @@ FFLAGS := -O3 -g -mcmodel=large \
 		  -ffree-line-length-none\
 		  -fcheck=bounds\
 		  -fopenmp
+MFLAGS := -O3 -mcmodel=large \
+	      -Wl,--no-relax\
+		  -fPIC\
+		  -ffast-math \
+		  -march=native \
+		  -ffree-line-length-none\
+		  -fcheck=bounds\
+		  -fopenmp\
+		  -fno-underscoring\
+		  -shared
 			 
+mat: mqist.a
 pq: pyqist$(EXT_SUFFIX)
 pqftest: pqftest.f90 $(OBJECTS) pyqist.o
 	$(FC) $(FFLAGS) $^ -o $@
+
+%.a : $(SRCDIR)%.f90 $(OBJECTS)
+	$(FC) $(MFLAGS) $^ -o $@
 
 %$(EXT_SUFFIX) : $(SRCDIR)%.f90 %.pyf q_inter.o $(OBJECTS)
 	$(PFC) --f90flags='$(FFLAGS)' $(PFFLAGS) -c $^ 

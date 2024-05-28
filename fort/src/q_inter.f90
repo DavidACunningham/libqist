@@ -3,7 +3,7 @@ module q_inter
     use globals, only: wp
     implicit none
     integer, parameter :: dp=selected_real_kind(15)
-    integer, parameter, private :: n=6
+    integer, parameter, private :: n=8
     type(Itraj) :: it
     interface prop
         module procedure prop_once
@@ -12,13 +12,19 @@ module q_inter
     contains
 
     !! Initializers
-    subroutine init_i(t0, tf,filepath, trajfile)
-        character(len=*), intent(in) :: filepath, trajfile
+    subroutine init_n(namefile)
+        character(len=*), intent(in) :: namefile
+        !! The initial and final simulation independent variable (t)
+        !! The function _returns_ an instance of the type. 
+        call it%init(namefile)
+    end subroutine init_n
+    subroutine init_v(t0, tf, trajfile)
+        character(len=*), intent(in) :: trajfile
         real(dp),            intent(in) ::t0, tf
         !! The initial and final simulation independent variable (t)
         !! The function _returns_ an instance of the type. 
-        call it%init(t0, tf,filepath, trajfile)
-    end subroutine init_i
+        call it%init(t0, tf, trajfile)
+    end subroutine init_v
     !! Calling functions 
     !! Physical time calling functions
     function state(t) result(res)
@@ -57,7 +63,7 @@ module q_inter
      function prop_once(ta, tb, xa,order) result(res)
         !! Propagates the relative state xa at ta
         !! to tb
-        real(dp),     intent(in) :: ta, tb, xa(7)
+        real(dp),     intent(in) :: ta, tb, xa(8)
         integer, intent(in), optional :: order
         integer o
         !! xa is the initial relative state 
@@ -75,7 +81,7 @@ module q_inter
         integer o
         !! xa is the initial relative state 
         !! should be dimension 7
-        real(dp), dimension(7,size(xa,2))   :: res, xapad(7,size(xa,2))
+        real(dp), dimension(8,size(xa,2))   :: res, xapad
         xapad(:6,:) = xa
         xapad(7,:) = 0._8
         o=2

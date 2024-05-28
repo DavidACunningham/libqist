@@ -7,12 +7,12 @@ module qist
     implicit none
     private
     type, public :: Itraj
-        real(dp)                 :: t0, tf 
+        real(dp)                 :: t0, tf, tof
         logical                  :: initq
         type(lightSol)           :: reftraj
         contains
             generic,   public    :: init => init_nml, init_var
-            procedure            :: call
+            procedure            :: call => call_raw
             procedure            :: state 
             procedure            :: stm 
             procedure            :: stm_i 
@@ -62,6 +62,7 @@ module qist
         self%initq=.true.
         self%t0               = t0
         self%tf               = tf
+        self%tof              = tf-t0
         inquire(file=trim(adjustl(trajfile)), iostat=stat)
         if (stat.ne.0) then
             print *, "ERROR: Trajectory file not found."
@@ -74,6 +75,24 @@ module qist
         close(num)
     end subroutine init_var
     !! Calling functions 
+    function call_raw(self,t,lind,uind) result(res)
+        !! Return a (uind-lind)-dimensional at t
+        !! If no lind (uind) is passed, beginning (end) of the vector is used
+        class(Itraj),      intent(inout) :: self
+        real(dp),          intent(in) :: t
+        integer, optional, intent(in) :: uind, lind
+        !! The value of the independent variable to generate
+        real(dp), allocatable         :: res(:)
+        real(dp)                      :: t_elapsed
+        integer l, u
+        l = 1
+        u = plen
+        t_elapsed = t - self%t0
+        if (present(lind)) l=lind
+        if (present(uind)) u=uind
+        allocate(res(u-l+1))
+        res = self%reftraj%call(t,l,u)
+    end function
     function call(self,t,lind,uind) result(res)
         !! Return a (uind-lind)-dimensional at t
         !! If no lind (uind) is passed, beginning (end) of the vector is used
@@ -82,13 +101,15 @@ module qist
         integer, optional, intent(in) :: uind, lind
         !! The value of the independent variable to generate
         real(dp), allocatable         :: res(:)
+        real(dp)                      :: t_elapsed
         integer l, u
         l = 1
         u = plen
+        t_elapsed = t - self%t0
         if (present(lind)) l=lind
         if (present(uind)) u=uind
         allocate(res(u-l+1))
-        res = self%reftraj%call((t-self%t0)/(self%tf-self%t0),l,u)
+        res = self%reftraj%call(t_elapsed/self%tof,l,u)
     end function
     function state(self,t) result(res)
         !! Return a regularized state at time t
