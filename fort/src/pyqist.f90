@@ -6,7 +6,7 @@ module pq
     !! Initializers
     subroutine pw_init_v(t0, tf, trajfile)
         character(len=*), intent(in) :: trajfile
-        real(dp),            intent(in) ::t0, tf
+        real(8),            intent(in) ::t0, tf
         !! The initial and final simulation independent variable (tau)
         !! The function _returns_ an instance of the type. 
         call init_v(t0, tf, trajfile)
@@ -77,7 +77,7 @@ module pq
         real(8)                 :: res(8)
         o = 2
         if (present(order)) o=order
-        res = prop(ta,tb,[xa, 0._dp, 0._dp],o)
+        res = prop(ta,tb,[xa, 0._8, 0._8],o)
     end function pw_prop_once
 
     function pw_prop_many(ta, tb, xa, order) result(res)

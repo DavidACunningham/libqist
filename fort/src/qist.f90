@@ -12,7 +12,8 @@ module qist
         type(lightSol)           :: reftraj
         contains
             generic,   public    :: init => init_nml, init_var
-            procedure            :: call => call_raw
+            procedure            :: call_raw
+            procedure            :: call 
             procedure            :: state 
             procedure            :: stm 
             procedure            :: stm_i 
@@ -77,17 +78,16 @@ module qist
     !! Calling functions 
     function call_raw(self,t,lind,uind) result(res)
         !! Return a (uind-lind)-dimensional at t
+        !! for this function, t goes from 0 to 1.
         !! If no lind (uind) is passed, beginning (end) of the vector is used
         class(Itraj),      intent(inout) :: self
         real(dp),          intent(in) :: t
         integer, optional, intent(in) :: uind, lind
         !! The value of the independent variable to generate
         real(dp), allocatable         :: res(:)
-        real(dp)                      :: t_elapsed
         integer l, u
         l = 1
         u = plen
-        t_elapsed = t - self%t0
         if (present(lind)) l=lind
         if (present(uind)) u=uind
         allocate(res(u-l+1))
@@ -109,7 +109,7 @@ module qist
         if (present(lind)) l=lind
         if (present(uind)) u=uind
         allocate(res(u-l+1))
-        res = self%reftraj%call(t_elapsed/self%tof,l,u)
+        res = self%call_raw(t_elapsed/self%tof,l,u)
     end function
     function state(self,t) result(res)
         !! Return a regularized state at time t
