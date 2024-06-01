@@ -17,7 +17,7 @@ module quat
         procedure rotate_vec
     end type quaternion
     type  rothist
-        type(vectorcheb)             :: els, elsdot
+        type(vectorcheb)             :: els, elsdot, elsddot
         type(quaternion)             :: qstat
         integer                      :: degree
         real(dp)                     :: t0, tf
@@ -27,8 +27,10 @@ module quat
             generic, public :: init => init_rot_q, init_rot_dcm
             procedure :: callq => getrotquat
             procedure :: callqdot => getrotquatdot
+            procedure :: callqddot => getrotquatddot
             procedure :: call => getdcm
             procedure :: calldot => getdcmdot
+            procedure :: callddot => getdcmddot
             procedure, private :: renorm
             procedure, private :: init_rot_q
             procedure, private :: init_rot_dcm
@@ -89,6 +91,7 @@ module quat
             call me%els%fit(vals, t0,tf)
             me%qstat%q = qstat
             me%elsdot = me%els%deriv()
+            me%elsddot = me%elsdot%deriv()
                 contains
                     function fitwrap(a, b, prev) result(res)
                         real(wp), intent(in) :: a, b, prev(4)
@@ -163,14 +166,60 @@ module quat
         end function
         function getdcmdot(me, t) result(res)
             class(rothist), intent(inout) :: me
-            type(quaternion)              :: qdot
+            real(wp)                      :: q(4), qdot(4)
             real(wp),       intent(in)    :: t
             real(wp)                      :: res(3,3)
-            real(wp)                      :: q(4)
-            q = me%elsdot%call(t)
-            call me%renorm(q)
-            qdot%q = q
-            res = qdot%asdcm()
+            q = me%callq(t)
+            qdot = me%callqdot(t)
+            associate (q0 => q(1), q1 => q(2), q2 => q(3), q3 => q(4), &
+                     & q0dot =>qdot(1), q1dot => qdot(2), &
+                     & q2dot => qdot(3), q3dot => qdot(4))
+            res(1,1) = 2*q0*q0dot + 2*q1*q1dot - 2*q2*q2dot - 2*q3*q3dot
+            res(1,2) = 2*q0*q3dot + 2*q0dot*q3 + 2*q1*q2dot + 2*q1dot*q2
+            res(1,3) = -2*q0*q2dot - 2*q0dot*q2 + 2*q1*q3dot + 2*q1dot*q3
+            res(2,1) = -2*q0*q3dot - 2*q0dot*q3 + 2*q1*q2dot + 2*q1dot*q2
+            res(2,2) = 2*q0*q0dot - 2*q1*q1dot + 2*q2*q2dot - 2*q3*q3dot
+            res(2,3) = 2*q0*q1dot + 2*q0dot*q1 + 2*q2*q3dot + 2*q2dot*q3
+            res(3,1) = 2*q0*q2dot + 2*q0dot*q2 + 2*q1*q3dot + 2*q1dot*q3
+            res(3,2) = -2*q0*q1dot - 2*q0dot*q1 + 2*q2*q3dot + 2*q2dot*q3
+            res(3,3) = 2*q0*q0dot - 2*q1*q1dot - 2*q2*q2dot + 2*q3*q3dot
+            end associate
+        end function
+        function getdcmddot(me, t) result(res)
+            class(rothist), intent(inout) :: me
+            real(wp)                      :: q(4), qdot(4), qddot(4)
+            real(wp),       intent(in)    :: t
+            real(wp)                      :: res(3,3)
+            q = me%callq(t)
+            qdot = me%callqdot(t)
+            qddot = me%callqddot(t)
+            associate (q0 => q(1), q1 => q(2), q2 => q(3), q3 => q(4), &
+                     & q0dot =>qdot(1), q1dot => qdot(2), &
+                     & q2dot => qdot(3), q3dot => qdot(4), &
+                     & q0ddot =>qddot(1), q1ddot => qddot(2), &
+                     & q2ddot => qddot(3), q3ddot => qddot(4))
+                    res(1,1) = 2*q0*q0ddot + 2*q0dot**2 + 2*q1*q1ddot &
+                           & + 2*q1dot**2 - 2*q2*q2ddot - 2*q2dot**2 &
+                           & - 2*q3*q3ddot - 2*q3dot**2
+                    res(1,2) = 2*q0*q3ddot + 2*q0ddot*q3 + 4*q0dot*q3dot &
+                        & + 2*q1*q2ddot + 2*q1ddot*q2 + 4*q1dot*q2dot
+                    res(1,3) = -2*q0*q2ddot - 2*q0ddot*q2 - 4*q0dot*q2dot &
+                        & + 2*q1*q3ddot + 2*q1ddot*q3 + 4*q1dot*q3dot
+                    res(2,1) = -2*q0*q3ddot - 2*q0ddot*q3 - 4*q0dot*q3dot &
+                        & + 2*q1*q2ddot + 2*q1ddot*q2 + 4*q1dot*q2dot
+                    res(2,2) = 2*q0*q0ddot + 2*q0dot**2 - 2*q1*q1ddot &
+                        & - 2*q1dot**2 + 2*q2*q2ddot + 2*q2dot**2 &
+                        & - 2*q3*q3ddot - 2*q3dot**2
+                    res(2,3) = 2*q0*q1ddot + 2*q0ddot*q1 + 4*q0dot*q1dot &
+                        & + 2*q2*q3ddot + 2*q2ddot*q3 + 4*q2dot*q3dot
+                    res(3,1) = 2*q0*q2ddot + 2*q0ddot*q2 + 4*q0dot*q2dot &
+                        & + 2*q1*q3ddot + 2*q1ddot*q3 + 4*q1dot*q3dot
+                    res(3,2) = -2*q0*q1ddot - 2*q0ddot*q1 - 4*q0dot*q1dot &
+                        & + 2*q2*q3ddot + 2*q2ddot*q3 + 4*q2dot*q3dot
+                    res(3,3) = 2*q0*q0ddot + 2*q0dot**2 - 2*q1*q1ddot &
+                        & - 2*q1dot**2 - 2*q2*q2ddot - 2*q2dot**2 &
+                        & + 2*q3*q3ddot + 2*q3dot**2
+            end associate
         end function
         function getrotquatdot(me, t) result(res)
             class(rothist), intent(inout) :: me
@@ -182,6 +231,17 @@ module quat
             call me%renorm(q)
             qdot%q = q
             res = qdot%q
+        end function
+        function getrotquatddot(me, t) result(res)
+            class(rothist), intent(inout) :: me
+            type(quaternion)              :: qddot
+            real(wp),       intent(in)    :: t
+            real(wp)                      :: res(4)
+            real(wp)                      :: q(4)
+            q = me%elsddot%call(t)
+            call me%renorm(q)
+            qddot%q = q
+            res = qddot%q
         end function
         subroutine renorm(me, q)
             class(rothist), intent(in) :: me

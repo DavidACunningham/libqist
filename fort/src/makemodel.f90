@@ -81,6 +81,8 @@ module makemodel
         !                               for central body
         ! tgt_on_rails   logical        TRUE if target trajectory should not
         !                               be integrated
+        ! rot            rothist        the central body-fixed rotation matrix 
+        !                               interpolation
         ! OUTPUTS:
         ! NONE
         class(dynamicsModel), intent(inout)           :: me
@@ -170,6 +172,11 @@ module makemodel
                                                nbody_accs(3,me%num_bodies)
         real(qp)                            :: r_bod_up(3), v_bod_up(3), a_bod_up(3), &
                                                y(m)
+        real(qp)                            :: cb_rot(3,3), cb_rotdot(3,3), cb_rotddot(3,3)
+        real(dp)                            :: V_rot_sh, dV_rot_sh(3), d2V_rot_sh(3,3), &
+                                             & d3V_rot_sh(3,3,3), &
+                                             & J_rot, &
+                                             & r_bodyfixed(3)
         integer i
         ! at time t (in s past j2000)
             ! get r from central body to traj
@@ -195,8 +202,22 @@ module makemodel
             ! Choose point mass or SH model
         if (me%shgrav) then
             ! PLACEHOLDER
-            ! TODO: Put in extended body gravity
-            acc_2b = acc_kepler(me, me%central_body_mu, y)
+            cb_rot = real(me%rot%call(real(time,dp)),qp)
+            r_bodyfixed =real(matmul(cb_rot,y(:3)),dp)
+            cb_rotdot =real(me%rot%calldot(real(time,dp)),qp)
+            cb_rotddot =real(me%rot%callddot(real(time,dp)),qp)
+            call shpines(real(me%central_body_ref_radius,dp), &
+                       & real(me%central_body_mu,dp), &
+                       & me%pdat, &
+                       & me%degord, &
+                       & me%degord, &
+                       & r_bodyfixed, &
+                       & V_rot_sh, &
+                       & dV_rot_sh, &
+                       & d2V_rot_sh, &
+                       & d3V_rot_sh &
+                       &)
+            acc_2b = y(8)*[y(4:6), real(dV_rot_sh,qp), 1._qp, 0._qp]
             jac_2b = jac_kepler(me, me%central_body_mu, y)
             hes_2b = hes_kepler(me, me%central_body_mu, y)
             ! END PLACEHOLDER
