@@ -1890,12 +1890,15 @@ module makemodel
                   + 2*mmult(RIUdot,mmult(JU,vu)) &
                   + mmult(RIU,vectensquad(vu,HU,3)) &
                   + mmult(RIU,mmult(JU,vdotu))
+        ! Assign acceleration in quad
+        acc = y(8) * [y(4:6),real(FI,qp), 1._qp, 0._qp]
         ! Fill in Jacobian nonzero blocks
         jac(1:3,4:6) = y(8)*eyemat(3)
         jac(1:3,8)   = y(4:6)
         jac(4:6,1:3) = y(8)*real(JI,qp)
         jac(4:6,7)   = y(8)*real(adot_I,qp)
         jac(4:6,8)   = real(FI,qp)
+        jac(7,8)     = 1._qp
         ! Fill in Hessian nonzero blocks
         hes(4:6,1:3,1:3) = y(8)*real(HI,qp)
         hes(4:6,7,1:3)   = y(8)*real(Jdot_I,qp)
