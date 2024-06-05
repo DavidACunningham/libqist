@@ -4,6 +4,7 @@ module makemodel
     use tensorops
     use cheby, only: spice_subset
     use quat, only: rothist
+    use globals, only: mmult
     implicit none
     integer :: m=8
 
@@ -46,12 +47,10 @@ module makemodel
             procedure :: new_bodies
             procedure :: new_gravstatus
     end type dynamicsModel
-
     contains
-
     subroutine init_dm(me, subspice, traj_id, central_body, bodylist, &
                      & central_body_mu, central_body_ref_radius, mu_list, &
-                     & shgrav, Cbar, Sbar, rails,rot)
+                     & shgrav, rails,rot, Cbar, Sbar)
         ! init_dm: method to initialize dynamicsModel object
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
@@ -82,7 +81,9 @@ module makemodel
         ! tgt_on_rails   logical        TRUE if target trajectory should not
         !                               be integrated
         ! rot            rothist        the central body-fixed rotation matrix 
-        !                               interpolation
+        !                               interpolation. Must be R_IU: Take
+        !                               vectors FROM the body-fixed (U) frame
+        !                               TO the inertial frame.
         ! OUTPUTS:
         ! NONE
         class(dynamicsModel), intent(inout)           :: me
@@ -95,9 +96,8 @@ module makemodel
                                                          central_body_mu, &
                                                          mu_list(:)
         logical,              intent(in)              :: shgrav, rails
-        real(qp),             intent(in)              :: Cbar(:,:), &
+        real(qp),             intent(in), optional    :: Cbar(:,:), &
                                                          Sbar(:,:)
-        real(dp)                                      :: rotmat(3,3)
         me%num_bodies = size(bodylist)
         me%shgrav = shgrav
         me%traj_id = traj_id
@@ -118,9 +118,21 @@ module makemodel
                 print *, "Error: rotation history required. None provided"
                 error stop
             endif
-            me%degord = size(Cbar,1)
-            call pinesinit(me%degord,transpose(real(Cbar,dp)), &
-                         & transpose(real(Sbar,dp)),me%pdat)
+            if (present(Cbar)) then
+                me%degord = size(Cbar,1)
+            else
+                print *, "Error: Stokes coefficients (Cbar) required."
+                print *, "None provided."
+                error stop
+            end if
+            if (present(Sbar)) then
+                call pinesinit(me%degord,transpose(real(Cbar,dp)), &
+                             & transpose(real(Sbar,dp)),me%pdat)
+            else
+                print *, "Error: Stokes coefficients (Sbar) required."
+                print *, "None provided."
+                error stop
+            end if
         endif
     end subroutine init_dm
     subroutine new_bodies(me, bodylist, mulist)
@@ -135,15 +147,20 @@ module makemodel
         me%bodylist = bodylist
         me%nbody_mus = real(mulist,qp)
     end subroutine new_bodies
-    subroutine new_gravstatus(me, shgrav, Cbar, Sbar)
-        class(dynamicsModel), intent(inout) :: me
-        logical,              intent(in)    :: shgrav
-        real(dp),             intent(in)    :: Cbar(:,:), Sbar(:,:)
+    subroutine new_gravstatus(me, shgrav, Cbar, Sbar,rot)
+        class(dynamicsModel), intent(inout)        :: me
+        type(rothist),        intent(in), optional :: rot
+        logical,              intent(in)           :: shgrav
+        real(dp),             intent(in)           :: Cbar(:,:), &
+                                                    & Sbar(:,:)
         me%shgrav = shgrav
         if (me%shgrav) then
             me%degord = size(Cbar,1)
             call pinesinit(me%degord,transpose(real(Cbar,dp)), &
                          & transpose(real(Sbar,dp)),me%pdat)
+            if (present(rot)) then
+                me%rot = rot
+            end if
         endif
     end subroutine new_gravstatus
     subroutine get_derivs(me, time, acc, jac, hes)
@@ -172,11 +189,6 @@ module makemodel
                                                nbody_accs(3,me%num_bodies)
         real(qp)                            :: r_bod_up(3), v_bod_up(3), a_bod_up(3), &
                                                y(m)
-        real(qp)                            :: cb_rot(3,3), cb_rotdot(3,3), cb_rotddot(3,3)
-        real(dp)                            :: V_rot_sh, dV_rot_sh(3), d2V_rot_sh(3,3), &
-                                             & d3V_rot_sh(3,3,3), &
-                                             & J_rot, &
-                                             & r_bodyfixed(3)
         integer i
         ! at time t (in s past j2000)
             ! get r from central body to traj
@@ -201,26 +213,7 @@ module makemodel
         ! For central body
             ! Choose point mass or SH model
         if (me%shgrav) then
-            ! PLACEHOLDER
-            cb_rot = real(me%rot%call(real(time,dp)),qp)
-            r_bodyfixed =real(matmul(cb_rot,y(:3)),dp)
-            cb_rotdot =real(me%rot%calldot(real(time,dp)),qp)
-            cb_rotddot =real(me%rot%callddot(real(time,dp)),qp)
-            call shpines(real(me%central_body_ref_radius,dp), &
-                       & real(me%central_body_mu,dp), &
-                       & me%pdat, &
-                       & me%degord, &
-                       & me%degord, &
-                       & r_bodyfixed, &
-                       & V_rot_sh, &
-                       & dV_rot_sh, &
-                       & d2V_rot_sh, &
-                       & d3V_rot_sh &
-                       &)
-            acc_2b = y(8)*[y(4:6), real(dV_rot_sh,qp), 1._qp, 0._qp]
-            jac_2b = jac_kepler(me, me%central_body_mu, y)
-            hes_2b = hes_kepler(me, me%central_body_mu, y)
-            ! END PLACEHOLDER
+            call me%allderivs_sh(time, y, acc_2b, jac_2b, hes_2b)
         else
             acc_2b = acc_kepler(me, me%central_body_mu, y)
             jac_2b = jac_kepler(me, me%central_body_mu, y)
@@ -1821,52 +1814,99 @@ module makemodel
             end function hes
             ! END AUTOCODE OUTPUT FOR HES
     end function
-    subroutine allderivs_sh(me, time, r, acc, jac, hes)
+    subroutine allderivs_sh(me, time, y, acc, jac, hes)
         ! allderivs_sh: compute the dynamics, jacobian, and hessian
         !               due to the gravitation of an extended body.
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! time           real           time in seconds past J2000 to evaluate
-        ! r              real (3)       position vector from central body to
+        ! y              real (8)       state vector from central body to
         !                               field point
         ! OUTPUTS:
         ! NAME           TYPE           DESCRIPTION
-        ! NAME           TYPE           DESCRIPTION
-        ! acc            float (6)      time derivative of 6-d state,
+        ! acc            float (8)      time derivative of 6-d state,
         !                               i.e. the dynamics for the system:
         !                               (xdot, ydot, zdot, xddot, yddot, zddot)
-        ! jac            float (6,6)    jacobian of dynamics: 
+        ! jac            float (8,8)    jacobian of dynamics: 
         !                               jac(i,j) = df_i/dx_j
-        ! hes            float (6,6,6)  hessian of dynamics: 
+        ! hes            float (8,8,8)  hessian of dynamics: 
         !                               hes(i,j,k) = d^2f_i/(dx_j*dx_k)
-        class(dynamicsModel), intent(inout)  :: me
-        real(qp),             intent(in)     :: time, &
-                                              & r(3)
-        real(dp)                             :: pot_d, &
-                                              & acc_d(3), &
-                                              & jac_d(3,3), &
-                                              & hes_d(3,3,3), &
-                                              & acc_qp(3), &
-                                              & jac_qp(3,3), &
-                                              & hes_qp(3,3,3)
-        real(qp),             intent(out)    :: acc(6), &
-                                              & jac(6,6), &
-                                              & hes(6,6,6)
-        real(dp)                             :: xform_mat(3,3), &
-                                              & r_bf(3)
-
-        ! TODO: Call transform to get transformation matrix 
-        ! to/from body fixed frame in xform_mat
-        r_bf = mmult(xform_mat,r_bf)
-
-        call shpines( real(me%central_body_ref_radius,dp), real(me%central_body_mu,dp), me%pdat, &
-                    & me%degord, me%degord, &
-                    & real(r_bf,dp), pot_d, acc_d, jac_d, hes_d &
-                    & )
-        ! TODO: add correct velocity transformation
-        acc(4:) = real(acc_d,qp)
-        jac(4:,:3) = real(jac_d,qp)
-        hes(4:,:3,:3) = real(hes_d,qp)
+        class(dynamicsModel), intent(inout) :: me
+        real(qp),             intent(in)    :: time, y(:)
+        real(qp),             intent(out)   :: acc(size(y)), &
+                                             & jac(size(y),size(y)), &
+                                             & hes(size(y),size(y),size(y))
+        real(dp)                            :: RIU(3,3), RIUdot(3,3), RIUdotdot(3,3)
+        real(dp)                            :: V_rot_sh, FU(3), JU(3,3), &
+                                             & HU(3,3,3), &
+                                             & FI(3), JI(3,3), HI(3,3,3), &
+                                             & adot_I(3), adotdot_I(3), &
+                                             & Jdot_I(3,3), &
+                                             & time_d, ri(3), vi(3), &
+                                             & ru(3), vu(3), vdotu(3), inter(3,3,3)
+        acc = 0._qp
+        jac = 0._qp
+        hes = 0._qp
+        time_d = real(time,dp)
+        RIU = me%rot%call(time_d)
+        RIUdot = me%rot%calldot(time_d)
+        RIUdotdot = me%rot%callddot(time_d)
+        ri = real(y(:3),dp)
+        vi = real(y(4:6),dp)
+        ru = mmult(transpose(RIU),ri)
+        call shpines(real(me%central_body_ref_radius,dp), &
+                   & real(me%central_body_mu,dp), &
+                   & me%pdat, &
+                   & me%degord, &
+                   & me%degord, &
+                   & ru, &
+                   & V_rot_sh, &
+                   & FU, &
+                   & JU, &
+                   & HU &
+                   &)
+        vu = mmult(transpose(RIUdot),ri) + mmult(transpose(RIU),vi)
+        FI = mmult(RIU,FU)
+        JI = mmult(RIU,mmult(JU,transpose(RIU)))
+        HI = mattens(RIU,quad(transpose(RIU),HU,3),3)
+        vdotu = mmult(transpose(RIUdotdot),ri) &
+              + 2._dp * mmult(transpose(RIUdot),vi) &
+              + FU
+        adot_I = mmult(RIUdot,FU) &
+                ! Next line may not be needed
+               + mmult(mmult(RIU,JU),vu)
+        ! these lines implement the operation
+        ! ia, abc, jb -> ijc with RIU, HU, RIU
+        inter = mattens(RIU,HU,3)
+        inter = reshape(inter,[3,3,3],order=[2,1,3])
+        inter = mattens(RIU,inter,3)
+        inter = reshape(inter,[3,3,3],order=[2,1,3])
+        Jdot_I = mmult(RIUdot,mmult(JU,transpose(RIU))) &
+               + mmult(RIU,mmult(JU,transpose(RIUdot))) &
+                ! Next line may not be needed
+               + vectens3(vu,inter,3)
+        adotdot_I = mmult(RIUdotdot,FU) &
+                 ! Next 3 lines may not be needed
+                  + 2*mmult(RIUdot,mmult(JU,vu)) &
+                  + mmult(RIU,vectensquad(vu,HU,3)) &
+                  + mmult(RIU,mmult(JU,vdotu))
+        ! Fill in Jacobian nonzero blocks
+        jac(1:3,4:6) = y(8)*eyemat(3)
+        jac(1:3,8)   = y(4:6)
+        jac(4:6,1:3) = y(8)*real(JI,qp)
+        jac(4:6,7)   = y(8)*real(adot_I,qp)
+        jac(4:6,8)   = real(FI,qp)
+        ! Fill in Hessian nonzero blocks
+        hes(4:6,1:3,1:3) = y(8)*real(HI,qp)
+        hes(4:6,7,1:3)   = y(8)*real(Jdot_I,qp)
+        hes(4:6,1:3,7)   = y(8)*real(Jdot_I,qp)
+        hes(4:6,8,1:3)   = real(JI,qp)
+        hes(4:6,1:3,8)   = real(JI,qp)
+        hes(1:3,8,4:6)   = eyemat(3)
+        hes(1:3,4:6,8)   = eyemat(3)
+        hes(4:6,7,7)     = y(8)*real(adotdot_I,qp)
+        hes(4:6,8,7)     = real(adot_I,qp)
+        hes(4:6,7,8)     = real(adot_I,qp)
     end subroutine
     function eoms(me,t,y) result(res)
         ! eoms: method to compute dynamics function of extended state vector

@@ -195,7 +195,7 @@ module genqist
 
     subroutine var_init(me,t0, tf, subspicefile, traj_id, central_body, bodylist, &
                   & central_body_mu, central_body_ref_radius, mu_list, &
-                  & shgrav, Cbar, Sbar,rails)
+                  & shgrav, rails, rot, Cbar, Sbar)
         ! init_dm: method to initialize dynamicsModel object
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
@@ -222,36 +222,47 @@ module genqist
         !                               sorted in the same order ad bodylist
         ! shgrav         logical        TRUE if central body will be modeled
         !                               by spherical harmonics
+        ! rails          logical        is the reference state on rails
+        ! check          logical        whether to compare integrated and rails state
+        !                               during integration
+        ! rot            rothist        the central body-fixed rotation matrix 
+        !                               interpolation. Must be R_IU: Take
+        !                               vectors FROM the body-fixed (U) frame
+        !                               TO the inertial frame.
         ! Cbar           real (:,:)     4 pi (Kaula) normalized cosine Stokes 
         !                               for central body
         ! Sbar           real (:,:)     4 pi (Kaula) normalized sine Stokes 
         !                               for central body
-        ! rails          logical        is the reference state on rails
-        ! check          logical        whether to compare integrated and rails state
-        !                               during integration
         ! OUTPUTS:
         ! NONE
-        class(gqist), intent(inout) :: me
-        type(spice_subset)          :: subspice
-        real(qp),     intent(in)    :: t0, tf
-        integer,              intent(in)    :: traj_id, & 
-                                               central_body, &
-                                               bodylist(:)
-        logical,              intent(in)    :: shgrav, rails
-        real(qp),             intent(in)    :: central_body_ref_radius, &
-                                               central_body_mu, &
-                                               mu_list(:)
-        real(qp),             intent(in)    :: Cbar(:,:), &
-                                               Sbar(:,:)
-        character(len=*),   intent(in)    :: subspicefile
+        class(gqist),      intent(inout)        :: me
+        type(spice_subset)                      :: subspice
+        type(rothist),     intent(in), optional :: rot
+        real(qp),          intent(in)           :: t0, tf
+        integer,           intent(in)           :: traj_id, & 
+                                                   central_body, &
+                                                   bodylist(:)
+        logical,           intent(in)           :: shgrav, rails
+        real(qp),          intent(in)           :: central_body_ref_radius, &
+                                                   central_body_mu, &
+                                                   mu_list(:)
+        real(qp),          intent(in), optional :: Cbar(:,:), &
+                                                   Sbar(:,:)
+        character(len=*),  intent(in)           :: subspicefile
 
         open(file=trim(adjustl(subspicefile)),unit=73, &
            & access="stream", status="old")
         call subspice%read(73)
         close(73)
+        if (shgrav.and.present(rot).and.present(Cbar).and.present(Sbar)) then
         call me%dynmod%init(subspice, traj_id, central_body, bodylist, &
                           & central_body_mu, central_body_ref_radius,  &
-                          & mu_list, shgrav, Cbar, Sbar,rails)
+                          & mu_list, shgrav, rails, rot, Cbar, Sbar)
+        else
+        call me%dynmod%init(subspice, traj_id, central_body, bodylist, &
+                          & central_body_mu, central_body_ref_radius,  &
+                          & mu_list, shgrav, rails)
+        endif
         me%t0 = t0
         me%tf = tf
         me%rtol = 1.e-10

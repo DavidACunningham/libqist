@@ -149,14 +149,14 @@ module tensorops
         integer, intent(in) :: n
         real(wp), intent(in) :: v(n), t(n,n,n)
         real(wp) :: res(n,n)
-        res = vectens1(v,reshape(t,[n,n,n],order=[3,2,1]),n)
+        res = vectens1(v,reshape(t,[n,n,n],order=[3,1,2]),n)
     end function q_vectens3
     pure function d_vectens3(v,t,n) result(res)
         implicit none
         integer, intent(in) :: n
         real(dp), intent(in) :: v(n), t(n,n,n)
         real(dp) :: res(n,n)
-        res = vectens1(v,reshape(t,[n,n,n],order=[3,2,1]),n)
+        res = vectens1(v,reshape(t,[n,n,n],order=[3,1,2]),n)
     end function d_vectens3
     
     pure function q_vectensquad(v,t,n) result(res)
@@ -164,7 +164,7 @@ module tensorops
         integer, intent(in) :: n
         real(wp), intent(in) :: v(n), t(n,n,n)
         real(wp) :: res(n)
-        res = mmult(v,vectens3(v,t,n))
+        res = mmult(v,transpose(vectens3(v,t,n)))
     end function q_vectensquad
 
     pure function d_vectensquad(v,t,n) result(res)
@@ -172,7 +172,7 @@ module tensorops
         integer, intent(in) :: n
         real(dp), intent(in) :: v(n), t(n,n,n)
         real(dp) :: res(n)
-        res = mmult(v,vectens3(v,t,n))
+        res = mmult(v,transpose(vectens3(v,t,n)))
     end function d_vectensquad
 
     pure function q_stminvert(stm,n) result(res)
