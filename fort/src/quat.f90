@@ -127,6 +127,7 @@ module quat
             call me%els%fit(vals, t0,tf)
             call me%qstat%fromdcm(dcmstat)
             me%elsdot = me%els%deriv()
+            me%elsddot = me%elsdot%deriv()
                 contains
                     function fitwrap(a, b, prev) result(res)
                         real(wp), intent(in) :: a, b, prev(4)
