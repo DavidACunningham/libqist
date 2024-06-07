@@ -1867,31 +1867,30 @@ module makemodel
                    &)
         vu = mmult(transpose(RIUdot),ri) + mmult(transpose(RIU),vi)
         FI = mmult(RIU,FU)
+        acc = y(8) * [y(4:6),real(FI,qp), 1._qp, 0._qp]
         JI = mmult(RIU,mmult(JU,transpose(RIU)))
         HI = mattens(RIU,quad(transpose(RIU),HU,3),3)
         vdotu = mmult(transpose(RIUdotdot),ri) &
               + 2._dp * mmult(transpose(RIUdot),vi) &
               + FU
-        adot_I = mmult(RIUdot,FU) &
-                ! Next line may not be needed
-               + mmult(mmult(RIU,JU),vu)
+        ! second term may not be needed
+        adot_I = mmult(RIUdot,FU)  !+ mmult(mmult(RIU,JU),vu)
         ! these lines implement the operation
         ! ia, abc, jb -> ijc with RIU, HU, RIU
-        inter = mattens(RIU,HU,3)
-        inter = reshape(inter,[3,3,3],order=[2,1,3])
-        inter = mattens(RIU,inter,3)
-        inter = reshape(inter,[3,3,3],order=[2,1,3])
-        Jdot_I = mmult(RIUdot,mmult(JU,transpose(RIU))) &
-               + mmult(RIU,mmult(JU,transpose(RIUdot))) &
-                ! Next line may not be needed
-               + vectens3(vu,inter,3)
-        adotdot_I = mmult(RIUdotdot,FU) &
-                 ! Next 3 lines may not be needed
-                  + 2*mmult(RIUdot,mmult(JU,vu)) &
-                  + mmult(RIU,vectensquad(vu,HU,3)) &
-                  + mmult(RIU,mmult(JU,vdotu))
+        ! inter = mattens(RIU,HU,3)
+        ! inter = reshape(inter,[3,3,3],order=[2,1,3])
+        ! inter = mattens(RIU,inter,3)
+        ! inter = reshape(inter,[3,3,3],order=[2,1,3])
+        ! Jdot_I = mmult(RIUdot,mmult(JU,transpose(RIU))) &
+        !        + mmult(RIU,mmult(JU,transpose(RIUdot))) &
+        !         ! Next line may not be needed
+        !        + vectens3(vu,inter,3)
+        ! adotdot_I = mmult(RIUdotdot,FU) &
+        !          ! Next 3 lines may not be needed
+        !           + 2*mmult(RIUdot,mmult(JU,vu)) &
+        !           + mmult(RIU,vectensquad(vu,HU,3)) &
+        !           + mmult(RIU,mmult(JU,vdotu))
         ! Assign acceleration in quad
-        acc = y(8) * [y(4:6),real(FI,qp), 1._qp, 0._qp]
         ! Fill in Jacobian nonzero blocks
         jac(1:3,4:6) = y(8)*eyemat(3)
         jac(1:3,8)   = y(4:6)
@@ -1900,16 +1899,59 @@ module makemodel
         jac(4:6,8)   = real(FI,qp)
         jac(7,8)     = 1._qp
         ! Fill in Hessian nonzero blocks
-        hes(4:6,1:3,1:3) = y(8)*real(HI,qp)
-        hes(4:6,7,1:3)   = y(8)*real(Jdot_I,qp)
-        hes(4:6,1:3,7)   = y(8)*real(Jdot_I,qp)
-        hes(4:6,8,1:3)   = real(JI,qp)
-        hes(4:6,1:3,8)   = real(JI,qp)
-        hes(1:3,8,4:6)   = eyemat(3)
-        hes(1:3,4:6,8)   = eyemat(3)
-        hes(4:6,7,7)     = y(8)*real(adotdot_I,qp)
-        hes(4:6,8,7)     = real(adot_I,qp)
-        hes(4:6,7,8)     = real(adot_I,qp)
+        ! hes(4:6,1:3,1:3) = y(8)*real(HI,qp)
+        ! hes(4:6,7,1:3)   = y(8)*real(Jdot_I,qp)
+        ! hes(4:6,1:3,7)   = y(8)*real(Jdot_I,qp)
+        ! hes(4:6,8,1:3)   = real(JI,qp)
+        ! hes(4:6,1:3,8)   = real(JI,qp)
+        ! hes(1:3,8,4:6)   = eyemat(3)
+        ! hes(1:3,4:6,8)   = eyemat(3)
+        ! hes(4:6,7,7)     = y(8)*real(adotdot_I,qp)
+        ! hes(4:6,8,7)     = real(adot_I,qp)
+        ! hes(4:6,7,8)     = real(adot_I,qp)
+    end subroutine
+    subroutine accelonly_sh(me, time, y, acc)
+        ! allderivs_sh: compute the dynamics, jacobian, and hessian
+        !               due to the gravitation of an extended body.
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! time           real           time in seconds past J2000 to evaluate
+        ! y              real (8)       state vector from central body to
+        !                               field point
+        ! OUTPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! acc            float (8)      time derivative of 6-d state,
+        !                               i.e. the dynamics for the system:
+        !                               (xdot, ydot, zdot, xddot, yddot, zddot)
+        class(dynamicsModel), intent(inout) :: me
+        real(qp),             intent(in)    :: time, y(:)
+        real(qp),             intent(out)   :: acc(size(y))
+        real(dp)                            :: RIU(3,3), RIUdot(3,3)
+        real(dp)                            :: V_rot_sh, FU(3), JU(3,3), &
+                                             & HU(3,3,3), &
+                                             & FI(3), &
+                                             & time_d, ri(3), vi(3), &
+                                             & ru(3), vu(3)
+        acc = 0._qp
+        time_d = real(time,dp)
+        RIU = me%rot%call(time_d)
+        ri = real(y(:3),dp)
+        vi = real(y(4:6),dp)
+        ru = mmult(transpose(RIU),ri)
+        call shpines(real(me%central_body_ref_radius,dp), &
+                   & real(me%central_body_mu,dp), &
+                   & me%pdat, &
+                   & me%degord, &
+                   & me%degord, &
+                   & ru, &
+                   & V_rot_sh, &
+                   & FU, &
+                   & JU, &
+                   & HU &
+                   &)
+        vu = mmult(transpose(RIUdot),ri) + mmult(transpose(RIU),vi)
+        FI = mmult(RIU,FU)
+        acc = y(8) * [y(4:6),real(FI,qp), 1._qp, 0._qp]
     end subroutine
     function eoms(me,t,y) result(res)
         ! eoms: method to compute dynamics function of extended state vector

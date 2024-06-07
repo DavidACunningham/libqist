@@ -4,10 +4,10 @@ program main
     use quat, only: rothist, quaternion
     use cheby, only: spice_subset
     implicit none
-    integer, parameter :: nnodes=20
+    integer, parameter :: nnodes=50
     real(dp), dimension(3,3) :: rotmat_comp
-    real(dp)                 :: t0, tf
-    real(dp)                 :: qdot(4), qddot(4), qdot_fd(4), qddot_fd(4), &
+    real(qp)                 :: rtol, atol, t0, tf
+    real(qp)                 :: qdot(4), qddot(4), qdot_fd(4), qddot_fd(4), &
                                 q_hist(4,nnodes), qdot_hist(4,nnodes), qdot_fd_hist(4,nnodes), &
                                 dcmdot(3,3), dcmddot(3,3), dcmdot_fd(3,3), dcomddot_fd(3,3), &
                                 fdsteps(20), qdum(4,1), test_times(nnodes), midpoint_time
@@ -15,25 +15,25 @@ program main
     integer num, i, j, k
     !! ALL THAT'S NEEDED TO SETUP ROTS
     fdsteps = 0._qp
-    fdsteps = [(10._dp**real(i,dp), i=3,-16, -1)]
-    t0 = 769269009.185_dp
-    tf = 769845939.185_dp
-    tf = 10*(tf-t0) + t0
+    fdsteps = [(10._qp**real(i,qp), i=3,-16, -1)]
+    rtol = 1.e-13
+    atol = 1.e-20
+    ! t0 = 769269009.185_qp
+    ! tf = 769845939.185_qp
+    t0 = -1._qp
+    tf = 1._qp
     midpoint_time = (tf-t0)/2 + t0
     test_times = [(t0+ i*(tf-t0)/(nnodes-1), i=0,nnodes-1)]
-    call furnsh("/home/david/wrk/nstgro/qist/kernels/mk_gw.tf")
-    call pxform('MOON_PA','J2000',real(t0,dp),rotmat_comp)
+    rotmat_comp(1,:) = [1._dp, 0._dp, 0._dp]
+    rotmat_comp(2,:) = [0._dp, 1._dp, 0._dp]
+    rotmat_comp(3,:) = [0._dp, 0._dp, 1._dp]
     call rot%init(fitfun, real(t0,dp), real(tf,dp), nnodes, rotmat_comp)
     !! ALL THAT'S NEEDED TO SETUP ROTS
 
     do i=1,nnodes
-        q_hist(:,i) = rot%callq(test_times(i))
-        qdot_hist(:,i) = rot%callqdot(test_times(i))
-        qdum = real(findiffmat_td(fd_quat, &
-                             real(test_times(i),qp), &
-                             real((tf-t0)*10.e-7_dp,qp), &
-                             9, &
-                             real(qdum,qp) ),dp)
+        q_hist(:,i) = real(rot%callq(real(test_times(i),dp)),qp)
+        qdot_hist(:,i) = real(rot%callqdot(real(test_times(i),dp)),qp)
+        qdum = findiffmat_td(fd_quat, test_times(i), (tf-t0)*1.e-4, 9,qdum )
         qdot_fd_hist(:,i) = qdum(:,1)
     end do
 
@@ -82,9 +82,12 @@ program main
     function fitfun(me, ta,tb) result(res)
         class(rothist), intent(inout) :: me
         real(dp), intent(in)          :: ta, tb
-        real(dp)                      :: res(4), mat(3,3)
+        real(dp)                      :: res(4), mat(3,3), arg
         type(quaternion)              :: qclass
-        call pxfrm2('MOON_PA','MOON_PA',ta,tb,mat)
+        arg = (tb-ta)/(tf-t0)*2*3.1415926_dp
+        mat(1,:) = [cos(arg), sin(arg), 0._dp]
+        mat(2,:) = [-sin(arg), cos(arg), 0._dp]
+        mat(3,:) = [0._dp, 0._dp, 1._dp]
         call qclass%fromdcm(mat)
         res = qclass%q
     end function

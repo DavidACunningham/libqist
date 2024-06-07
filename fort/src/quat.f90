@@ -91,7 +91,7 @@ module quat
             call me%els%fit(vals, t0,tf)
             me%qstat%q = qstat
             me%elsdot = me%els%deriv()
-            me%elsddot = me%elsdot%deriv()
+            ! me%elsddot = me%elsdot%deriv()
                 contains
                     function fitwrap(a, b, prev) result(res)
                         real(wp), intent(in) :: a, b, prev(4)
@@ -127,7 +127,7 @@ module quat
             call me%els%fit(vals, t0,tf)
             call me%qstat%fromdcm(dcmstat)
             me%elsdot = me%els%deriv()
-            me%elsddot = me%elsdot%deriv()
+            ! me%elsddot = me%elsdot%deriv()
                 contains
                     function fitwrap(a, b, prev) result(res)
                         real(wp), intent(in) :: a, b, prev(4)
@@ -170,7 +170,7 @@ module quat
             real(wp)                      :: q(4), qdot(4)
             real(wp),       intent(in)    :: t
             real(wp)                      :: res(3,3)
-            q = me%callq(t)
+            q = me%elsdot%call(t)
             qdot = me%callqdot(t)
             associate (q0 => q(1), q1 => q(2), q2 => q(3), q3 => q(4), &
                      & q0dot =>qdot(1), q1dot => qdot(2), &
@@ -224,25 +224,15 @@ module quat
         end function
         function getrotquatdot(me, t) result(res)
             class(rothist), intent(inout) :: me
-            type(quaternion)              :: qdot
             real(wp),       intent(in)    :: t
             real(wp)                      :: res(4)
-            real(wp)                      :: q(4)
-            q = me%elsdot%call(t)
-            call me%renorm(q)
-            qdot%q = q
-            res = qdot%q
+            res = me%elsdot%call(t)
         end function
         function getrotquatddot(me, t) result(res)
             class(rothist), intent(inout) :: me
-            type(quaternion)              :: qddot
             real(wp),       intent(in)    :: t
             real(wp)                      :: res(4)
-            real(wp)                      :: q(4)
-            q = me%elsddot%call(t)
-            call me%renorm(q)
-            qddot%q = q
-            res = qddot%q
+            res = me%elsddot%call(t)
         end function
         subroutine renorm(me, q)
             class(rothist), intent(in) :: me

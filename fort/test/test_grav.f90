@@ -1,6 +1,6 @@
 program main
     use, intrinsic :: iso_fortran_env, only: dp=>real64, qp=>real128
-    use makemodel, only: dynamicsModel
+    use makemodel, only: dynamicsModel, accelonly_sh
     use findiffmod
     use quat, only: rothist, quaternion
     use cheby, only: spice_subset
@@ -56,7 +56,7 @@ program main
                   S &
                  )
 
-    y = [dyn%trajstate((tf-t0)/2 + t0), (tf-t0)/2 + t0, tf-t0]!1._qp]
+    y = [dyn%trajstate((tf-t0)/2 + t0), (tf-t0)/2 + t0, 1._qp]
     call dyn%allderivs_sh((tf-t0)/2 + t0, y, acc, jac, hes)
     jac_fd = 1.e9_qp
     do i=1,20
@@ -143,9 +143,7 @@ program main
     end function fd_rot
     function fd_acc(x) result(res)
         real(qp), intent(in) :: x(:)
-        real(qp)             ::  res(size(x)), &
-                                 jacdum(8,8), &
-                                 hesdum(8,8,8)
-        call dyn%allderivs_sh((tf-t0)/2 + t0, x, res, jacdum, hesdum)
+        real(qp)             ::  res(size(x))
+        call accelonly_sh(dyn,(tf-t0)/2 + t0, x, res)
     end function fd_acc
 end program main
