@@ -4,7 +4,7 @@ program main
     use quat, only: rothist, quaternion
     use cheby, only: spice_subset
     implicit none
-    integer, parameter :: nnodes=500
+    integer, parameter :: nnodes=50
     real(dp), dimension(3,3) :: rotmat_comp
     real(dp)                 :: t0, tf
     real(dp)                 :: qdot(4), qddot(4), qdot_fd(4), qddot_fd(4), &
@@ -18,7 +18,7 @@ program main
     fdsteps = [(10._dp**real(i,dp), i=3,-16, -1)]
     t0 = 769269009.185_dp
     tf = 769845939.185_dp
-    tf = 2._dp*(tf-t0) + t0
+    tf = 10._dp*(tf-t0) + t0
     midpoint_time = (tf-t0)/2 + t0
     test_times = [(t0+ i*(tf-t0)/(nnodes-1), i=0,nnodes-1)]
     call furnsh("/home/david/wrk/nstgro/qist/kernels/mk_gw.tf")

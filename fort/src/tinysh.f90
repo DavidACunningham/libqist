@@ -75,10 +75,7 @@ module tinysh
         integer :: l,m
         integer :: idx
 
-        if (pdat%pinesallocated .and. (size(pdat%rhol) /= degmax+1)) then
-            print *, "WARNING: pdat already allocated, deallocating (pinesinit)"
-            call deallocatepines(pdat)
-        end if
+        call deallocatepines(pdat)
 
         if(.not.allocated(pdat%rhol)) allocate(pdat%rhol(degmax+1))
         if(.not.allocated(pdat%cosmlam)) allocate(pdat%cosmlam(degmax+2))
@@ -123,8 +120,10 @@ module tinysh
 
         ! Store Stokes coefficients in vectorized form for faster access
         idx = 0
-        do m = 0,degmax
-            do l = m,degmax
+        pdat%Cvec = 0._ap
+        pdat%Svec = 0._ap
+        do m = 0,degmax-1
+            do l = m,degmax-1
                 idx = idx + 1
                 pdat%Cvec(idx) = Cml(m+1,l+1)
                 pdat%Svec(idx) = Sml(m+1,l+1)
@@ -239,6 +238,12 @@ module tinysh
         real(ap) :: lam, coslam, sinlam
         real(ap) :: phi, cosphi
         integer :: idx
+
+        ! DAC: Zero initialize outputs
+        V = 0._ap
+        dV = 0._ap
+        d2V = 0._ap
+        d3V = 0._ap
 
         pdat%rhol = 0.0_ap
         pdat%cosmlam = 0.0_ap

@@ -259,6 +259,7 @@ module quat
             qddot = dummy*me%qstat
             q%q = me%callq(t)
             qnorm2 = sum(q%q*q%q)
+            qnorm = sqrt(qnorm2)
             onebyqnorm = 1._wp/qnorm
             onebyqnorm2 = 1._wp/qnorm2
             onebyqnorm3 = 1._wp/qnorm**3

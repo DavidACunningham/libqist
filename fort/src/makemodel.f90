@@ -1858,7 +1858,7 @@ module makemodel
                    & real(me%central_body_mu,dp), &
                    & me%pdat, &
                    & me%degord, &
-                   & me%degord, &
+                   & 3, &
                    & ru, &
                    & V_rot_sh, &
                    & FU, &
@@ -1942,7 +1942,7 @@ module makemodel
                    & real(me%central_body_mu,dp), &
                    & me%pdat, &
                    & me%degord, &
-                   & me%degord, &
+                   & 1, &
                    & ru, &
                    & V_rot_sh, &
                    & FU, &

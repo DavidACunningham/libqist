@@ -9,21 +9,27 @@ program main
     real(dp), dimension(3,3) :: rotmat_comp
     real(qp)                 :: rtol, atol, t0, tf
     real(qp)                 :: y(8), acc(8), jac(8,8), hes(8,8,8), C(3,3), S(3,3), &
-                                jac_fd(8,8), hes_fd(8,8,8), thisjacfd(8,8), &
-                                qdot(4), qddot(4), qdot_fd(4), qddot_fd(4), &
-                                dcmdot(3,3), dcmddot(3,3), dcmdot_fd(3,3), dcomddot_fd(3,3), &
-                                fdsteps(20), qdum(4,1)
+                                jac_fd(8,8), hes_fd(8,8,8), &
+                                dcmdot(3,3), dcmddot(3,3), dcmdot_fd(3,3), &
+                                fdsteps(8), rpert, vpert, tpert
     type(rothist)            :: rot
     type(dynamicsModel)      :: dyn
     type(spice_subset)       :: subspice
-    integer num, i, j, k
+    integer num, i
     !! ALL THAT'S NEEDED TO SETUP ROTS
     open(file="/home/david/wrk/nstgro/qist/libqist/fort/data/20240524_gw_resample.subspice", &
          newunit=num, status="old", access="stream")
     call subspice%read(num)
     close(num)
-    fdsteps = 0._qp
-    fdsteps = [(10._qp**real(i,qp), i=3,-16, -1)]
+    acc = 0._qp
+    jac = 0._qp
+    hes = 0._qp
+    rpert = 1._qp ! km
+    vpert = .01_qp ! km/s
+    tpert =  1000._qp ! s
+    fdsteps(:3) = rpert
+    fdsteps(4:6) = vpert
+    fdsteps(7:8) = tpert
     rtol = 1.e-13
     atol = 1.e-20
     t0 = 769269009.185_qp
@@ -35,7 +41,7 @@ program main
     C(1,:) = [1._qp,    0._qp, 0._qp]
     C(2,:) = [0._qp,    0._qp, 0._qp]
     ! C(3,:) = [0._qp,    0._qp, 0._qp]
-    C(3,:) = [1.e-3_qp, 0._qp, 1.e-6_qp]
+    C(3,:) = [1.e-1_qp, 0._qp, 1.e-2_qp]
     S = 0._qp
 
     call dyn%init(subspice, &
@@ -56,51 +62,20 @@ program main
                   S &
                  )
 
-    y = [dyn%trajstate((tf-t0)/2 + t0), (tf-t0)/2 + t0, 1._qp]
+    y = [dyn%trajstate((tf-t0)/2 + t0), (tf-t0)/2 + t0, tf-t0]
     call dyn%allderivs_sh((tf-t0)/2 + t0, y, acc, jac, hes)
-    jac_fd = 1.e9_qp
-    do i=1,20
-        thisjacfd = findiff(fd_acc,y, fdsteps(i), 9)
-        do j = 1,8
-            do k = 1,8
-                if (abs(thisjacfd(j,k)-jac(j,k))<abs(jac_fd(j,k)-jac(j,k))) then
-                    jac_fd(j,k) = thisjacfd(j,k)
-                end if
-            end do
-        end do
-    end do
-
-    qdot = real(rot%callqdot(real((tf-t0)/2 + t0,dp)),qp)
-    qddot = real(rot%callqddot(real((tf-t0)/2 + t0,dp)),qp)
-    qdum = findiffmat_td(fd_quat, (tf-t0)/2 + t0, 1._qp, 9,qdum )
-    qdot_fd = qdum(:,1)
-    dcmdot = real(rot%calldot(real((tf-t0)/2 + t0,dp)),qp)
+    jac_fd = 0._qp
+    jac_fd = findiff_multiscale(fd_acc,y, fdsteps, 9)
     dcmddot = real(rot%callddot(real((tf-t0)/2 + t0,dp)),qp)
     dcmdot_fd = findiffmat_td(fd_rot, (tf-t0)/2 + t0, 1._qp, 9, dcmdot)
     print *, "TIME"
     print *, (tf-t0)/2 + t0
     print *, "GW STATE"
     print *, real(dyn%trajstate((tf-t0)/2 + t0),4)
+    print *, "FINITE DIFF STEPS"
+    print *, real(fdsteps,4)
     print *, "INERTIAL ACCELERATION"
     print *, real(acc,4)
-    print *, "ANALYTIC QDOT"
-        print *, real(qdot,4)
-    print *, "FINITE DIFF QDOT"
-        print *, real(qdot_fd,4)
-    print *, "QDOT DIFFERENCE"
-        print *, real(qdot_fd-qdot,4)
-    print *, "ANALYTIC DCMDOT"
-    do i=1,3
-        print *, real(dcmdot(i,:),4)
-    end do
-    print *, "FINITE DIFF DCMDOT"
-    do i=1,3
-        print *, real(dcmdot_fd(i,:),4)
-    end do
-    print *, "DCMDOT DIFFERENCE"
-    do i=1,3
-        print *, real(dcmdot_fd(i,:)-dcmdot(i,:),4)
-    end do
     print *, "INERTIAL JACOBIAN"
     do i=1,8
         print *, real(jac(i,:),4)
@@ -144,6 +119,8 @@ program main
     function fd_acc(x) result(res)
         real(qp), intent(in) :: x(:)
         real(qp)             ::  res(size(x))
-        call accelonly_sh(dyn,(tf-t0)/2 + t0, x, res)
+        res = 0._qp
+        ! call accelonly_sh(dyn,(tf-t0)/2 + t0, x, res)
+        call accelonly_sh(dyn,x(7), x, res)
     end function fd_acc
 end program main
