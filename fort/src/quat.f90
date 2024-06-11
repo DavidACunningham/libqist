@@ -15,6 +15,7 @@ module quat
         procedure asdcm
         procedure axang
         procedure rotate_vec
+        procedure :: renorm => quat_renorm
     end type quaternion
     type  rothist
         type(vectorcheb)             :: els, elsdot, elsddot
@@ -83,7 +84,7 @@ module quat
             me%t0 = t0
             me%tf = tf
             nodes = chnodes(order, t0, tf)
-            first = me%fit(t0, (t0+nodes(1))/10._wp)
+            first = me%fit(t0, t0+(nodes(1)-t0)/10._wp)
             vals(1,:) = fitwrap(t0, nodes(1), first)
             do i = 2, order
                 vals(i,:) = fitwrap(t0,nodes(i), vals(i-1,:))
@@ -91,7 +92,7 @@ module quat
             call me%els%fit(vals, t0,tf)
             me%qstat%q = qstat
             me%elsdot = me%els%deriv()
-            ! me%elsddot = me%elsdot%deriv()
+            me%elsddot = me%elsdot%deriv()
                 contains
                     function fitwrap(a, b, prev) result(res)
                         real(wp), intent(in) :: a, b, prev(4)
@@ -119,20 +120,20 @@ module quat
             me%t0 = t0
             me%tf = tf
             nodes = chnodes(order, t0, tf)
-            first = me%fit(t0, (t0+nodes(1))/10._wp)
-            vals(1,:) = fitwrap(t0, nodes(1), first)
+            first = me%fit(t0, t0+(nodes(1)-t0)/10._wp)
+            vals(1,:) = fitwrap(nodes(1), first)
             do i = 2, order
-                vals(i,:) = fitwrap(t0,nodes(i), vals(i-1,:))
+                vals(i,:) = fitwrap(nodes(i), vals(i-1,:))
             end do
             call me%els%fit(vals, t0,tf)
             call me%qstat%fromdcm(dcmstat)
             me%elsdot = me%els%deriv()
-            ! me%elsddot = me%elsdot%deriv()
+            me%elsddot = me%elsdot%deriv()
                 contains
-                    function fitwrap(a, b, prev) result(res)
-                        real(wp), intent(in) :: a, b, prev(4)
+                    function fitwrap(t, prev) result(res)
+                        real(wp), intent(in) :: t, prev(4)
                         real(wp)             :: res(4), cur(4), dot
-                        cur = me%fit(a, b)
+                        cur = me%fit(t0, t)
                         dot = dot_product(prev,cur)
                         if (dot.lt.0._wp) then
                             res = -cur
@@ -170,7 +171,7 @@ module quat
             real(wp)                      :: q(4), qdot(4)
             real(wp),       intent(in)    :: t
             real(wp)                      :: res(3,3)
-            q = me%elsdot%call(t)
+            q = me%callq(t)
             qdot = me%callqdot(t)
             associate (q0 => q(1), q1 => q(2), q2 => q(3), q3 => q(4), &
                      & q0dot =>qdot(1), q1dot => qdot(2), &
@@ -224,16 +225,60 @@ module quat
         end function
         function getrotquatdot(me, t) result(res)
             class(rothist), intent(inout) :: me
+            type(quaternion)              :: q, qdot, dummy
             real(wp),       intent(in)    :: t
-            real(wp)                      :: res(4)
-            res = me%elsdot%call(t)
+            real(wp)                      :: res(4), elsdot(4), &
+                                             qnorm, qnorm2, qhatdot(4), &
+                                             onebyqnorm, onebyqnorm3, &
+                                             onebyqnorm2
+            elsdot = me%elsdot%call(t)
+            dummy%q = elsdot
+            qdot = dummy*me%qstat
+            q%q = me%callq(t)
+            qnorm2 = sum(q%q*q%q)
+            qnorm = sqrt(qnorm2)
+            onebyqnorm = 1._wp/qnorm
+            onebyqnorm2 = 1._wp/qnorm2
+            onebyqnorm3 = 1._wp/qnorm**3
+            qhatdot = onebyqnorm*qdot%q - sum(q%q*qdot%q)*onebyqnorm3*q%q
+            res = qhatdot
         end function
         function getrotquatddot(me, t) result(res)
             class(rothist), intent(inout) :: me
+            type(quaternion)              :: q, qdot, qddot, dummy
             real(wp),       intent(in)    :: t
-            real(wp)                      :: res(4)
-            res = me%elsddot%call(t)
+            real(wp)                      :: res(4), elsdot(4), elsddot(4),&
+                                             qnorm, qnorm2, &
+                                             onebyqnorm, onebyqnorm3, &
+                                             onebyqnorm2, qddothat(4)
+            elsdot = me%elsdot%call(t)
+            elsddot = me%elsddot%call(t)
+            dummy%q = elsdot
+            qdot = dummy*me%qstat
+            dummy%q = elsddot
+            qddot = dummy*me%qstat
+            q%q = me%callq(t)
+            qnorm2 = sum(q%q*q%q)
+            onebyqnorm = 1._wp/qnorm
+            onebyqnorm2 = 1._wp/qnorm2
+            onebyqnorm3 = 1._wp/qnorm**3
+            qddothat = &
+                    (3._wp*sum(q%q*qdot%q)**2*onebyqnorm2 &
+                     - sum(q%q*qddot%q) &
+                     - sum(qdot%q**2))*onebyqnorm3*q%q &
+                  - 2._wp*sum(q%q*qdot%q)*onebyqnorm3*qdot%q &
+                  + onebyqnorm*qddot%q
+            res = qddothat
         end function
+        pure subroutine quat_renorm(me)
+            class(quaternion), intent(inout) :: me
+            real(dp)                   :: q(4)
+            real(dp)                   :: q_raw(4), norm
+            q_raw = me%q
+            norm = sqrt(sum(q_raw**2))
+            q = q_raw/norm
+            me%q = q
+        end subroutine
         subroutine renorm(me, q)
             class(rothist), intent(in) :: me
             real(dp),    intent(inout) :: q(4)
@@ -291,7 +336,7 @@ module quat
                             + mat(4,i)*p(4)
                 end forall
             end associate
-            prod = prod/norm2(prod)
+            ! prod = prod/norm2(prod)
             res = quaternion(prod)
         end function qmul
         elemental function qadd(q1,q2) result(res)
@@ -357,6 +402,7 @@ module quat
             q%q(2) = (dcm(3,2)-dcm(2,3))/(4*q%q(1))
             q%q(3) = (dcm(1,3)-dcm(3,1))/(4*q%q(1))
             q%q(4) = (dcm(2,1)-dcm(1,2))/(4*q%q(1))
+            call q%renorm()
         end subroutine fromdcm
         pure subroutine axang(q,ax, ang)
             class(quaternion), intent(inout) :: q

@@ -8,7 +8,7 @@ program main
     real(qp)                 :: rtol, atol, t0, tf
     real(qp)                 :: q_hist(4,nnodes), qdot_hist(4,nnodes), qdot_fd_hist(4,nnodes), &
                                 fdsteps(20), qdum(4,1), test_times(nnodes), midpoint_time, &
-                                fi(4,nnodes), dfi(nnodes), chebnodes(nnodes)
+                                fi(4,nnodes), chebnodes(nnodes)
     type(vectorcheb)            :: rot, rotdot
     integer i
     !! ALL THAT'S NEEDED TO SETUP ROTS
@@ -20,12 +20,12 @@ program main
     ! tf = 769845939.185_qp
     ! tf = 20*(tf-t0) + t0
     t0 = 0._qp
-    tf = 500._qp*2*3.1415926_qp
+    tf = 4._qp*2._qp*3.1415926_qp
     midpoint_time = (tf-t0)/2 + t0
     test_times = [(t0+ i*(tf-t0)/(nnodes-1), i=0,nnodes-1)]
     chebnodes = chnodes(nnodes,real(t0,dp),real(tf,dp))
     do i=1,4
-        fi(i,:) = sin(chebnodes/500.)
+        fi(i,:) = dummy_cheb_func(chebnodes)
     end do
     call rot%fit(real(transpose(fi),dp), real(t0,dp), real(tf,dp))
     rotdot = rot%deriv()
@@ -35,7 +35,7 @@ program main
     do i=1,nnodes
         q_hist(:,i) = real(rot%call(real(test_times(i),dp)),qp)
         qdot_hist(:,i) = real(rotdot%call(real(test_times(i),dp)),qp)
-        qdum = findiffmat_td(fd_quat, test_times(i), 1.e-5_qp, 9,qdum )
+        qdum = findiffmat_td(fd_dummy, test_times(i), 1.e-5_qp, 9,qdum )
         qdot_fd_hist(:,i) = qdum(:,1)
     end do
 
@@ -81,12 +81,18 @@ program main
     !     print *, real(dcmdot_fd(i,:)-dcmdot(i,:),4)
     ! end do
     contains
-    function fd_sin(x) result(res)
+    elemental function dummy_cheb_func(x) result(res)
+        real(qp), intent(in) :: x
+        real(qp)             :: res
+        res = bessel_jn(5,x)*cos(x*10._qp) + 2._qp*sin(3._qp*x)
+        ! res = cos(x)
+    end function dummy_cheb_func
+    function fd_dummy(x) result(res)
         real(qp), intent(in) :: x
         real(qp), allocatable :: res(:,:)
         allocate(res(4,1))
-        res(:,1) = sin(x)
-    end function fd_sin
+        res(:,1) = dummy_cheb_func(x)
+    end function fd_dummy
     function fd_quat(x) result(res)
         real(qp), intent(in) :: x
         real(qp), allocatable :: res(:,:)
