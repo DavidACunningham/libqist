@@ -6,21 +6,45 @@ program main
     use cheby, only: spice_subset
     implicit none
     integer, parameter :: nnodes=1000
+    character(len=1000)      :: namefile
     real(dp), dimension(3,3) :: rotmat_comp
     real(qp)                 :: rtol, atol, t0, tf
-    real(qp)                 :: y(8), acc(8), jac(8,8), hes(8,8,8), C(3,3), S(3,3), &
+    real(qp)                 :: y(8), acc(8), jac(8,8), hes(8,8,8), &
                                 jac_fd(8,8), hes_fd(8,8,8), &
                                 dcmdot(3,3), dcmddot(3,3), dcmdot_fd(3,3), &
-                                fdsteps(8), rpert, vpert, tpert
+                                fdsteps(8), rpert, vpert, tpert, &
+                                Cbar(0:100,0:100), Sbar(0:100,0:100), &
+                                mu, ref_radius
+    real(qp), allocatable    :: C(:,:), S(:,:)
     type(rothist)            :: rot
     type(dynamicsModel)      :: dyn
     type(spice_subset)       :: subspice
-    integer num, i, j
-    !! ALL THAT'S NEEDED TO SETUP ROTS
-    open(file="/home/david/wrk/nstgro/qist/libqist/fort/data/20240524_gw_resample.subspice", &
-         newunit=num, status="old", access="stream")
-    call subspice%read(num)
+    integer num, i, j, stat, degord
+    namelist /SPHERHARM/ degord, &
+                         ref_radius, &
+                         mu, &
+                         Cbar, &
+                         Sbar 
+    
+    ! Read in namelist file
+    namefile= "/home/david/wrk/nstgro/qist/libqist/fort/data/moon8by8.nml"
+    inquire(file=trim(adjustl(namefile)), iostat=stat)
+    if (stat .ne. 0) then 
+        print *, "ERROR: Bad spice resample namelist filename"
+        stop
+    end if
+    open(file=namefile, status="old", &
+         iostat=stat,newunit=num)
+    read(unit=num, nml=SPHERHARM, iostat=stat)
+    if (stat .ne. 0) then 
+        print *, "ERROR: bad build config namelist format"
+        stop
+    end if
     close(num)
+    allocate(C(degord+1,degord+1), &
+             S(degord+1,degord+1))
+    C = Cbar(0:degord,0:degord)
+    S = Sbar(0:degord,0:degord)
     acc = 0._qp
     jac = 0._qp
     hes = 0._qp
@@ -30,19 +54,17 @@ program main
     fdsteps(:3) = rpert
     fdsteps(4:6) = vpert
     fdsteps(7:8) = tpert
-    rtol = 1.e-13
-    atol = 1.e-20
+    !! ALL THAT'S NEEDED TO SETUP ROTS
+    open(file="/home/david/wrk/nstgro/qist/libqist/fort/data/20240524_gw_resample.subspice", &
+         newunit=num, status="old", access="stream")
+    call subspice%read(num)
+    close(num)
     t0 = 769269009.185_qp
     tf = 769845939.185_qp
     call furnsh("/home/david/wrk/nstgro/qist/kernels/mk_gw.tf")
     call pxform('MOON_PA','J2000',real(t0,dp),rotmat_comp)
     call rot%init(fitfun, real(t0,dp), real(tf,dp), nnodes, rotmat_comp)
     !! ALL THAT'S NEEDED TO SETUP ROTS
-    C(1,:) = [1._qp,    0._qp, 0._qp]
-    C(2,:) = [0._qp,    0._qp, 0._qp]
-    ! C(3,:) = [0._qp,    0._qp, 0._qp]
-    C(3,:) = [1.e-1_qp, 0._qp, 1.e-2_qp]
-    S = 0._qp
 
     call dyn%init(subspice, &
                   -60000, &
@@ -50,8 +72,8 @@ program main
                   [399, &
                    10, &
                    5], &
-                  4902.800066_qp, &
-                  1740._qp, &
+                  mu, &
+                  ref_radius, &
                   [398600.5_qp, &
                    132712440041.9394_qp, &
                    126712764.8_qp], &
