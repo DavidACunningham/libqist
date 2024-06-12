@@ -15,7 +15,7 @@ program main
     type(rothist)            :: rot
     type(dynamicsModel)      :: dyn
     type(spice_subset)       :: subspice
-    integer num, i
+    integer num, i, j
     !! ALL THAT'S NEEDED TO SETUP ROTS
     open(file="/home/david/wrk/nstgro/qist/libqist/fort/data/20240524_gw_resample.subspice", &
          newunit=num, status="old", access="stream")
@@ -66,6 +66,7 @@ program main
     call dyn%allderivs_sh((tf-t0)/2 + t0, y, acc, jac, hes)
     jac_fd = 0._qp
     jac_fd = findiff_multiscale(fd_acc,y, fdsteps, 9)
+    hes_fd = findiffhes_multiscale(fd_jac,y, fdsteps, 9)
     dcmddot = real(rot%callddot(real((tf-t0)/2 + t0,dp)),qp)
     dcmdot_fd = findiffmat_td(fd_rot, (tf-t0)/2 + t0, 1._qp, 9, dcmdot)
     print *, "TIME"
@@ -87,6 +88,27 @@ program main
     print *, "JACOBIAN DIFFERENCE"
     do i=1,8
         print *, real(jac(i,:)-jac_fd(i,:),4)
+    end do
+    print *, "INERTIAL HESSIAN"
+    do i=1,8
+        print *, "PAGE ", i
+        do j=1,8
+        print *, real(hes(i,j,:),4)
+        end do
+    end do
+    print *, "FINITE DIFF HESSIAN"
+    do i=1,8
+        print *, "PAGE ", i
+        do j=1,8
+        print *, real(hes_fd(i,j,:),4)
+        end do
+    end do
+    print *, "HESSIAN DIFFERENCE"
+    do i=1,8
+        print *, "PAGE ", i
+        do j=1,8
+            print *, real(hes(i,j,:)-hes(i,j,:),4)
+        end do
     end do
     contains
     function fitfun(me, ta,tb) result(res)
@@ -118,9 +140,18 @@ program main
     end function fd_rot
     function fd_acc(x) result(res)
         real(qp), intent(in) :: x(:)
-        real(qp)             ::  res(size(x))
+        real(qp)             :: res(size(x)), &
+                              & jac(size(x),size(x)), &
+                              & hes(size(x),size(x),size(x))
         res = 0._qp
-        ! call accelonly_sh(dyn,(tf-t0)/2 + t0, x, res)
-        call accelonly_sh(dyn,x(7), x, res)
+        call dyn%allderivs_sh(x(7), x, res,jac,hes)
     end function fd_acc
+    function fd_jac(x) result(res)
+        real(qp), intent(in) :: x(:)
+        real(qp)             :: res(size(x),size(x)), &
+                              & acc(size(x)), &
+                              & hes(size(x),size(x),size(x))
+        res = 0._qp
+        call dyn%allderivs_sh(x(7), x, acc,res,hes)
+    end function fd_jac
 end program main

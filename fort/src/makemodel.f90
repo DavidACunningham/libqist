@@ -98,6 +98,8 @@ module makemodel
         logical,              intent(in)              :: shgrav, rails
         real(qp),             intent(in), optional    :: Cbar(:,:), &
                                                          Sbar(:,:)
+        real(dp),             allocatable             :: Cbaralloc(:,:), &
+                                                         Sbaralloc(:,:)
         me%num_bodies = size(bodylist)
         me%shgrav = shgrav
         me%traj_id = traj_id
@@ -126,8 +128,12 @@ module makemodel
                 error stop
             end if
             if (present(Sbar)) then
-                call pinesinit(me%degord,transpose(real(Cbar,dp)), &
-                             & transpose(real(Sbar,dp)),me%pdat)
+                allocate(Cbaralloc(me%degord,me%degord))
+                allocate(Sbaralloc(me%degord,me%degord))
+                Cbaralloc=transpose(real(Cbar,dp))
+                Sbaralloc=transpose(real(Sbar,dp))
+                call pinesinit(me%degord,Cbaralloc, &
+                             & Sbaralloc,me%pdat)
             else
                 print *, "Error: Stokes coefficients (Sbar) required."
                 print *, "None provided."
@@ -153,11 +159,16 @@ module makemodel
         logical,              intent(in)           :: shgrav
         real(dp),             intent(in)           :: Cbar(:,:), &
                                                     & Sbar(:,:)
+        real(dp), allocatable                      :: Cbaralloc(:,:), &
+                                                    & Sbaralloc(:,:)
         me%shgrav = shgrav
         if (me%shgrav) then
             me%degord = size(Cbar,1)
-            call pinesinit(me%degord,transpose(real(Cbar,dp)), &
-                         & transpose(real(Sbar,dp)),me%pdat)
+            allocate(Cbaralloc,Sbaralloc,mold=Cbar)
+            Cbaralloc = transpose(Cbar)
+            Sbaralloc = transpose(Sbar)
+            call pinesinit(me%degord,Cbaralloc, &
+                         & Sbaralloc,me%pdat)
             if (present(rot)) then
                 me%rot = rot
             end if
@@ -1840,10 +1851,10 @@ module makemodel
         real(dp)                            :: V_rot_sh, FU(3), JU(3,3), &
                                              & HU(3,3,3), &
                                              & FI(3), JI(3,3), HI(3,3,3), &
-                                             & adot_I(3), adotdot_I(3), &
-                                             & Jdot_I(3,3), &
+                                             & aIt(3), aItt(3), &
+                                             & JIt(3,3), &
                                              & time_d, ri(3), vi(3), &
-                                             & ru(3), vu(3), vdotu(3), inter(3,3,3)
+                                             & ru(3), rIt(3), rItt(3), inter(3,3,3)
         acc = 0._qp
         jac = 0._qp
         hes = 0._qp
@@ -1865,50 +1876,50 @@ module makemodel
                    & JU, &
                    & HU &
                    &)
-        vu = mmult(transpose(RIUdot),ri) + mmult(transpose(RIU),vi)
+        ! This is not really the rotating frame velocity,
+        ! just the partial of the rotating radius with respect
+        ! to time
+        rIt = mmult(transpose(RIUdot),ri)
+        rItt = mmult(transpose(RIUdotdot),ri)
         FI = mmult(RIU,FU)
         acc = y(8) * [y(4:6),real(FI,qp), 1._qp, 0._qp]
         JI = mmult(RIU,mmult(JU,transpose(RIU)))
         HI = mattens(RIU,quad(transpose(RIU),HU,3),3)
-        vdotu = mmult(transpose(RIUdotdot),ri) &
-              + 2._dp * mmult(transpose(RIUdot),vi) &
-              + FU
-        ! second term may not be needed
-        adot_I = mmult(RIUdot,FU)  !+ mmult(mmult(RIU,JU),vu)
+        aIt = mmult(RIUdot,FU) &
+            + mmult(mmult(RIU,JU),rIt)
         ! these lines implement the operation
         ! ia, abc, jb -> ijc with RIU, HU, RIU
-        ! inter = mattens(RIU,HU,3)
-        ! inter = reshape(inter,[3,3,3],order=[2,1,3])
-        ! inter = mattens(RIU,inter,3)
-        ! inter = reshape(inter,[3,3,3],order=[2,1,3])
-        ! Jdot_I = mmult(RIUdot,mmult(JU,transpose(RIU))) &
-        !        + mmult(RIU,mmult(JU,transpose(RIUdot))) &
-        !         ! Next line may not be needed
-        !        + vectens3(vu,inter,3)
-        ! adotdot_I = mmult(RIUdotdot,FU) &
-        !          ! Next 3 lines may not be needed
-        !           + 2*mmult(RIUdot,mmult(JU,vu)) &
-        !           + mmult(RIU,vectensquad(vu,HU,3)) &
-        !           + mmult(RIU,mmult(JU,vdotu))
+        inter = mattens(RIU,HU,3)
+        inter = reshape(inter,[3,3,3],order=[2,1,3])
+        inter = mattens(RIU,inter,3)
+        inter = reshape(inter,[3,3,3],order=[2,1,3])
+        JIt = mmult(RIUdot,mmult(JU,transpose(RIU))) &
+            + mmult(RIU,mmult(JU,transpose(RIUdot))) &
+            + vectens3(rIt,inter,3) &
+            + mmult(RIUdot,mmult(JU,transpose(RIUdot)))
+        aItt = mmult(RIUdotdot,FU) &
+             + 2*mmult(RIUdot,mmult(JU,rIt)) &
+             + mmult(RIU,vectensquad(rIt,HU,3)) &
+             + mmult(RIU,mmult(JU,rItt))
         ! Assign acceleration in quad
         ! Fill in Jacobian nonzero blocks
         jac(1:3,4:6) = y(8)*eyemat(3)
         jac(1:3,8)   = y(4:6)
         jac(4:6,1:3) = y(8)*real(JI,qp)
-        jac(4:6,7)   = y(8)*real(adot_I,qp)
+        jac(4:6,7)   = y(8)*real(aIt,qp)
         jac(4:6,8)   = real(FI,qp)
         jac(7,8)     = 1._qp
         ! Fill in Hessian nonzero blocks
-        ! hes(4:6,1:3,1:3) = y(8)*real(HI,qp)
-        ! hes(4:6,7,1:3)   = y(8)*real(Jdot_I,qp)
-        ! hes(4:6,1:3,7)   = y(8)*real(Jdot_I,qp)
-        ! hes(4:6,8,1:3)   = real(JI,qp)
-        ! hes(4:6,1:3,8)   = real(JI,qp)
-        ! hes(1:3,8,4:6)   = eyemat(3)
-        ! hes(1:3,4:6,8)   = eyemat(3)
-        ! hes(4:6,7,7)     = y(8)*real(adotdot_I,qp)
-        ! hes(4:6,8,7)     = real(adot_I,qp)
-        ! hes(4:6,7,8)     = real(adot_I,qp)
+        hes(4:6,1:3,1:3) = y(8)*real(HI,qp)
+        hes(4:6,7,1:3)   = y(8)*real(JIt,qp)
+        hes(4:6,1:3,7)   = y(8)*real(JIt,qp)
+        hes(4:6,8,1:3)   = real(JI,qp)
+        hes(4:6,1:3,8)   = real(JI,qp)
+        hes(1:3,8,4:6)   = eyemat(3)
+        hes(1:3,4:6,8)   = eyemat(3)
+        hes(4:6,7,7)     = y(8)*real(aItt,qp)
+        hes(4:6,8,7)     = real(aIt,qp)
+        hes(4:6,7,8)     = real(aIt,qp)
     end subroutine
     subroutine accelonly_sh(me, time, y, acc)
         ! allderivs_sh: compute the dynamics, jacobian, and hessian

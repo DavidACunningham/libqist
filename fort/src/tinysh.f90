@@ -67,8 +67,8 @@ module tinysh
 
         ! Input/output
         integer,intent(in) :: degmax
-        real(ap),dimension(:,:),intent(in) :: Cml ! C terms organized into order/degree
-        real(ap),dimension(:,:),intent(in) :: Sml ! S terms organized into order/degree
+        real(ap),allocatable,dimension(:,:),intent(in) :: Cml ! C terms organized into order/degree
+        real(ap),allocatable,dimension(:,:),intent(in) :: Sml ! S terms organized into order/degree
         type(PinesData),intent(inout) :: pdat
 
         ! Local
@@ -122,8 +122,8 @@ module tinysh
         idx = 0
         pdat%Cvec = 0._ap
         pdat%Svec = 0._ap
-        do m = 0,degmax-1
-            do l = m,degmax-1
+        do m = 0,degmax
+            do l = m,degmax
                 idx = idx + 1
                 pdat%Cvec(idx) = Cml(m+1,l+1)
                 pdat%Svec(idx) = Sml(m+1,l+1)
@@ -240,10 +240,10 @@ module tinysh
         integer :: idx
 
         ! DAC: Zero initialize outputs
-        V = 0._ap
-        dV = 0._ap
-        d2V = 0._ap
-        d3V = 0._ap
+        ! V = 0._ap
+        ! dV = 0._ap
+        ! d2V = 0._ap
+        ! d3V = 0._ap
 
         pdat%rhol = 0.0_ap
         pdat%cosmlam = 0.0_ap
