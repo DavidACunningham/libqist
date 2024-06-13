@@ -1,0 +1,21 @@
+&QIST_CONFIG
+    resample_filepath = "/home/david/wrk/nstgro/qist/libqist/fort/data/20240524_gw_resample.subspice",
+    qist_filepath = "/home/david/wrk/nstgro/qist/libqist/fort/data/20240524_gw.qist",
+	gravity_filepath = "/home/david/wrk/nstgro/qist/libqist/fort/data/moon8by8.nml",
+    t0 = 769259009.1852001,
+    tf = 769845939.185063,
+    rtol = 1.e-8,
+    atol = 1.e-10,
+    reference_trajectory_id = -60000,
+    central_body_id = 301,
+    central_body_ref_radius=1740.,
+	central_body_mu = 4902.800118,
+    body_list(1) = 399,
+    mu_list(1) = 398600.5,
+    shgrav = .false.,
+/
+&ITRAJ_CONFIG
+    qist_filepath = "/home/david/wrk/nstgro/qist/libqist/fort/data/20240613_gw.qist",
+    t0 = 769269009.185,
+    tf = 769845939.185
+/

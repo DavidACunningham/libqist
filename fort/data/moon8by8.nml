@@ -1,4 +1,5 @@
 &SPHERHARM
+	rotfile = "/home/david/wrk/nstgro/qist/libqist/fort/data/moon_PA_one_orbit.rot",
     degord = 8,
 	ref_radius = 0.1738000000000000D+04,
 	mu         = 0.4902799806931690D+04,

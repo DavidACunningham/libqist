@@ -69,8 +69,29 @@ module cheby
             procedure, private :: call_s
             procedure, private :: call_v
             procedure deriv
+            procedure, public  :: write => vectorchebwrite
+            procedure, public  :: read => vectorchebread
     end type vectorcheb
     contains
+        subroutine vectorchebwrite(me,unit_num)
+            class(vectorcheb), intent(inout) :: me
+            integer,             intent(in) :: unit_num
+            write(unit_num) me%ndim
+            write(unit_num) me%ndeg
+            write(unit_num) me%a
+            write(unit_num) me%b
+            write(unit_num) me%coeffs
+        end subroutine vectorchebwrite
+        subroutine vectorchebread(me,unit_num)
+            class(vectorcheb), intent(inout) :: me
+            integer,             intent(in) :: unit_num
+            read(unit_num) me%ndim
+            read(unit_num) me%ndeg
+            read(unit_num) me%a
+            read(unit_num) me%b
+            allocate(me%coeffs(me%ndeg,me%ndim))
+            read(unit_num) me%coeffs
+        end subroutine vectorchebread
         subroutine spicewrite(me,unit_num)
             class(spice_subset), intent(in) :: me
             integer,             intent(in) :: unit_num

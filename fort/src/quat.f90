@@ -25,6 +25,8 @@ module quat
         procedure(fit_func), pointer :: fit => null()
 
         contains
+            procedure :: read => rotread
+            procedure :: write => rotwrite
             generic, public :: init => init_rot_q, init_rot_dcm
             procedure :: callq => getrotquat
             procedure :: callqdot => getrotquatdot
@@ -70,6 +72,26 @@ module quat
 
 
     contains
+        subroutine rotwrite(me,unit_num)
+            class(rothist), intent(inout) :: me
+            integer,        intent(in)    :: unit_num
+            write(unit_num) me%t0
+            write(unit_num) me%tf
+            write(unit_num) me%degree
+            write(unit_num) me%qstat%q
+            call me%els%write(unit_num)
+        end subroutine rotwrite
+        subroutine rotread(me,unit_num)
+            class(rothist), intent(inout) :: me
+            integer,        intent(in)    :: unit_num
+            read(unit_num) me%t0
+            read(unit_num) me%tf
+            read(unit_num) me%degree
+            read(unit_num) me%qstat%q
+            call me%els%read(unit_num)
+            me%elsdot = me%els%deriv()
+            me%elsddot = me%elsdot%deriv()
+        end subroutine rotread
         subroutine init_rot_q(me, fit, t0, tf, order, qstat)
             class(rothist),     intent(inout) :: me
             procedure(fit_func)               :: fit

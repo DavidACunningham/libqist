@@ -1,13 +1,16 @@
 program main
-    use, intrinsic :: iso_fortran_env, only: dp=>real64
-    use genqist, only: model_accuracy_check, gqist
+    use, intrinsic :: iso_fortran_env, only: dp=>real64, qp=>real128
+    use genqist, only: model_accuracy_check, gqist, load_gravity_model
+    use quat, only: rothist
     use util, only: print_to_file
     implicit none
     type(gqist) :: gq
+    type(rothist) :: rot
     integer, parameter :: npoints=500
-    real(dp), parameter :: C(2,2) = 0._dp, S(2,2) = 0._dp
+    real(qp), allocatable :: Cbar(:,:), Sbar(:,:)
+    real(qp)              :: ref_radius, mu
     integer     :: num_bodies, current_bodylist(30)
-    character(len=1000) :: arg
+    character(len=1000) :: arg, gravfile
     real(dp)    :: current_mulist(30), &
                  & spicepoints(6,npoints), &
                  & testpoints(6,npoints), testtimes(npoints)
@@ -17,16 +20,18 @@ program main
     call get_command_argument(1,arg)
     call gq%init(trim(adjustl(arg)))
 
+    gravfile = "/home/david/wrk/nstgro/qist/libqist/fort/data/moon8by8.nml"
+    call load_gravity_model(gravfile, ref_radius, mu, Cbar, Sbar, rot)
     num_bodies = gq%dynmod%num_bodies
     current_bodylist(:num_bodies) = gq%dynmod%bodylist
-    current_mulist(:num_bodies)   = gq%dynmod%nbody_mus
+    current_mulist(:num_bodies)   = real(gq%dynmod%nbody_mus,dp)
 
     call model_accuracy_check(gq, real(gq%t0,dp), real(gq%tf,dp), &
                               current_bodylist(:num_bodies), &
                               current_mulist(:num_bodies), &
                               gq%dynmod%shgrav, &
-                              C, &
-                              S, &
+                              real(Cbar,dp), &
+                              real(Sbar,dp), &
                               testpoints, &
                               spicepoints, &
                               testtimes &

@@ -69,6 +69,7 @@ module tinysh
         integer,intent(in) :: degmax
         real(ap),allocatable,dimension(:,:),intent(in) :: Cml ! C terms organized into order/degree
         real(ap),allocatable,dimension(:,:),intent(in) :: Sml ! S terms organized into order/degree
+        real(ap),allocatable,dimension(:,:) :: Cml_buf, Sml_buf
         type(PinesData),intent(inout) :: pdat
 
         ! Local
@@ -119,14 +120,20 @@ module tinysh
         if(.not.allocated(pdat%B10m)) allocate(pdat%B10m(degmax+2))
 
         ! Store Stokes coefficients in vectorized form for faster access
+        allocate(Cml_buf(size(Cml,1)+1,size(Cml,2)+1))
+        allocate(Sml_buf(size(Sml,1)+1,size(Sml,2)+1))
+        Cml_buf = 0._ap
+        Sml_buf = 0._ap
+        Cml_buf(:size(Cml,1),:size(Cml,2)) = Cml
+        Sml_buf(:size(Sml,1),:size(Sml,2)) = Sml
         idx = 0
         pdat%Cvec = 0._ap
         pdat%Svec = 0._ap
         do m = 0,degmax
             do l = m,degmax
                 idx = idx + 1
-                pdat%Cvec(idx) = Cml(m+1,l+1)
-                pdat%Svec(idx) = Sml(m+1,l+1)
+                pdat%Cvec(idx) = Cml_buf(m+1,l+1)
+                pdat%Svec(idx) = Sml_buf(m+1,l+1)
             end do
         end do
 
