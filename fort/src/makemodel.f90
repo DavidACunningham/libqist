@@ -30,12 +30,8 @@ module makemodel
             procedure :: eoms
             procedure :: eoms_rails
             procedure :: get_derivs
-            procedure :: acc_kepler
-            procedure :: jac_kepler
-            procedure :: hes_kepler
-            procedure :: acc_nbody
-            procedure :: jac_nbody
-            procedure :: hes_nbody
+            procedure :: allderivs_kepler
+            procedure :: allderivs_thirdbody
             procedure :: fd_acc_kepler
             procedure :: fd_jac_kepler
             procedure :: fd_acc_nbody
@@ -259,8 +255,8 @@ module makemodel
                 res = v**2/2._qp - me%central_body_mu/r
             end function sme
     end subroutine get_derivs
-    function acc_kepler(me, mu, y) result (res)
-        ! acc_kepler: method to compute Keplerian acceleration
+    subroutine allderivs_kepler(me, mu, y, acc, jac, hes)
+        ! acc_kepler: method to compute Keplerian derivatives
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! mu             real           Gravitational parameter of body
@@ -270,717 +266,184 @@ module makemodel
         ! OUTPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! res            real (8)       Augmented acceleration vector
-        class(dynamicsModel), intent(in) :: me
-        real(qp),             intent(in) :: mu
-        real(qp),             intent(in) :: y(:)
-        real(qp)                         :: res(size(y))
-        res = xdot(y)
-        contains 
-            ! BEGIN AUTOCODE OUTPUT FOR XDOT
-            function xdot(y) result(res)
-                implicit none
-                real(qp), intent(in) :: y (:)
-                real(qp)             :: &
-                                      & x0
-
-                real(qp), dimension(8) :: res
-
-                x0  =  mu*y(8)/(y(1)**2 + y(2)**2 + y(3)**2)**(3.0_qp/2.0_qp)
-
-                res(1) =  y(4)*y(8)
-                res(2) =  y(5)*y(8)
-                res(3) =  y(6)*y(8)
-                res(4) =  -x0*y(1)
-                res(5) =  -x0*y(2)
-                res(6) =  -x0*y(3)
-                res(7) =  y(8)
-                res(8) =  0
-            end function xdot
-            ! END AUTOCODE OUTPUT FOR XDOT
-    end function
-    function jac_kepler(me, mu, y) result (res)
-        ! jac_kepler: method to compute Keplerian jacobian
+        class(dynamicsModel), intent(in)  :: me
+        real(qp),             intent(in)  :: mu
+        real(qp),             intent(in)  :: y(:)
+        real(qp),             intent(out) :: acc(size(y)), &
+                                          & jac(size(y), size(y)), &
+                                          & hes(size(y),size(y),size(y))
+        real(qp)                          :: pos(3), rdotr, norm, onebyr, &
+                                           & onebyr2, onebyr3, onebyr5, &
+                                           & onebyr7, &
+                                           F(3), J(3,3), H(3,3,3), &
+                                           eye(3,3), rr(3,3), rrr(3,3,3), &
+                                           ridjk(3,3,3), rjdki(3,3,3), &
+                                           rkdij(3,3,3)
+        integer i
+        eye(3,3) = 0._qp
+        do i=1,3
+            eye(i,i) = 1._qp
+        end do
+        pos = y(:3)
+        rdotr = sum(pos**2)
+        norm = sqrt(rdotr)
+        onebyr = 1._qp/norm
+        onebyr2 = onebyr*onebyr
+        onebyr3 = onebyr2*onebyr
+        onebyr5 = onebyr3*onebyr2
+        onebyr7 = onebyr5*onebyr2
+        rr = outer_2vec(pos,pos)
+        rrr = outer_vecmat3(pos,rr)
+        ridjk = outer_vecmat1(pos,eye)
+        rjdki = outer_vecmat2(pos,eye)
+        rkdij = outer_vecmat3(pos,eye)
+        F = -mu*pos/onebyr3
+        J = mu*(3._qp*onebyr5*rr - onebyr3*eye)
+        H = 3._qp*mu*(-5._qp*onebyr7*rrr + onebyr5*(ridjk + rjdki + rkdij))
+        acc = 0._qp
+        jac = 0._qp
+        hes = 0._qp
+        !! Assign accel
+        acc(:3) = y(4:6)
+        acc(4:6) = F
+        acc(7) = 1._qp
+        acc(8) = 0._qp
+        !! Regularization
+        acc = acc*y(8)
+        !! Jacobian assignment
+        jac(1:3,4:6) = y(8) * eye
+        jac(1:3,8) = y(4:6)
+        jac(4:6,1:3) = y(8) * J
+        jac(4:6,8) = F
+        jac(7:8,8) = 1._qp
+        !! Assign Hessian
+        hes(4:6,1:3,1:3) = y(8)*H
+        hes(4:6,8,1:3) = J
+        hes(4:6,1:3,8) = J
+        hes(1:3,8,4:6) = eye
+        hes(1:3,4:6,8) = eye
+    end subroutine
+    subroutine allderivs_thirdbody(me, mu, y, rbods, vbods, abods, &
+                                 & acc, jac, hes)
+        ! acc_kepler: method to compute Keplerian derivatives
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
         ! mu             real           Gravitational parameter of body
-        ! y              real (:)       Augmented state vector
+        ! y              real (:)       Augmented dynamical state vector
+        !                               field point in first 3 elements,
+        !                               could be state vector
         ! OUTPUTS:
         ! NAME           TYPE           DESCRIPTION
-        ! res            real (8,8)     Keplerian Jacobian matrix 
-        !                                         df_i
-        !                               J(i,j) = ------
-        !                                         dx_j
-        class(dynamicsModel), intent(in) :: me
-        real(qp),             intent(in) :: mu
-        real(qp),             intent(in) :: y(:)
-        real(qp)                         :: res(size(y),size(y))
-        res = reshape(jac(y),[m,m])
-        contains
-            ! BEGIN AUTOCODE OUTPUT FOR JAC
-            function jac(y) result(res)
-                implicit none
-                real(qp), intent(in) :: y (:)
-                real(qp)             :: &
-                                      & x0, x1, x2, x3, x4, x5, x6, x7, & 
-                                      & x8, x9, x10
-                real(qp), dimension(64) :: inter
-                real(qp), dimension(8,8) :: res
+        ! res            real (8)       Augmented acceleration vector
+        class(dynamicsModel), intent(in)  :: me
+        real(qp),             intent(in)  :: mu
+        real(qp),             intent(in)  :: y(:), &
+                                           & rbods(3), vbods(3), abods(3)
+        real(qp),             intent(out) :: acc(size(y)), &
+                                          & jac(size(y), size(y)), &
+                                          & hes(size(y),size(y),size(y))
+        real(qp)                          :: pos(3), rsp(3), &
+                                             rspdotrsp, rspnorm, &
+                                           & onebyrsp, onebyrsp2, &
+                                           & onebyrsp3, onebyrsp5, &
+                                           & onebyrsp7, &
+                                           & rpdotrp, rpnorm, &
+                                           & onebyrp, onebyrp2, &
+                                           & onebyrp3, onebyrp5, &
+                                           & onebyrp7, &
+                                           & F(3), J(3,3), H(3,3,3), &
+                                           & rsprsp(3,3), eye(3,3), &
+                                           & rsprsprsp(3,3,3), &
+                                           & dijrk(3,3,3), dkirj(3,3,3), &
+                                           & djkri(3,3,3), abyt(3), &
+                                           & abytbyt(3), Jbyt(3,3), &
+                                           & rspdotvp, rpdotvp, &
+                                           & vpdotvp, rspdotap, &
+                                           & rpdotap, vprsp(3,3), rspvp(3,3)
+        integer i
+        eye(3,3) = 0._qp
+        do i=1,3
+            eye(i,i) = 1._qp
+        end do
+        pos = y(:3)
+        rsp = rbods - pos
+        rspdotrsp = sum(rsp**2)
+        rspnorm = sqrt(rspdotrsp)
+        onebyrsp = 1._qp/rspnorm
+        onebyrsp2 = onebyrsp*onebyrsp
+        onebyrsp3 = onebyrsp2*onebyrsp
+        onebyrsp5 = onebyrsp3*onebyrsp2
+        onebyrsp7 = onebyrsp5*onebyrsp2
 
-                x0  =  y(1)**2
-                x1  =  y(2)**2
-                x2  =  y(3)**2
-                x3  =  x0 + x1 + x2
-                x4  =  mu/x3**(3.0_qp/2.0_qp)
-                x5  =  -x4*y(8)
-                x6  =  3*mu*y(8)/x3**(5.0_qp/2.0_qp)
-                x7  =  x6*y(1)
-                x8  =  x7*y(2)
-                x9  =  x7*y(3)
-                x10  =  x6*y(2)*y(3)
+        rpdotrp = sum(rbods**2)
+        rpnorm = sqrt(rpdotrp)
+        onebyrp = 1._qp/rpnorm
+        onebyrp2 = onebyrp*onebyrp
+        onebyrp3 = onebyrp2*onebyrp
+        onebyrp5 = onebyrp3*onebyrp2
+        onebyrp7 = onebyrp5*onebyrp2
 
-                inter(1) =  0
-                inter(2) =  0
-                inter(3) =  0
-                inter(4) =  x0*x6 + x5
-                inter(5) =  x8
-                inter(6) =  x9
-                inter(7) =  0
-                inter(8) =  0
-                inter(9) =  0
-                inter(10) =  0
-                inter(11) =  0
-                inter(12) =  x8
-                inter(13) =  x1*x6 + x5
-                inter(14) =  x10
-                inter(15) =  0
-                inter(16) =  0
-                inter(17) =  0
-                inter(18) =  0
-                inter(19) =  0
-                inter(20) =  x9
-                inter(21) =  x10
-                inter(22) =  x2*x6 + x5
-                inter(23) =  0
-                inter(24) =  0
-                inter(25) =  y(8)
-                inter(26) =  0
-                inter(27) =  0
-                inter(28) =  0
-                inter(29) =  0
-                inter(30) =  0
-                inter(31) =  0
-                inter(32) =  0
-                inter(33) =  0
-                inter(34) =  y(8)
-                inter(35) =  0
-                inter(36) =  0
-                inter(37) =  0
-                inter(38) =  0
-                inter(39) =  0
-                inter(40) =  0
-                inter(41) =  0
-                inter(42) =  0
-                inter(43) =  y(8)
-                inter(44) =  0
-                inter(45) =  0
-                inter(46) =  0
-                inter(47) =  0
-                inter(48) =  0
-                inter(49) =  0
-                inter(50) =  0
-                inter(51) =  0
-                inter(52) =  0
-                inter(53) =  0
-                inter(54) =  0
-                inter(55) =  0
-                inter(56) =  0
-                inter(57) =  y(4)
-                inter(58) =  y(5)
-                inter(59) =  y(6)
-                inter(60) =  -x4*y(1)
-                inter(61) =  -x4*y(2)
-                inter(62) =  -x4*y(3)
-                inter(63) =  1
-                inter(64) =  0
-                res = reshape(inter,[8,8])
-            end function jac
-            ! END AUTOCODE OUTPUT FOR JAC
-    end function
-    function hes_kepler(me, mu, y) result (res)
-        ! hes_kepler: method to compute Keplerian hessian
-        ! INPUTS:
-        ! NAME           TYPE           DESCRIPTION
-        ! mu             real           Gravitational parameter of body
-        ! y              real (:)       Augmented state vector
-        ! OUTPUTS:
-        ! NAME           TYPE           DESCRIPTION
-        ! res            real (8,8,8)   Keplerian Hessian tensor H where
-        !                                              df_i 
-        !                               H(i,j,k) = -----------
-        !                                           dx_j dx_k
-        class(dynamicsModel), intent(in) :: me
-        real(qp),             intent(in) :: mu
-        real(qp),             intent(in) :: y(:)
-        real(qp)                         :: res(size(y),size(y),size(y))
-        res = reshape(hes(y),[m,m,m])
-        contains
-            ! BEGIN AUTOCODE OUTPUT FOR HES
-            function hes(y) result(res)
-                implicit none
-                real(qp), intent(in) :: y (:)
-                real(qp)             :: &
-                                      & x0, x1, x2, x3, x4, x5, x6, x7, & 
-                                      & x8, x9, x10, x11, x12, x13, x14, x15, & 
-                                      & x16, x17, x18, x19, x20, x21, x22, x23, & 
-                                      & x24, x25, x26, x27
-                real(qp), dimension(512) :: inter
-                real(qp), dimension(8,8,8) :: res
+        rsprsp = outer_2vec(rsp,rsp)
+        rsprsprsp = outer_vecmat3(rsp,rsprsp)
+        dijrk = outer_vecmat3(rsp,eye)
+        dkirj = outer_vecmat2(rsp,eye)
+        djkri = outer_vecmat1(rsp,eye)
 
-                x0  =  y(1)**2
-                x1  =  y(2)**2
-                x2  =  y(3)**2
-                x3  =  x0 + x1 + x2
-                x4  =  x3**(-5.0_qp/2.0_qp)
-                x5  =  15*mu*y(8)/x3**(7.0_qp/2.0_qp)
-                x6  =  -3*mu*x4*y(2)*y(8)
-                x7  =  x0*x5
-                x8  =  -x6 - x7*y(2)
-                x9  =  -3*mu*x4*y(3)*y(8)
-                x10  =  -x7*y(3) - x9
-                x11  =  -3*mu*x4*y(1)*y(8)
-                x12  =  x5*y(1)
-                x13  =  -x1*x12 - x11
-                x14  =  y(2)*y(3)
-                x15  =  -x12*x14
-                x16  =  -x11 - x12*x2
-                x17  =  -mu/x3**(3.0_qp/2.0_qp)
-                x18  =  3*mu*x4
-                x19  =  x0*x18 + x17
-                x20  =  x18*y(1)
-                x21  =  x20*y(2)
-                x22  =  x20*y(3)
-                x23  =  -x1*x5*y(3) - x9
-                x24  =  -x2*x5*y(2) - x6
-                x25  =  x1*x18 + x17
-                x26  =  x14*x18
-                x27  =  x17 + x18*x2
+        F = mu*(rsp*onebyrsp3 - rbods*onebyrp3)
+        J = mu*(3._qp*onebyrsp5*rsprsp - eye*onebyrsp3)
+        H = 3._qp*mu*(5*onebyrsp7*rsprsprsp &
+                    + onebyrsp5*(dijrk - dkirj - djkri))
 
-                inter(1) =  0
-                inter(2) =  0
-                inter(3) =  0
-                inter(4) =  9*mu*x4*y(1)*y(8) - x5*y(1)**3
-                inter(5) =  x8
-                inter(6) =  x10
-                inter(7) =  0
-                inter(8) =  0
-                inter(9) =  0
-                inter(10) =  0
-                inter(11) =  0
-                inter(12) =  x8
-                inter(13) =  x13
-                inter(14) =  x15
-                inter(15) =  0
-                inter(16) =  0
-                inter(17) =  0
-                inter(18) =  0
-                inter(19) =  0
-                inter(20) =  x10
-                inter(21) =  x15
-                inter(22) =  x16
-                inter(23) =  0
-                inter(24) =  0
-                inter(25) =  0
-                inter(26) =  0
-                inter(27) =  0
-                inter(28) =  0
-                inter(29) =  0
-                inter(30) =  0
-                inter(31) =  0
-                inter(32) =  0
-                inter(33) =  0
-                inter(34) =  0
-                inter(35) =  0
-                inter(36) =  0
-                inter(37) =  0
-                inter(38) =  0
-                inter(39) =  0
-                inter(40) =  0
-                inter(41) =  0
-                inter(42) =  0
-                inter(43) =  0
-                inter(44) =  0
-                inter(45) =  0
-                inter(46) =  0
-                inter(47) =  0
-                inter(48) =  0
-                inter(49) =  0
-                inter(50) =  0
-                inter(51) =  0
-                inter(52) =  0
-                inter(53) =  0
-                inter(54) =  0
-                inter(55) =  0
-                inter(56) =  0
-                inter(57) =  0
-                inter(58) =  0
-                inter(59) =  0
-                inter(60) =  x19
-                inter(61) =  x21
-                inter(62) =  x22
-                inter(63) =  0
-                inter(64) =  0
-                inter(65) =  0
-                inter(66) =  0
-                inter(67) =  0
-                inter(68) =  x8
-                inter(69) =  x13
-                inter(70) =  x15
-                inter(71) =  0
-                inter(72) =  0
-                inter(73) =  0
-                inter(74) =  0
-                inter(75) =  0
-                inter(76) =  x13
-                inter(77) =  9*mu*x4*y(2)*y(8) - x5*y(2)**3
-                inter(78) =  x23
-                inter(79) =  0
-                inter(80) =  0
-                inter(81) =  0
-                inter(82) =  0
-                inter(83) =  0
-                inter(84) =  x15
-                inter(85) =  x23
-                inter(86) =  x24
-                inter(87) =  0
-                inter(88) =  0
-                inter(89) =  0
-                inter(90) =  0
-                inter(91) =  0
-                inter(92) =  0
-                inter(93) =  0
-                inter(94) =  0
-                inter(95) =  0
-                inter(96) =  0
-                inter(97) =  0
-                inter(98) =  0
-                inter(99) =  0
-                inter(100) =  0
-                inter(101) =  0
-                inter(102) =  0
-                inter(103) =  0
-                inter(104) =  0
-                inter(105) =  0
-                inter(106) =  0
-                inter(107) =  0
-                inter(108) =  0
-                inter(109) =  0
-                inter(110) =  0
-                inter(111) =  0
-                inter(112) =  0
-                inter(113) =  0
-                inter(114) =  0
-                inter(115) =  0
-                inter(116) =  0
-                inter(117) =  0
-                inter(118) =  0
-                inter(119) =  0
-                inter(120) =  0
-                inter(121) =  0
-                inter(122) =  0
-                inter(123) =  0
-                inter(124) =  x21
-                inter(125) =  x25
-                inter(126) =  x26
-                inter(127) =  0
-                inter(128) =  0
-                inter(129) =  0
-                inter(130) =  0
-                inter(131) =  0
-                inter(132) =  x10
-                inter(133) =  x15
-                inter(134) =  x16
-                inter(135) =  0
-                inter(136) =  0
-                inter(137) =  0
-                inter(138) =  0
-                inter(139) =  0
-                inter(140) =  x15
-                inter(141) =  x23
-                inter(142) =  x24
-                inter(143) =  0
-                inter(144) =  0
-                inter(145) =  0
-                inter(146) =  0
-                inter(147) =  0
-                inter(148) =  x16
-                inter(149) =  x24
-                inter(150) =  9*mu*x4*y(3)*y(8) - x5*y(3)**3
-                inter(151) =  0
-                inter(152) =  0
-                inter(153) =  0
-                inter(154) =  0
-                inter(155) =  0
-                inter(156) =  0
-                inter(157) =  0
-                inter(158) =  0
-                inter(159) =  0
-                inter(160) =  0
-                inter(161) =  0
-                inter(162) =  0
-                inter(163) =  0
-                inter(164) =  0
-                inter(165) =  0
-                inter(166) =  0
-                inter(167) =  0
-                inter(168) =  0
-                inter(169) =  0
-                inter(170) =  0
-                inter(171) =  0
-                inter(172) =  0
-                inter(173) =  0
-                inter(174) =  0
-                inter(175) =  0
-                inter(176) =  0
-                inter(177) =  0
-                inter(178) =  0
-                inter(179) =  0
-                inter(180) =  0
-                inter(181) =  0
-                inter(182) =  0
-                inter(183) =  0
-                inter(184) =  0
-                inter(185) =  0
-                inter(186) =  0
-                inter(187) =  0
-                inter(188) =  x22
-                inter(189) =  x26
-                inter(190) =  x27
-                inter(191) =  0
-                inter(192) =  0
-                inter(193) =  0
-                inter(194) =  0
-                inter(195) =  0
-                inter(196) =  0
-                inter(197) =  0
-                inter(198) =  0
-                inter(199) =  0
-                inter(200) =  0
-                inter(201) =  0
-                inter(202) =  0
-                inter(203) =  0
-                inter(204) =  0
-                inter(205) =  0
-                inter(206) =  0
-                inter(207) =  0
-                inter(208) =  0
-                inter(209) =  0
-                inter(210) =  0
-                inter(211) =  0
-                inter(212) =  0
-                inter(213) =  0
-                inter(214) =  0
-                inter(215) =  0
-                inter(216) =  0
-                inter(217) =  0
-                inter(218) =  0
-                inter(219) =  0
-                inter(220) =  0
-                inter(221) =  0
-                inter(222) =  0
-                inter(223) =  0
-                inter(224) =  0
-                inter(225) =  0
-                inter(226) =  0
-                inter(227) =  0
-                inter(228) =  0
-                inter(229) =  0
-                inter(230) =  0
-                inter(231) =  0
-                inter(232) =  0
-                inter(233) =  0
-                inter(234) =  0
-                inter(235) =  0
-                inter(236) =  0
-                inter(237) =  0
-                inter(238) =  0
-                inter(239) =  0
-                inter(240) =  0
-                inter(241) =  0
-                inter(242) =  0
-                inter(243) =  0
-                inter(244) =  0
-                inter(245) =  0
-                inter(246) =  0
-                inter(247) =  0
-                inter(248) =  0
-                inter(249) =  1
-                inter(250) =  0
-                inter(251) =  0
-                inter(252) =  0
-                inter(253) =  0
-                inter(254) =  0
-                inter(255) =  0
-                inter(256) =  0
-                inter(257) =  0
-                inter(258) =  0
-                inter(259) =  0
-                inter(260) =  0
-                inter(261) =  0
-                inter(262) =  0
-                inter(263) =  0
-                inter(264) =  0
-                inter(265) =  0
-                inter(266) =  0
-                inter(267) =  0
-                inter(268) =  0
-                inter(269) =  0
-                inter(270) =  0
-                inter(271) =  0
-                inter(272) =  0
-                inter(273) =  0
-                inter(274) =  0
-                inter(275) =  0
-                inter(276) =  0
-                inter(277) =  0
-                inter(278) =  0
-                inter(279) =  0
-                inter(280) =  0
-                inter(281) =  0
-                inter(282) =  0
-                inter(283) =  0
-                inter(284) =  0
-                inter(285) =  0
-                inter(286) =  0
-                inter(287) =  0
-                inter(288) =  0
-                inter(289) =  0
-                inter(290) =  0
-                inter(291) =  0
-                inter(292) =  0
-                inter(293) =  0
-                inter(294) =  0
-                inter(295) =  0
-                inter(296) =  0
-                inter(297) =  0
-                inter(298) =  0
-                inter(299) =  0
-                inter(300) =  0
-                inter(301) =  0
-                inter(302) =  0
-                inter(303) =  0
-                inter(304) =  0
-                inter(305) =  0
-                inter(306) =  0
-                inter(307) =  0
-                inter(308) =  0
-                inter(309) =  0
-                inter(310) =  0
-                inter(311) =  0
-                inter(312) =  0
-                inter(313) =  0
-                inter(314) =  1
-                inter(315) =  0
-                inter(316) =  0
-                inter(317) =  0
-                inter(318) =  0
-                inter(319) =  0
-                inter(320) =  0
-                inter(321) =  0
-                inter(322) =  0
-                inter(323) =  0
-                inter(324) =  0
-                inter(325) =  0
-                inter(326) =  0
-                inter(327) =  0
-                inter(328) =  0
-                inter(329) =  0
-                inter(330) =  0
-                inter(331) =  0
-                inter(332) =  0
-                inter(333) =  0
-                inter(334) =  0
-                inter(335) =  0
-                inter(336) =  0
-                inter(337) =  0
-                inter(338) =  0
-                inter(339) =  0
-                inter(340) =  0
-                inter(341) =  0
-                inter(342) =  0
-                inter(343) =  0
-                inter(344) =  0
-                inter(345) =  0
-                inter(346) =  0
-                inter(347) =  0
-                inter(348) =  0
-                inter(349) =  0
-                inter(350) =  0
-                inter(351) =  0
-                inter(352) =  0
-                inter(353) =  0
-                inter(354) =  0
-                inter(355) =  0
-                inter(356) =  0
-                inter(357) =  0
-                inter(358) =  0
-                inter(359) =  0
-                inter(360) =  0
-                inter(361) =  0
-                inter(362) =  0
-                inter(363) =  0
-                inter(364) =  0
-                inter(365) =  0
-                inter(366) =  0
-                inter(367) =  0
-                inter(368) =  0
-                inter(369) =  0
-                inter(370) =  0
-                inter(371) =  0
-                inter(372) =  0
-                inter(373) =  0
-                inter(374) =  0
-                inter(375) =  0
-                inter(376) =  0
-                inter(377) =  0
-                inter(378) =  0
-                inter(379) =  1
-                inter(380) =  0
-                inter(381) =  0
-                inter(382) =  0
-                inter(383) =  0
-                inter(384) =  0
-                inter(385) =  0
-                inter(386) =  0
-                inter(387) =  0
-                inter(388) =  0
-                inter(389) =  0
-                inter(390) =  0
-                inter(391) =  0
-                inter(392) =  0
-                inter(393) =  0
-                inter(394) =  0
-                inter(395) =  0
-                inter(396) =  0
-                inter(397) =  0
-                inter(398) =  0
-                inter(399) =  0
-                inter(400) =  0
-                inter(401) =  0
-                inter(402) =  0
-                inter(403) =  0
-                inter(404) =  0
-                inter(405) =  0
-                inter(406) =  0
-                inter(407) =  0
-                inter(408) =  0
-                inter(409) =  0
-                inter(410) =  0
-                inter(411) =  0
-                inter(412) =  0
-                inter(413) =  0
-                inter(414) =  0
-                inter(415) =  0
-                inter(416) =  0
-                inter(417) =  0
-                inter(418) =  0
-                inter(419) =  0
-                inter(420) =  0
-                inter(421) =  0
-                inter(422) =  0
-                inter(423) =  0
-                inter(424) =  0
-                inter(425) =  0
-                inter(426) =  0
-                inter(427) =  0
-                inter(428) =  0
-                inter(429) =  0
-                inter(430) =  0
-                inter(431) =  0
-                inter(432) =  0
-                inter(433) =  0
-                inter(434) =  0
-                inter(435) =  0
-                inter(436) =  0
-                inter(437) =  0
-                inter(438) =  0
-                inter(439) =  0
-                inter(440) =  0
-                inter(441) =  0
-                inter(442) =  0
-                inter(443) =  0
-                inter(444) =  0
-                inter(445) =  0
-                inter(446) =  0
-                inter(447) =  0
-                inter(448) =  0
-                inter(449) =  0
-                inter(450) =  0
-                inter(451) =  0
-                inter(452) =  x19
-                inter(453) =  x21
-                inter(454) =  x22
-                inter(455) =  0
-                inter(456) =  0
-                inter(457) =  0
-                inter(458) =  0
-                inter(459) =  0
-                inter(460) =  x21
-                inter(461) =  x25
-                inter(462) =  x26
-                inter(463) =  0
-                inter(464) =  0
-                inter(465) =  0
-                inter(466) =  0
-                inter(467) =  0
-                inter(468) =  x22
-                inter(469) =  x26
-                inter(470) =  x27
-                inter(471) =  0
-                inter(472) =  0
-                inter(473) =  1
-                inter(474) =  0
-                inter(475) =  0
-                inter(476) =  0
-                inter(477) =  0
-                inter(478) =  0
-                inter(479) =  0
-                inter(480) =  0
-                inter(481) =  0
-                inter(482) =  1
-                inter(483) =  0
-                inter(484) =  0
-                inter(485) =  0
-                inter(486) =  0
-                inter(487) =  0
-                inter(488) =  0
-                inter(489) =  0
-                inter(490) =  0
-                inter(491) =  1
-                inter(492) =  0
-                inter(493) =  0
-                inter(494) =  0
-                inter(495) =  0
-                inter(496) =  0
-                inter(497) =  0
-                inter(498) =  0
-                inter(499) =  0
-                inter(500) =  0
-                inter(501) =  0
-                inter(502) =  0
-                inter(503) =  0
-                inter(504) =  0
-                inter(505) =  0
-                inter(506) =  0
-                inter(507) =  0
-                inter(508) =  0
-                inter(509) =  0
-                inter(510) =  0
-                inter(511) =  0
-                inter(512) =  0
-                res = reshape(inter,[8,8,8])
-            end function hes
-            ! END AUTOCODE OUTPUT FOR HES
-    end function
+        rspdotvp = sum(rsp*vbods)
+        rpdotvp = sum(rbods*vbods)
+        vpdotvp = sum(vbods**2)
+        rspdotap = sum(rsp*abods)
+        rpdotap = sum(rbods*abods)
+
+
+        abyt = mu*(-3._qp*onebyrsp5*(rspdotvp*rsp + rpdotvp*rbods) &
+             & + (onebyrsp3 - onebyrp3)*vbods)
+        abytbyt = mu*( &
+                        (15._qp*onebyrsp7*rspdotvp**2 &
+                         - 3._qp*onebyrsp5*vpdotvp*rspdotap)*rsp &
+                     + (-15._qp*onebyrp7*rpdotvp**2 &
+                         + 3._qp*onebyrp5*vpdotvp*rpdotap)*rbods &
+                     + 2._qp*(-3._qp*onebyrsp5*(rspdotvp) &
+                         + 3._qp*onebyrp5*rpdotvp)*vbods &
+                     + (onebyrsp3 - onebyrp3)*abods &
+                     )
+        vprsp = outer_2vec(vbods,rsp)
+        rspvp = outer_2vec(rsp,vbods)
+        Jbyt = 3._qp*mu*( &
+                        - 5*onebyrsp7*rspdotvp*rsprsp &
+                        + onebyrsp5*(vprsp + rspvp + rspdotvp*eye) &
+                        )
+        !! Assign accel
+        acc(:3) = y(4:6)
+        acc(4:6) = F
+        acc(7) = 1._qp
+        acc(8) = 0._qp
+        !! Regularization
+        acc = acc*y(8)
+        !! Jacobian assignment
+        jac(1:3,4:6) = y(8) * eye
+        jac(1:3,8) = y(4:6)
+        jac(4:6,1:3) = y(8) * J
+        jac(4:6,7) = y(8) * abyt
+        jac(4:6,8) = F
+        jac(7:8,8) = 1._qp
+        !! Assign Hessian
+        hes(4:6,1:3,1:3) = y(8)*H
+        hes(4:6,7,1:3) = y(8) * Jbyt
+        hes(4:6,1:3,7) = y(8) * Jbyt
+        hes(4:6,8,1:3) = J
+        hes(4:6,1:3,8) = J
+        hes(1:3,8,4:6) = eye
+        hes(1:3,4:6,8) = eye
+        hes(4:6,7,7) = y(8) * abytbyt
+        hes(4:6,8,7) = abyt
+        hes(4:6,7,8) = abyt
+    end subroutine
     function acc_nbody(me, mu, y, rbods) result (res)
         ! acc_nbody: method to compute third-body Keplerian acceleration
         ! INPUTS:
@@ -3628,4 +3091,51 @@ module makemodel
             end function hes
             ! END AUTOCODE OUTPUT FOR HES
     end function
+    function outer_2vec(veca, vecb) result(res)
+        real(qp), intent(in) :: veca(:), vecb(:)
+        real(qp)             :: res(size(veca),size(vecb))
+        integer i,j, n,m
+        n = size(veca); m = size(vecb)
+        do j = 1,m
+            res(:,j) = veca*vecb(j)
+        end do
+    end function outer_2vec
+    function outer_vecmat1(vec,mat) result(res)
+        real(qp), intent(in) :: vec(:), mat(:,:)
+        real(qp)             :: res(size(vec),size(mat,1),size(mat,2))
+        integer i,n
+        n = size(vec)
+        do i = 1, n
+            res(i,:,:) = vec(i)*mat
+        end do
+    end function outer_vecmat1
+    function outer_vecmat2(vec,mat) result(res)
+        real(qp), intent(in) :: vec(:), mat(:,:)
+        real(qp)             :: res(size(mat,1),size(vec),size(mat,2))
+        integer j, m
+        m = size(vec)
+        do j = 1, n
+            res(:,j,:) = vec(j)*mat
+        end do
+    end function outer_vecmat2
+    function outer_vecmat3(vec,mat) result(res)
+        real(qp), intent(in) :: vec(:), mat(:,:)
+        real(qp)             :: res(size(mat,1),size(mat,2),size(vec))
+        integer k, l
+        l = size(vec)
+        do k = 1, l
+            res(:,:,k) = vec(k)*mat
+        end do
+    end function outer_vecmat3
+    function outer_3vec(veca, vecb, vecc) result(res)
+        real(qp), intent(in) :: veca(:), vecb(:), vecc(:)
+        real(qp)             :: res(size(veca),size(vecb),size(vecc))
+        real(qp)             :: inter_mat(size(veca),size(vecb))
+        integer k, l
+        l = size(vecc)
+        inter_mat = outer_2vec(veca,vecb)
+        do k = 1,l
+            res(:,:,k) = inter_mat*vecc(k)
+        end do
+    end function outer_3vec
 end module makemodel
