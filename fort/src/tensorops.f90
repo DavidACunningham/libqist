@@ -149,14 +149,20 @@ module tensorops
         integer, intent(in) :: n
         real(wp), intent(in) :: v(n), t(n,n,n)
         real(wp) :: res(n,n)
-        res = vectens1(v,reshape(t,[n,n,n],order=[3,1,2]),n)
+        res = transpose( &
+               vectens1(v, &
+                 reshape(t,[n,n,n], &
+                    order=[3,2,1]),n))
     end function q_vectens3
     pure function d_vectens3(v,t,n) result(res)
         implicit none
         integer, intent(in) :: n
         real(dp), intent(in) :: v(n), t(n,n,n)
         real(dp) :: res(n,n)
-        res = vectens1(v,reshape(t,[n,n,n],order=[3,1,2]),n)
+        res = transpose( &
+               vectens1(v, &
+                 reshape(t,[n,n,n], &
+                    order=[3,2,1]),n))
     end function d_vectens3
     
     pure function q_vectensquad(v,t,n) result(res)

@@ -7,22 +7,14 @@ program main
     use makemodel, only: dynamicsmodel
     use, intrinsic :: iso_fortran_env, only: dp => real64, qp=>real128
     implicit none
-    type(spice_subset)  :: subspice
     type(gqist)         :: gq
     type(odesolution)   :: base_sol !, qistsol
     character(len=1000) :: qist_config_file, arg, metakernel_filepath
     real(qp)            :: t0, tf, tof, &
                            rtol, atol, x0(6), fdrstep, fdvstep, fdtstep, &
                            epsvec(8)
-    integer             :: reference_trajectory_id, & 
-                           central_body_id, &
-                           body_list(30), &
-                           fdord
-    logical             :: shgrav
-    integer             :: stat, num, n_bodies
-    real(qp)            :: central_body_ref_radius, &
-                           central_body_mu, & 
-                           mu_list(30)
+    integer             :: fdord
+    integer             :: stat, num
     real(qp), parameter  :: Cbar(2,2) = 0._qp, &
                             Sbar(2,2) = 0._qp
     real(qp)             :: init_state(8), eye(8,8), fd_stm(8,8), &
@@ -30,7 +22,7 @@ program main
                           & analytic_final_state(8), &
                           & divisor(8,8), init_stt(8**3), fd_stt(8,8,8), &
                           & stt_divisor(8,8,8), jac(8,8), fd_jac(8,8), &
-                          & hes(8,8,8), fd_hes(8,8,8)
+                          & hes(8,8,8), fd_hes(8,8,8), acc(8)
 
     real(dp), allocatable :: spice_state(:,:)
     real(dp)              :: lt_dum
@@ -78,19 +70,20 @@ program main
     ! To integrate in real time, set tof to 1.
     gq%dynmod%tof = 1._qp
     init_state = [x0, t0, tof]
-    ! gq%dynmod%tgt_on_rails = .false.
-    gq%dynmod%shgrav = .false.
-    jac = fdjacwrap(init_state)
-    hes = heswrap(init_state)
-    fd_jac = findiff_multiscale(fdwrap, init_state, epsvec, fdord)
-    fd_hes = findiffhes_multiscale(fdjacwrap, init_state, epsvec, fdord)
+    gq%dynmod%tgt_on_rails = .false.
+    gq%dynmod%state = init_state
+
+    call gq%dynmod%get_derivs(init_state(7), acc, jac, hes)
+    fd_jac = findiff_multiscale(fd_wrap_acc, init_state, epsvec, fdord)
+    fd_hes = findiffhes_multiscale(fd_wrap_jac, init_state, epsvec, fdord)
+
     divisor = 1._qp
     where (abs(jac).ge.1.e-14_qp)
-        divisor = analytic_stm
+        divisor = jac
     end where
     stt_divisor = 1._qp
     where (abs(hes).ge.1.e-10_qp)
-        stt_divisor = analytic_stt
+        stt_divisor = hes
     end where
     print *, "FD THEN ANALYTIC JACOBIAN THEN NORMALIZED ERROR"
     do i = 1,8
@@ -111,8 +104,7 @@ program main
     end do
 
 
-
-
+    gq%dynmod%tgt_on_rails = .true.
     print *, "Integrating base case"
     base_sol = solve_ivp(fd_eoms,&
                        & [0._qp, 1._qp], &
@@ -185,6 +177,28 @@ program main
     end do
     end do
     contains
+        function fd_wrap_acc(x) result(res)
+            real(qp), intent(in) :: x(:)
+            real(qp)             :: res(size(x))
+            real(qp)             :: jac(8,8), hes(8,8,8), &
+                                    acc(8)
+
+            gq%dynmod%tgt_on_rails = .false.
+            gq%dynmod%state = x
+            call gq%dynmod%get_derivs(x(7), acc, jac, hes)
+            res = acc
+        end function
+        function fd_wrap_jac(x) result(res)
+            real(qp), intent(in) :: x(:)
+            real(qp)             :: res(size(x),size(x))
+            real(qp)             :: jac(8,8), hes(8,8,8), &
+                                    acc(8)
+
+            gq%dynmod%tgt_on_rails = .false.
+            gq%dynmod%state = x
+            call gq%dynmod%get_derivs(x(7), acc, jac, hes)
+            res = jac
+        end function
         function fd_integrate(x) result(res)
             type(odesolution) :: fd_sol
             real(qp), intent(in) :: x(:)
@@ -215,66 +229,29 @@ program main
             finalstate = fd_sol%ys(:,size(fd_sol%ts))
             res = reshape(finalstate(9:), [8,8])
         end function fd_integrate_jac
-        function fdwrap(x) result(res)
-            real(qp), intent(in) :: x(:)
-            real(qp)             :: res(size(x)), &
-                                  & acc(8), jacdum(8,8), hesdum(8,8,8)
-            res = gq%dynmod%fd_acc_nbody(x)
-            res(:3) = 0._qp
-            if (.not.gq%dynmod%shgrav) then
-                res = res + gq%dynmod%fd_acc_kepler(x)
-            else
-                call gq%dynmod%allderivs_sh(x(7), x(:8), acc, jacdum, hesdum)
-                res = res +  acc
-            endif
-        end function fdwrap
-        function fdjacwrap(x) result(res)
-            real(qp), intent(in) :: x(:)
-            real(qp)             :: res(size(x),size(x)), &
-                                  & accdum(8), jac(8,8), hesdum(8,8,8)
-            res = gq%dynmod%fd_jac_nbody(x)
-            res(:3,:) = 0._qp
-            if (.not.gq%dynmod%shgrav) then
-                res = res + gq%dynmod%fd_jac_kepler(x)
-            else
-                call gq%dynmod%allderivs_sh(x(7), x(:8), accdum, jac, hesdum)
-                res = res + jac
-            endif
-        end function fdjacwrap
-
-        function heswrap(x) result(res)
-            real(qp), intent(in) :: x(:)
-            real(qp)             :: res(8,8,8), &
-                                  & accdum(8), jacdum(8,8), hes(8,8,8)
-            res = gq%dynmod%fd_hes_nbody(x)
-            res(:3,:,:) = 0._qp
-            if (.not.gq%dynmod%shgrav) then
-                res = gq%dynmod%fd_hes_kepler(x)
-            else
-                call gq%dynmod%allderivs_sh(x(7), x(:8), accdum, jacdum, hes)
-                res = res + hes
-            endif
-        end function heswrap
         function fd_eoms(me, x, y) result(res)
             class(RungeKutta), intent(inout) :: me
             real(qp),          intent(in)    :: x, y(:)
             real(qp)                         :: res(size(y))
             real(qp)                         :: stm(8,8), stmdot(8,8), &
                                                 jac(8,8), hes(8,8,8), &
-                                                stt(8,8,8), sttdot(8,8,8)
+                                                stt(8,8,8), sttdot(8,8,8), &
+                                                acc(8)
+
+            gq%dynmod%tgt_on_rails = .false.
+            gq%dynmod%state = y
+            call gq%dynmod%get_derivs(y(7), acc, jac, hes)
             if (size(y)==8) then
-                res = fdwrap(y)
+                res = acc
             else if (size(y)==8 + 8**2) then
-                res(:8) = fdwrap(y)
+                res(:8) = acc
                 stm = reshape(y(9:),[8,8])
-                stmdot = matmul(fdjacwrap(y(:8)),stm)
+                stmdot = matmul(jac,stm)
                 res(9:8 + 8 ** 2) = reshape(stmdot,[8**2])
             else
-                res(:8) = fdwrap(y)
+                res(:8) = acc
                 stm = reshape(y(9:8+8**2),[8,8])
                 stt = reshape(y(9+8**2:), [8,8,8])
-                jac = fdjacwrap(y(:8))
-                hes = heswrap(y(:8))
                 stmdot = matmul(jac,stm)
                 sttdot = mattens(jac,stt,8) + quad(stm,hes,8)
                 res(9:8 + 8 ** 2) = reshape(stmdot,[8**2])

@@ -103,7 +103,7 @@ program main
     do i=1,8
         print *, "PAGE ", i
         do j=1,8
-            print *, real(hes(i,j,:)-hes(i,j,:),4)
+            print *, real(hes_fd(i,j,:)-hes(i,j,:),4)
         end do
     end do
     contains
