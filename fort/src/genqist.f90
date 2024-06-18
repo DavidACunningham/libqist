@@ -66,7 +66,7 @@ module genqist
         print *, "degree of fit: ", deg
         ! Pass to fitter
         call subspice%init( &
-                           adjustl(trim(metakernel_filepath)), & ! Spice kernel
+                           trim(adjustl(metakernel_filepath)), & ! Spice kernel
                            central_body, &    ! central body
                            body_list(:n_bodies), & ! list of bodies to resample
                            t0, & ! epoch start
@@ -327,13 +327,12 @@ module genqist
         type(gqist)         :: qist_i
         type(odesolution)   :: qist_sol
         type(lightsol)      :: packedsol
-        integer             :: stat, num
+        integer             :: stat, num, i
         call qist_i%init(namefile)
         print *, "Integrating QIST. . ."
         ! Integrate model
         qist_sol = qist_i%integrate(qist_i%t0, qist_i%tf)
         print *, "DONE"
-
         print *, "Writing QIST solution. . ."
         open(newunit=num, file="temp_qist_sol.odesolution", iostat=stat, &
              access="stream", status="replace")
@@ -511,7 +510,7 @@ module genqist
             init_state(:6) = thisqist%dynmod%trajstate(t0)
             init_state(7:) = [t0, tf - t0]
         endif
-        thisqist%dynmod%state = [thisqist%dynmod%trajstate(t0), t0, tf-t0]
+        ! thisqist%dynmod%state = [thisqist%dynmod%trajstate(t0), t0, tf-t0]
         res = solve_ivp(myint_eoms,&
                       & [0._qp, 1._qp], &
                       & [ init_state, &

@@ -198,7 +198,7 @@ module makemodel
                                              & nbody_radii(3,me%num_bodies), &
                                              & nbody_vels(3,me%num_bodies), &
                                              & nbody_accs(3,me%num_bodies), &
-                                             & y(m)
+                                             & y(m), pos(3), r
         integer i
         ! at time t (in s past j2000)
             ! get r from central body to traj
@@ -255,6 +255,12 @@ module makemodel
         jac(4:6,:) = jac(4:6,:) + jac_nb(4:6,:)
         hes = hes_2b
         hes(4:6,:,:) = hes(4:6,:,:) + hes_nb(4:6,:,:)
+        !! EXTRA REGULARIZATION
+        ! pos = y(:3)
+        ! r = sqrt(sum(pos**2))
+        ! acc = acc*r**(1.5_qp)
+        ! jac = jac*r**(1.5_qp)
+        ! hes = hes*r**(1.5_qp)
         contains
             function sme(y) result(res)
                 real(qp), intent(in) :: y(:)
@@ -369,10 +375,7 @@ module makemodel
                                            & abytbyt(3), Jbyt(3,3), &
                                            & rspdotvp, rpdotvp, &
                                            & vpdotvp, rspdotap, &
-                                           & rpdotap, vprsp(3,3), rspvp(3,3), &
-                                           & att1(3), att2(3), att3(3), &
-                                           & att4(3), att5(3), att6(3), &
-                                           & att7(3), att8(3)
+                                           & rpdotap, vprsp(3,3), rspvp(3,3)
         integer i
         acc = 0._qp
         jac = 0._qp
@@ -422,25 +425,15 @@ module makemodel
                    + vbods*onebyrsp3 &
                    - vbods*onebyrp3 &
                   )
-             
-        att1 = mu*(15._qp*onebyrsp7*rspdotvp**2)*rsp
-        att2 = -mu*3._qp*(onebyrsp5*vpdotvp*rspdotap)*rsp
-        att3 = -mu*15._qp*onebyrp7*rpdotvp**2*rbods
-        att4 = mu*3._qp*onebyrp5*vpdotvp*rpdotap*rbods
-        att5 = -mu*3._qp*onebyrsp5*(rspdotvp)*vbods
-        att6 =  mu*3._qp*onebyrp5*rpdotvp*vbods
-        att7 =  mu*onebyrsp3*abods 
-        att8 = -mu*onebyrp3*abods
-        abytbyt = att1 + att2 + att3 + att4 + att5 + att6 + att7 + att8
-        ! abytbyt = mu*( &
-        !                 (15._qp*onebyrsp7*rspdotvp**2 &
-        !                  - 3._qp*onebyrsp5*vpdotvp*rspdotap)*rsp &
-        !              + (-15._qp*onebyrp7*rpdotvp**2 &
-        !                  + 3._qp*onebyrp5*vpdotvp*rpdotap)*rbods &
-        !              + (-3._qp*onebyrsp5*(rspdotvp) &
-        !                  + 3._qp*onebyrp5*rpdotvp)*vbods &
-        !              + (onebyrsp3 - onebyrp3)*abods &
-        !              )
+        abytbyt = mu*( &
+                    3._qp*(5._qp*onebyrsp7*rspdotvp**2 &
+                         - onebyrsp5*(rspdotap + vpdotvp))*rsp &
+                   -3._qp*(5._qp*onebyrp7*rpdotvp**2 &
+                         - onebyrp5*(rpdotap + vpdotvp))*rbods &
+                   -6._qp*(onebyrsp5*(rspdotvp) &
+                         - onebyrp5*rpdotvp)*vbods &
+                     + (onebyrsp3 - onebyrp3)*abods &
+                     )
         vprsp = outer_2vec(vbods,rsp)
         rspvp = outer_2vec(rsp,vbods)
         Jbyt = 3._qp*mu*( &
@@ -667,13 +660,14 @@ module makemodel
                                                jac(m,m), &
                                                hes(m,m,m)
         real(qp)                            :: res(size(y))
-        stm = reshape(y((1+1):(1 + m**2)),[m,m])
-        stt = reshape(y((1 + m**2 + 1):),[m,m,m])
+        stm = reshape(y(2:(1 + m**2)),[m,m])
+        stt = reshape(y((2 + m**2):),[m,m,m])
         call me%get_derivs(y(1), acc, jac, hes)
-        res(1) = me%tof
         stmdot = matmul(jac,stm)
         sttdot = mattens(jac,stt,m) + quad(stm,hes,m)
-        res = [me%tof, reshape(stmdot,[m**2]), reshape(sttdot,[m**3])]
+        res(1) = me%tof
+        res(2:1 + 8**2) = reshape(stmdot,[8**2])
+        res(2+8**2:) = reshape(sttdot,[8**3])
     end function eoms_rails
     function trajstate(me,time) result(res)
         ! trajstate: method to return reference state at a time
@@ -697,7 +691,7 @@ module makemodel
     function outer_2vec(veca, vecb) result(res)
         real(qp), intent(in) :: veca(:), vecb(:)
         real(qp)             :: res(size(veca),size(vecb))
-        integer i,j, n,m
+        integer j, n,m
         n = size(veca); m = size(vecb)
         do j = 1,m
             res(:,j) = veca*vecb(j)
