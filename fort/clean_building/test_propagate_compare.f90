@@ -23,8 +23,8 @@ program main
     call get_command_argument(1,arg)
     call gq%init(trim(adjustl(arg)))
     call it%init(trim(adjustl(arg)))
-    dx0 = 3.e3_qp*[1._qp, 1._qp, 1._qp, 0._qp, 0._qp, 0._qp]
-    test_t0 = gq%t0 + 4._qp*24._qp*3600._qp
+    dx0 = 5.e2_qp*[-1._qp, -1._qp, 1._qp, 0._qp, 0._qp, 0._qp]
+    test_t0 = (gq%tf - gq%t0)/2._qp + gq%t0
     test_tf = test_t0 + 2._qp*24._qp*3600._qp
     tof = test_tf-test_t0
     ! To integrate in real time, set tof to 1.
