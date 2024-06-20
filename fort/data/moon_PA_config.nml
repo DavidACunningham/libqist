@@ -1,0 +1,9 @@
+&ROTCONFIG
+	kernelfile_read = "/home/david/wrk/nstgro/qist/kernels/mk_gw.tf",
+	rotfile_write = "/home/david/wrk/nstgro/qist/libqist/fort/data/moon_PA_one_orbit.rot",
+	fitdeg = 500,
+	t0 =  768269009.1852001,
+	tf =  770745939.185063,
+	inertial_frame_string = "J2000",
+	rotating_frame_string = "MOON_PA"
+/

@@ -5,6 +5,7 @@ module genqist
     use makemodel
     use frkmin_q, only: solve_ivp, Odesolution, RungeKutta
     use cheby, only: spice_subset
+    use quat, only: rothist, quaternion
     implicit none
 
     type gqist
@@ -30,6 +31,7 @@ module genqist
         integer                       :: body_list(30)
         type(spice_subset)            :: subspice
         integer                       :: stat, num
+        logical dasein
         namelist /RESAMPLE_CONFIG/ metakernel_filepath, &
                                    resample_filepath, &
                                    t0, &
@@ -41,8 +43,8 @@ module genqist
         ! Defaults go here
         body_list = 0
         ! Read in namelist
-        inquire(file=namefile, iostat=stat)
-        if (stat .ne. 0) then 
+        inquire(file=namefile, iostat=stat, exist=dasein)
+        if (stat .ne. 0 .or. .not.dasein) then 
             print *, "ERROR: Bad spice resample namelist filename"
             stop
         end if
@@ -64,7 +66,7 @@ module genqist
         print *, "degree of fit: ", deg
         ! Pass to fitter
         call subspice%init( &
-                           adjustl(trim(metakernel_filepath)), & ! Spice kernel
+                           trim(adjustl(metakernel_filepath)), & ! Spice kernel
                            central_body, &    ! central body
                            body_list(:n_bodies), & ! list of bodies to resample
                            t0, & ! epoch start
@@ -82,25 +84,166 @@ module genqist
         close(num)
     end subroutine make_spice_subset
 
+    subroutine make_rotation(namefile)
+        character(len=*), intent(in) :: namefile
+        character(len=16)            :: inertial_frame_string, &
+                                      & rotating_frame_string
+        character(len=1)             :: yn
+        integer                      :: fitdeg
+        character(len=1000)          :: rotfile_write, kernelfile_read
+        real(dp), dimension(3,3)     :: rotmat_comp
+        real(qp)                     :: t0, tf
+        type(rothist)                :: rot
+        integer num, stat
+        logical dasein
+        namelist /ROTCONFIG/ kernelfile_read, &
+                             rotfile_write, &
+                             fitdeg, &
+                             t0, &
+                             tf, &
+                             inertial_frame_string, &
+                             rotating_frame_string
+        ! Read in namelist file
+        inquire(file=trim(adjustl(namefile)), iostat=stat, exist=dasein)
+        if (stat .ne. 0 .or. .not.dasein) then 
+            print *, "ERROR: "
+            print *, "Bad rotation history configuration namelist filename"
+            stop
+        end if
+        open(file=trim(adjustl(namefile)), status="old", &
+             iostat=stat,newunit=num)
+        read(unit=num, nml=ROTCONFIG, iostat=stat)
+        if (stat .ne. 0) then 
+            print *, "ERROR: "
+            print *, "Bad rotation history configuration namelist format"
+            stop
+        end if
+        close(num)
+        
+        call furnsh(trim(adjustl(kernelfile_read)))
+        call pxform(rotating_frame_string, &
+                  & inertial_frame_string, &
+                  & real(t0,dp), &
+                  & rotmat_comp &
+                   )
+        inquire(file=trim(adjustl(rotfile_write)), exist=dasein)
+        if (dasein) then 
+            print *, "WARNING: "
+            print *, trim(adjustl(rotfile_write)), "already exists"
+            print *, "Continuing will overwrite. Continue?"
+            yn = "X"
+            do while (yn.ne."Y".and.yn.ne."N")
+                write(*,'(A)',advance='no') "Y/N: "
+                read(*,*) yn
+                print *, ""
+            end do
+            if (yn.eq."N") then
+                print *, "Not continuing."
+                stop
+            end if
+        end if
+        call rot%init(fitfun, real(t0,dp), real(tf,dp), fitdeg, rotmat_comp)
+        open(file=trim(adjustl(rotfile_write)), &
+           & status="replace", &
+           & access="stream", &
+           & newunit=num &
+            )
+            call rot%write(num)
+        close(num)
+        contains
+        function fitfun(me, ta,tb) result(res)
+            class(rothist), intent(inout) :: me
+            real(dp), intent(in)          :: ta, tb
+            real(dp)                      :: res(4), mat(3,3)
+            type(quaternion)              :: qclass
+            call pxfrm2(trim(adjustl(rotating_frame_string)), &
+                      & trim(adjustl(rotating_frame_string)), &
+                      & ta, &
+                      & tb, &
+                      & mat &
+                       )
+            call qclass%fromdcm(mat)
+            res = qclass%q
+        end function
+    end subroutine make_rotation
+
+    subroutine load_gravity_model(gravity_file, &
+                                & ref_radius, &
+                                & mu, &
+                                & C, &
+                                & S, &
+                                & rot &
+                               & )
+        character(len=*),      intent(in)  :: gravity_file
+        real(qp),              intent(out) :: ref_radius, &
+                                            & mu
+        real(qp), allocatable, intent(out) :: C(:,:), S(:,:)
+        real(qp), allocatable              :: Cbar(:,:), &
+                                            & Sbar(:,:)
+        type(rothist),         intent(out) :: rot
+        integer                            :: degord, stat, num
+        character(len=1000)                :: rotfile
+        logical dasein
+        namelist /SPHERHARM/ rotfile, &
+                             degord, &
+                             ref_radius, &
+                             mu, &
+                             Cbar, &
+                             Sbar 
+        ! Read in namelist file
+        allocate(Cbar(0:100,0:100),Sbar(0:100, 0:100))
+        Cbar = 0._qp
+        Sbar = 0._qp
+        inquire(file=trim(adjustl(gravity_file)), iostat=stat, exist=dasein)
+        if (stat .ne. 0 .or. .not.dasein) then 
+            print *, "ERROR: Bad gravity file namelist filename"
+            stop
+        end if
+        open(file=gravity_file, status="old", &
+             iostat=stat,newunit=num)
+        read(unit=num, nml=SPHERHARM, iostat=stat)
+        if (stat .ne. 0) then 
+            print *, "ERROR: bad gravity file namelist format"
+            stop
+        end if
+        close(num)
+        allocate(C(degord+1,degord+1), &
+                 S(degord+1,degord+1))
+        C = Cbar(0:degord,0:degord)
+        S = Sbar(0:degord,0:degord)
+        inquire(file=trim(adjustl(rotfile)), iostat=stat, exist=dasein)
+        if (stat .ne. 0 .or. .not.dasein) then 
+            print *, "ERROR: Bad body frame filename"
+            stop
+        end if
+        open(file=rotfile, status="old", &
+             iostat=stat, access="stream", newunit=num)
+            call rot%read(num)
+        close(num)
+    end subroutine load_gravity_model
+
     subroutine gq_namelist_init(me,namefile)
         character(len=*), intent(in)    :: namefile
-        class(gqist),      intent(inout) :: me
-        character(len=1000) :: resample_filepath, qist_filepath
-        real(qp)            :: t0, tf, tof, &
-                                rtol, atol
-        integer             :: reference_trajectory_id, & 
-                               central_body_id, &
-                               body_list(30)
-        logical             :: shgrav
-        integer             :: stat, num, n_bodies
-        real(qp)            :: central_body_ref_radius, &
-                               central_body_mu, & 
-                               mu_list(30)
-        real(qp), parameter  :: Cbar(2,2) = 0._qp, &
-                                Sbar(2,2) = 0._qp
-        logical              :: rails
+        class(gqist),     intent(inout) :: me
+        character(len=1000)             :: resample_filepath, &
+                                         & qist_filepath, &
+                                         & gravity_filepath
+        real(qp)                        :: t0, tf, tof, &
+                                           rtol, atol
+        integer                         :: reference_trajectory_id, & 
+                                         & central_body_id, &
+                                         & body_list(30)
+        logical                         :: shgrav
+        integer                         :: stat, num, n_bodies
+        real(qp)                        :: central_body_ref_radius, &
+                                         & central_body_mu, & 
+                                         & mu_list(30)
+        real(qp), allocatable           :: C(:,:), S(:,:)
+        logical                         :: rails, dasein
+        type(rothist)                   :: rot
         namelist /QIST_CONFIG/ resample_filepath, &
                                qist_filepath, &
+                               gravity_filepath, &
                                t0, &
                                tf, &
                                rtol, &
@@ -118,9 +261,10 @@ module genqist
         body_list = 0._qp
         rtol = 1.e-10_qp
         atol = 1.e-12_qp
+        gravity_filepath = "NONE"
         ! Read in namelist
-        inquire(file=namefile, iostat=stat)
-        if (stat .ne. 0) then 
+        inquire(file=namefile, iostat=stat, exist=dasein)
+        if (stat .ne. 0 .or. .not.dasein) then 
             print *, "ERROR: Bad QIST config namelist filename"
             stop
         end if
@@ -132,6 +276,22 @@ module genqist
             stop
         end if
         close(num)
+        if (trim(adjustl(gravity_filepath)).ne."NONE") then
+            call load_gravity_model(gravity_filepath, &
+                                    & central_body_ref_radius, &
+                                    & central_body_mu, &
+                                    & C, &
+                                    & S, &
+                                    & rot &
+                                   & )
+            shgrav = .true.
+        else
+            central_body_ref_radius = 0._qp
+            allocate(C(2,2), S(2,2))
+            C = 0._qp
+            S = 0._qp
+            shgrav = .false.
+        endif 
         ! Set number of bodies
         n_bodies = findloc(body_list,0,dim=1)-1
         tof = tf - t0
@@ -152,8 +312,11 @@ module genqist
                      &  central_body_mu, &
                      &  central_body_ref_radius, &
                      &  mu_list(:n_bodies), &
+                     &  rails, &
                      &  shgrav, &
-                     &  Cbar, Sbar,rails)
+                     &  rot, &
+                     &  C, S &
+                     )
         me%filepath_var = qist_filepath
         me%dynmod%tof = tof
         me%rtol = rtol
@@ -164,13 +327,12 @@ module genqist
         type(gqist)         :: qist_i
         type(odesolution)   :: qist_sol
         type(lightsol)      :: packedsol
-        integer             :: stat, num
+        integer             :: stat, num, i
         call qist_i%init(namefile)
         print *, "Integrating QIST. . ."
         ! Integrate model
         qist_sol = qist_i%integrate(qist_i%t0, qist_i%tf)
         print *, "DONE"
-
         print *, "Writing QIST solution. . ."
         open(newunit=num, file="temp_qist_sol.odesolution", iostat=stat, &
              access="stream", status="replace")
@@ -195,7 +357,7 @@ module genqist
 
     subroutine var_init(me,t0, tf, subspicefile, traj_id, central_body, bodylist, &
                   & central_body_mu, central_body_ref_radius, mu_list, &
-                  & shgrav, Cbar, Sbar,rails)
+                  & shgrav, rails, rot, Cbar, Sbar)
         ! init_dm: method to initialize dynamicsModel object
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
@@ -222,36 +384,47 @@ module genqist
         !                               sorted in the same order ad bodylist
         ! shgrav         logical        TRUE if central body will be modeled
         !                               by spherical harmonics
+        ! rails          logical        is the reference state on rails
+        ! check          logical        whether to compare integrated and rails state
+        !                               during integration
+        ! rot            rothist        the central body-fixed rotation matrix 
+        !                               interpolation. Must be R_IU: Take
+        !                               vectors FROM the body-fixed (U) frame
+        !                               TO the inertial frame.
         ! Cbar           real (:,:)     4 pi (Kaula) normalized cosine Stokes 
         !                               for central body
         ! Sbar           real (:,:)     4 pi (Kaula) normalized sine Stokes 
         !                               for central body
-        ! rails          logical        is the reference state on rails
-        ! check          logical        whether to compare integrated and rails state
-        !                               during integration
         ! OUTPUTS:
         ! NONE
-        class(gqist), intent(inout) :: me
-        type(spice_subset)          :: subspice
-        real(qp),     intent(in)    :: t0, tf
-        integer,              intent(in)    :: traj_id, & 
-                                               central_body, &
-                                               bodylist(:)
-        logical,              intent(in)    :: shgrav, rails
-        real(qp),             intent(in)    :: central_body_ref_radius, &
-                                               central_body_mu, &
-                                               mu_list(:)
-        real(qp),             intent(in)    :: Cbar(:,:), &
-                                               Sbar(:,:)
-        character(len=*),   intent(in)    :: subspicefile
+        class(gqist),      intent(inout)        :: me
+        type(spice_subset)                      :: subspice
+        type(rothist),     intent(in),              optional :: rot
+        real(qp),          intent(in)                        :: t0, tf
+        integer,           intent(in)                        :: traj_id, & 
+                                                                central_body, &
+                                                                bodylist(:)
+        logical,           intent(in)                        :: shgrav, rails
+        real(qp),          intent(in)                        :: central_body_ref_radius, &
+                                                                central_body_mu, &
+                                                                mu_list(:)
+        real(qp),          intent(in), allocatable, optional :: Cbar(:,:), &
+                                                                Sbar(:,:)
+        character(len=*),  intent(in)                        :: subspicefile
 
         open(file=trim(adjustl(subspicefile)),unit=73, &
            & access="stream", status="old")
         call subspice%read(73)
         close(73)
+        if (shgrav.and.present(rot).and.present(Cbar).and.present(Sbar)) then
         call me%dynmod%init(subspice, traj_id, central_body, bodylist, &
                           & central_body_mu, central_body_ref_radius,  &
-                          & mu_list, shgrav, Cbar, Sbar,rails)
+                          & mu_list, shgrav, rails, rot, Cbar, Sbar)
+        else
+        call me%dynmod%init(subspice, traj_id, central_body, bodylist, &
+                          & central_body_mu, central_body_ref_radius,  &
+                          & mu_list, shgrav, rails)
+        endif
         me%t0 = t0
         me%tf = tf
         me%rtol = 1.e-10
@@ -337,7 +510,7 @@ module genqist
             init_state(:6) = thisqist%dynmod%trajstate(t0)
             init_state(7:) = [t0, tf - t0]
         endif
-        thisqist%dynmod%state = [thisqist%dynmod%trajstate(t0), t0, tf-t0]
+        ! thisqist%dynmod%state = [thisqist%dynmod%trajstate(t0), t0, tf-t0]
         res = solve_ivp(myint_eoms,&
                       & [0._qp, 1._qp], &
                       & [ init_state, &

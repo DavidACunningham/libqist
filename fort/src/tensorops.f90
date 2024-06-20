@@ -149,14 +149,20 @@ module tensorops
         integer, intent(in) :: n
         real(wp), intent(in) :: v(n), t(n,n,n)
         real(wp) :: res(n,n)
-        res = vectens1(v,reshape(t,[n,n,n],order=[3,2,1]),n)
+        res = transpose( &
+               vectens1(v, &
+                 reshape(t,[n,n,n], &
+                    order=[3,2,1]),n))
     end function q_vectens3
     pure function d_vectens3(v,t,n) result(res)
         implicit none
         integer, intent(in) :: n
         real(dp), intent(in) :: v(n), t(n,n,n)
         real(dp) :: res(n,n)
-        res = vectens1(v,reshape(t,[n,n,n],order=[3,2,1]),n)
+        res = transpose( &
+               vectens1(v, &
+                 reshape(t,[n,n,n], &
+                    order=[3,2,1]),n))
     end function d_vectens3
     
     pure function q_vectensquad(v,t,n) result(res)
@@ -164,7 +170,7 @@ module tensorops
         integer, intent(in) :: n
         real(wp), intent(in) :: v(n), t(n,n,n)
         real(wp) :: res(n)
-        res = mmult(v,vectens3(v,t,n))
+        res = mmult(v,transpose(vectens3(v,t,n)))
     end function q_vectensquad
 
     pure function d_vectensquad(v,t,n) result(res)
@@ -172,13 +178,13 @@ module tensorops
         integer, intent(in) :: n
         real(dp), intent(in) :: v(n), t(n,n,n)
         real(dp) :: res(n)
-        res = mmult(v,vectens3(v,t,n))
+        res = mmult(v,transpose(vectens3(v,t,n)))
     end function d_vectensquad
 
     pure function q_stminvert(stm,n) result(res)
         implicit none
-        real(wp), intent(in) :: stm(n,n)
         integer, intent(in) :: n 
+        real(wp), intent(in) :: stm(n,n)
         real(wp)             :: res(n,n)
         ! symplectic version
         select case(n)
@@ -191,8 +197,8 @@ module tensorops
 
     pure function d_stminvert(stm,n) result(res)
         implicit none
-        real(8), intent(in) :: stm(n,n)
         integer, intent(in) :: n 
+        real(8), intent(in) :: stm(n,n)
         real(8)             :: res(n,n)
         select case(n)
         case(6)
@@ -205,8 +211,8 @@ module tensorops
 
     pure function d_sttinvert(stm,stt,n) result (res)
         implicit none
-        real(8), intent(in) :: stm(n,n), stt(n,n,n)
         integer, intent(in) :: n
+        real(8), intent(in) :: stm(n,n), stt(n,n,n)
         real(8) :: istm(n,n), res(n,n,n), inter(n,n,n)
         istm = stminvert(stm,n)
         inter = -mattens(istm,stt,n)
@@ -215,8 +221,8 @@ module tensorops
 
     pure function q_sttinvert(stm,stt,n) result (res)
         implicit none
-        real(wp), intent(in) :: stm(n,n), stt(n,n,n)
         integer, intent(in) :: n
+        real(wp), intent(in) :: stm(n,n), stt(n,n,n)
         real(wp) :: istm(n,n), res(n,n,n), inter(n,n,n)
         istm = stminvert(stm,n)
         inter = -mattens(istm,stt,n)

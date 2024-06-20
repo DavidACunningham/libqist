@@ -230,22 +230,10 @@ module denseLight
         class(lightSol), intent(inout) :: self
         type(ODESolution) :: ODESol
         character(*), intent(in)    :: filename
-        open(file=breakonspace(trim(adjustl(filename))), unit=73, access="stream", status="old")
+        open(file=trim(adjustl(filename)), unit=73, access="stream", status="old")
         call ODESol%read(73)
         close(73)
         call self%convert_from_object(ODESol)
-        contains 
-            function breakonspace(str) result(shortstr)
-                character(len=*), intent(in) :: str
-                character(len=:), allocatable :: shortstr
-                integer i
-                do i = 1,1000-5, 1
-                    if (str(i:i+4)=='.strm') then
-                        exit
-                    endif
-                end do
-                shortstr = str(:i+4)
-            end function
     end subroutine convert_from_file
     function call_single(self, t,lind,uind) result(res)
         class(lightSol), intent(inout) :: self

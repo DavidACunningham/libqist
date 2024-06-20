@@ -1,5 +1,0 @@
-&ITRAJ_CONFIG
-    qist_filepath = "/home/david/wrk/nstgro/qist/libqist/fort/data/20240524_gw.qist",
-    t0 = 769269009.185,
-    tf = 769845939.185
-/

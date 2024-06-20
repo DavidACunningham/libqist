@@ -67,18 +67,16 @@ module tinysh
 
         ! Input/output
         integer,intent(in) :: degmax
-        real(ap),dimension(:,:),intent(in) :: Cml ! C terms organized into order/degree
-        real(ap),dimension(:,:),intent(in) :: Sml ! S terms organized into order/degree
+        real(ap),allocatable,dimension(:,:),intent(in) :: Cml ! C terms organized into order/degree
+        real(ap),allocatable,dimension(:,:),intent(in) :: Sml ! S terms organized into order/degree
+        real(ap),allocatable,dimension(:,:) :: Cml_buf, Sml_buf
         type(PinesData),intent(inout) :: pdat
 
         ! Local
         integer :: l,m
         integer :: idx
 
-        if (pdat%pinesallocated .and. (size(pdat%rhol) /= degmax+1)) then
-            print *, "WARNING: pdat already allocated, deallocating (pinesinit)"
-            call deallocatepines(pdat)
-        end if
+        call deallocatepines(pdat)
 
         if(.not.allocated(pdat%rhol)) allocate(pdat%rhol(degmax+1))
         if(.not.allocated(pdat%cosmlam)) allocate(pdat%cosmlam(degmax+2))
@@ -122,12 +120,20 @@ module tinysh
         if(.not.allocated(pdat%B10m)) allocate(pdat%B10m(degmax+2))
 
         ! Store Stokes coefficients in vectorized form for faster access
+        allocate(Cml_buf(size(Cml,1)+1,size(Cml,2)+1))
+        allocate(Sml_buf(size(Sml,1)+1,size(Sml,2)+1))
+        Cml_buf = 0._ap
+        Sml_buf = 0._ap
+        Cml_buf(:size(Cml,1),:size(Cml,2)) = Cml
+        Sml_buf(:size(Sml,1),:size(Sml,2)) = Sml
         idx = 0
+        pdat%Cvec = 0._ap
+        pdat%Svec = 0._ap
         do m = 0,degmax
             do l = m,degmax
                 idx = idx + 1
-                pdat%Cvec(idx) = Cml(m+1,l+1)
-                pdat%Svec(idx) = Sml(m+1,l+1)
+                pdat%Cvec(idx) = Cml_buf(m+1,l+1)
+                pdat%Svec(idx) = Sml_buf(m+1,l+1)
             end do
         end do
 
@@ -239,6 +245,12 @@ module tinysh
         real(ap) :: lam, coslam, sinlam
         real(ap) :: phi, cosphi
         integer :: idx
+
+        ! DAC: Zero initialize outputs
+        ! V = 0._ap
+        ! dV = 0._ap
+        ! d2V = 0._ap
+        ! d3V = 0._ap
 
         pdat%rhol = 0.0_ap
         pdat%cosmlam = 0.0_ap

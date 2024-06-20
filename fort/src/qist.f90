@@ -178,7 +178,7 @@ module qist
         res(6,7) = packlin(43)
         res(6,8) = packlin(49)
         res(7,7)=1._dp
-        res(7,8)=1._dp
+        res(7,8)= (t-self%t0)/(self%tf-self%t0)
         res(8,8)=1._dp
     end function stm
     function stm_i(self,t) result(res)
