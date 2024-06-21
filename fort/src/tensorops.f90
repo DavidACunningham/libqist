@@ -37,6 +37,10 @@ module tensorops
         module procedure q_vectens1
         module procedure d_vectens1
     end interface vectens1
+    interface vectens2
+        module procedure q_vectens2
+        module procedure d_vectens2
+    end interface vectens2
     interface vectens3
         module procedure q_vectens3
         module procedure d_vectens3
@@ -70,16 +74,16 @@ module tensorops
         integer, intent(in) :: n
         real(wp) :: res(n,n)
         res = 0._wp
-        res(:n/2,n/2:) = eyemat(n/2)
-        res(n/2:,:n/2) = -eyemat(n/2)
+        res(:n/2,n/2+1:) = eyemat(n/2)
+        res(n/2+1:,:n/2) = -eyemat(n/2)
     end function zmat
     pure function d_zmat(n) result(res)
         implicit none
         integer, intent(in) :: n
         real(8) :: res(n,n)
         res = 0._8
-        res(:n/2,n/2:) = d_eyemat(n/2)
-        res(n/2:,:n/2) = -d_eyemat(n/2)
+        res(:n/2,n/2+1:) = d_eyemat(n/2)
+        res(n/2+1:,:n/2) = -d_eyemat(n/2)
     end function d_zmat
 
     pure function q_mattens(m,t,n) result(res)
@@ -137,13 +141,20 @@ module tensorops
         res = reshape(mmult(v,reshape(t,[n,n**2])),[n,n])
     end function d_vectens1
 
-    pure function vectens2(v,t,n) result(res)
+    pure function q_vectens2(v,t,n) result(res)
         implicit none
         integer, intent(in) :: n
         real(wp), intent(in) :: v(n), t(n,n,n)
         real(wp) :: res(n,n)
         res = vectens1(v,reshape(t,[n,n,n],order=[2,1,3]),n)
-    end function vectens2
+    end function q_vectens2
+    pure function d_vectens2(v,t,n) result(res)
+        implicit none
+        integer, intent(in) :: n
+        real(dp), intent(in) :: v(n), t(n,n,n)
+        real(dp) :: res(n,n)
+        res = vectens1(v,reshape(t,[n,n,n],order=[2,1,3]),n)
+    end function d_vectens2
     pure function q_vectens3(v,t,n) result(res)
         implicit none
         integer, intent(in) :: n

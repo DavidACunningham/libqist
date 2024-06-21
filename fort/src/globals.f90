@@ -114,30 +114,4 @@ module globals
         real(dp)             :: res(size(matB,2))
         res = matmul(matA,matB)
     end function mmult_matvec_vecfirst_d
-    pure function qesolve(a,b,c) result(res)
-        ! qesolve: Returns roots of a quadratic equation
-        !          using stable solution method
-        ! INPUTS:
-        ! NAME      TYPE     COMMENTS
-        ! a         real     quadratic coefficient
-        ! b         real     linear coefficient
-        ! c         real     constant coefficient
-        ! OUTPUTS:
-        ! NAME      TYPE     COMMENTS
-        ! res       real (4) Solution vector, roots are r1 and r2
-        !                    [Re(r1), Im(r1), Re(r2), Im(r2)]
-        real(wp), intent(in) :: a,b,c
-        complex(wp)          :: x1, x2, d
-        real(wp)             :: res(4)
-
-        d = sqrt(cmplx(b*b-4._wp*a*c))
-        if (b.ge.0) then
-            x1 = -(b+d)/(2._wp*a)
-            x2 = -2._wp*c/(b+d)
-        else
-            x1 = 2._wp*c/(d-b)
-            x2 = (d-b)/(2._wp*a)
-        end if
-        res = [real(x1), aimag(x1), real(x2), aimag(x2)]
-    end function qesolve
 end module globals

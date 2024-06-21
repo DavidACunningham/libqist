@@ -1,7 +1,7 @@
 module makemodel
     use, intrinsic :: iso_fortran_env, only: wp=>real64, dp=>real64, qp=>real128
-    use tinysh
-    use tensorops
+    use tinysh, only: PinesData, pinesinit, shpines
+    use tensorops, only: mattens, quad, vectens3, eyemat, vectensquad
     use cheby, only: spice_subset
     use quat, only: rothist
     use globals, only: mmult
