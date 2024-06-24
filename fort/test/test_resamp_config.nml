@@ -1,0 +1,9 @@
+&RESAMPLE_CONFIG 
+	metakernel_filepath="../../../kernels/mk_gw.tf",
+    resample_filepath = "./test_resample.subspice",
+	t0 =  772509669.184287,  ! 2024 Jun 24 14:00 UTC
+	tf =  775101669.183457,  ! 2024 Jul 24 14:00 UTC
+	central_body=301,
+	body_list= 399,
+	deg=400
+/

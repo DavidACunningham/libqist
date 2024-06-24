@@ -49,24 +49,24 @@ module quat
             real(wp)             :: res(4)
         end function fit_func
     end interface
-    interface operator (*)
+    interface operator ( * )
         module procedure qmul
         module procedure smul1
         module procedure smul2
         module procedure imul1
         module procedure imul2
     end interface
-    interface operator (+)
+    interface operator ( + )
         module procedure qadd
     end interface
-    interface operator (/)
+    interface operator ( / )
         module procedure sdiv
     end interface
-    interface operator (-)
+    interface operator ( - )
         module procedure qsub
         module procedure qainv
     end interface
-    interface operator (.T.)
+    interface operator ( .T. )
         module procedure qconj
     end interface
 
@@ -313,7 +313,7 @@ module quat
         pure function norm(q) result(res)
             class(quaternion), intent(in) :: q
             real(wp) :: res
-            res = norm2(q%q)
+            res = sqrt(sum(q%q*q%q))
         end function norm
         elemental function smul1(s,q) result(res)
             type(quaternion), intent(in) :: q
@@ -434,24 +434,24 @@ module quat
             q%q(2) = ax(1)*sin(ang/2)
             q%q(3) = ax(2)*sin(ang/2)
             q%q(4) = ax(3)*sin(ang/2)
-            q%q = q%q/norm2(q%q)
+            q%q = q%q/q%norm()
         end subroutine axang
         pure function ax(q) result (res)
             class(quaternion), intent(in) :: q
             real(wp) :: res(3)
-            res = q%q(2:4)/norm2(q%q(2:4))
+            res = q%q(2:4)/sqrt(sum(q%q(2:4)**2))
         end function ax
         pure function ang(q) result (res)
             class(quaternion), intent(in) :: q
             real(wp) :: res
-            res = 2._wp*atan2(norm2(q%q(2:4)),q%q(1))
+            res = 2._wp*atan2(sqrt(sum(q%q(2:4)**2)),q%q(1))
         end function ang
         pure function rotate_vec(q,v) result(res)
             class(quaternion), intent(in) :: q
             real(wp),          intent(in) :: v(3)
             real(wp)                      :: res(3), norm
             type(quaternion)              :: vquat
-            norm = norm2(v)
+            norm = sqrt(sum(v**2))
             vquat = quaternion([0._wp, v])
             vquat = .T.q*vquat*q
             res = norm*vquat%q(2:)

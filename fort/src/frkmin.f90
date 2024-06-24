@@ -685,7 +685,7 @@ module frkmin
         ! then we prioritize a segment with a lower index.
         ind = binsearch(self%ts_sorted, t)
 
-        segment = min(max(ind, 1), self%n_segments - 1)
+        segment = min(max(ind, 1), self%n_segments)
         if (.not. self%ascending) then
             segment = self%n_segments - 1 - segment
         end if
@@ -793,7 +793,7 @@ module frkmin
         end do
         !$OMP END PARALLEL DO
         where (segments < 0._WP) segments = 1
-        where (segments > self%n_segments - 1) segments  = self%n_segments - 1
+        where (segments > self%n_segments - 1) segments  = self%n_segments
         if (.not. self%ascending) then
             segments = self%n_segments - 1 - segments
         endif

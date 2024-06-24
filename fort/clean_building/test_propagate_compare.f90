@@ -18,7 +18,7 @@ program main
     real(dp),allocatable  :: itraj_state_hist(:,:)
     real(qp), allocatable :: rel_state_hist(:,:)
                           
-    integer i, j
+    integer i
 
     call get_command_argument(1,arg)
     call gq%init(trim(adjustl(arg)))

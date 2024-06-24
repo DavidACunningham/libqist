@@ -129,7 +129,7 @@ module genqist
         inquire(file=trim(adjustl(rotfile_write)), exist=dasein)
         if (dasein) then 
             print *, "WARNING: "
-            print *, trim(adjustl(rotfile_write)), "already exists"
+            print *, trim(adjustl(rotfile_write)), " already exists"
             print *, "Continuing will overwrite. Continue?"
             yn = "X"
             do while (yn.ne."Y".and.yn.ne."N")
@@ -296,10 +296,11 @@ module genqist
         n_bodies = findloc(body_list,0,dim=1)-1
         tof = tf - t0
         ! Print status
-        print *, "Generating QIST model for reference trajectory ", reference_trajectory_id
+        print *, "Loading QIST model for reference trajectory ", reference_trajectory_id
         print *, "Using ephemeris data from ", trim(adjustl(resample_filepath))
         print *, "Relative to body ", central_body_id
         print *, "With perturbations from bodies ", body_list(:n_bodies)
+        print *, "With spherical harmonics gravity? ", me%dynmod%shgrav
         print *, "From J2000 + ", t0
         print *, "To J2000 + ", tf
         print *, ""

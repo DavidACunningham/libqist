@@ -1,0 +1,9 @@
+&ROTCONFIG
+	kernelfile_read = "../../../kernels/mk_gw.tf",
+    rotfile_write = "./test_rot.rot",
+	fitdeg = 400,
+	t0 =  772509669.184287,  ! 2024 Jun 24 14:00 UTC
+	tf =  775101669.183457,  ! 2024 Jul 24 14:00 UTC
+	inertial_frame_string = "J2000",
+	rotating_frame_string = "MOON_PA"
+/
