@@ -121,6 +121,7 @@ module cheby
             read(unit_num) me%pcoeffs
             read(unit_num) me%vcoeffs
             read(unit_num) me%acoeffs
+            me%acoeffs(me%ndeg-1:,:) = 0._dp
         end subroutine spiceread
         subroutine fitspice(me, kernelfile, central_body, bodlist, a, b, ndeg)
             class(spice_subset), intent(inout) :: me

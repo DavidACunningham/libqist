@@ -29,29 +29,29 @@ module test_globals
             msg = ""
             if (norm2(mmult(mata_d,matb_d)-matmul(mata_d,matb_d)).ge.dtol) then
                 testpass=.false.
-                msg = trim(msg)//"Double precision matrix-matrix multiply fail."
+                msg = trim(msg)//"FAIL Double precision matrix-matrix multiply FAIL"
             endif
             if (norm2(mmult(mata_q,matb_q)-matmul(mata_q,matb_q)).ge.qtol) then
                 testpass=.false.
-                msg = trim(msg)//new_line("a")//" Quad precision matrix-matrix multiply fail."
+                msg = trim(msg)//new_line("a")//"FAIL Quad precision matrix-matrix multiply FAIL"
             endif
             if (norm2(mmult(mata_d,veca_d)-matmul(mata_d,veca_d)).ge.dtol) then
                 testpass=.false.
-                msg = trim(msg)//new_line("a")//" Double precision matrix-vector multiply fail."
+                msg = trim(msg)//new_line("a")//"FAIL Double precision matrix-vector multiply FAIL"
             endif
             if (norm2(mmult(mata_q,veca_q)-matmul(mata_q,veca_q)).ge.qtol) then
                 testpass=.false.
-                msg = trim(msg)//new_line("a")//" Quad precision matrix-vector multiply fail."
+                msg = trim(msg)//new_line("a")//"FAIL Quad precision matrix-vector multiply FAIL"
             endif
             if (norm2(mmult(veca_d,mata_d)-matmul(veca_d,mata_d)).ge.dtol) then
                 testpass=.false.
-                msg = trim(msg)//new_line("a")//" Double precision vector-matrix multiply fail."
+                msg = trim(msg)//new_line("a")//"FAIL Double precision vector-matrix multiply FAIL"
             endif
             if (norm2(mmult(veca_q,mata_q)-matmul(veca_q,mata_q)).ge.qtol) then
                 testpass=.false.
-                msg = trim(msg)//new_line("a")//" Quad precision vector-matrix multiply fail."
+                msg = trim(msg)//new_line("a")//"FAIL Quad precision vector-matrix multiply FAIL"
             endif
-            if (testpass) msg = "Matrix multiplication tests passed."
+            if (testpass) msg = "PASS Matrix multiplication tests PASS"
             write (*,*) trim(msg)
         end subroutine test_mmult
 end module test_globals

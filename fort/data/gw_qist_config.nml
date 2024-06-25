@@ -19,7 +19,7 @@
     mu_list(3) = 126712764.1
 /
 &ITRAJ_CONFIG
-    qist_filepath = "/home/david/wrk/nstgro/qist/libqist/fort/data/20240618_pseudogw.qist",
+    qist_filepath = "/home/david/wrk/nstgro/qist/libqist/fort/data/20240624_gw.qist",
     t0 = 769269009.185,
     tf = 769845939.185
 /

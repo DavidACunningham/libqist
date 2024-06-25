@@ -26,19 +26,19 @@ module test_frkmin
             msg = ""
             if (.not.testpassvec(1)) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//" Sparse Double integration fail."
+                msg = trim(msg)//new_line("a")//"FAIL Sparse Double integration FAIL"
             end if
             call frk_dense_test(testpassvec(2))
             if (.not.testpassvec(2)) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//" Dense Double integration fail."
+                msg = trim(msg)//new_line("a")//"FAIL Dense Double integration FAIL"
             end if
             call frk_readwrite_test(testpassvec(3))
             if (.not.testpassvec(1)) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//" Double integration read/write fail."
+                msg = trim(msg)//new_line("a")//"FAIL Double integration read/write FAIL"
             end if
-            if (testpass) msg = "Double precision integration tests pass."
+            if (testpass) msg = "PASS Double precision integration tests PASS"
             write (*,*) trim(msg)
         end subroutine
         subroutine frk_sparse_test(testpass)

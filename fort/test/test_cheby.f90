@@ -7,11 +7,11 @@ module test_cheby
                      chfit, &
                      chderiv, &
                      pi
+    use test_util, only: mprint
     implicit none
     contains
     subroutine test_scalar_cheby(testpass)
         logical, intent(inout) :: testpass
-        character(len=100) :: msg
         integer, parameter  :: deg=80, tlen=1000
         real(dp), parameter :: tol=1.e-15_dp, dtol=1.e-14_dp
         real(dp), parameter :: a=0._dp, b=2._dp*pi
@@ -34,17 +34,17 @@ module test_cheby
         diffnorm = norm2(truth-cheb)/tlen
         ddiffnorm = norm2(dtruth-dcheb)/tlen
         testpass = .true.
-        msg = ""
         if (diffnorm.ge.tol) then
             testpass=.false.
-            msg = trim(msg)//" Scalar Chebyshev interpolant test fail."
+            write (*,*) "FAIL Scalar Chebyshev interpolant test FAIL"
+            write (*,*) " Error: ", diffnorm
         endif
         if (ddiffnorm.ge.dtol) then
             testpass=.false.
-            msg = trim(msg)//new_line("a")//" Scalar Chebyshev interpolant derivative test fail."
+            write (*,*) "FAIL Scalar Chebyshev interpolant derivative test FAIL"
+            write (*,*) " Error: ", ddiffnorm
         endif
-        if (testpass) msg = "Scalar Chebyshev interpolation tests passed."
-        write (*,*) trim(msg)
+        if (testpass) write (*,*) "PASS Scalar Chebyshev interpolation tests PASS"
         contains
             elemental function fitfun(x) result(res)
                 real(dp), intent(in) :: x
@@ -65,7 +65,6 @@ module test_cheby
         logical, intent(inout) :: testpass
 
         character(len=*), intent(in)  :: metakernel_filepath
-        character(len=500)  :: msg
         integer, parameter  :: tlen=200, indvar=1
         type(spice_subset)  :: spiceb, spice
         integer, parameter  :: deg=20
@@ -82,7 +81,6 @@ module test_cheby
         integer             :: i, j, bodlist(6), stat, num
 
         bodlist = [10, 2, 301, 4, 5, 6]
-        msg = ""
         call spiceb%init(trim(adjustl(metakernel_filepath)), 399, bodlist, a, b, deg)
 
         write (*,*) "Writing to temporary subspice file. . ."
@@ -91,7 +89,7 @@ module test_cheby
             write (*,*) "Done"
         else
             testpass = .false.
-            msg = trim(msg)//new_line("a")//" Failed to write subspice file."
+            write (*,*) "FAIL Subspice write FAIL"
         end if 
         call spiceb%write(num)
         close(num)
@@ -103,7 +101,7 @@ module test_cheby
             write (*,*) "Done"
         else
             testpass = .false.
-            msg = trim(msg)//new_line("a")//" Failed to write subspice file."
+            write (*,*) "FAIL Subspice read FAIL"
         end if 
 
         testpoints = [(a + i*(b-a)/tlen, i=1,tlen)]
@@ -127,11 +125,11 @@ module test_cheby
         vnorm = norm2(dtruth-dcheb)/(norm2(dtruth)*tlen)
         if (pnorm.ge.tol) then
             testpass=.false.
-            msg = trim(msg)//" SPICE resample position test fail."
+            write (*,*) "FAIL SPICE resample position test FAIL"
         endif
         if (vnorm.ge.dtol) then
             testpass=.false.
-            msg = trim(msg)//new_line("a")//" SPICE resample velocity test fail."
+            write (*,*) "FAIL SPICE resample velocity test FAIL"
         endif
         write(*,*) "Removing temporary subspice file. . ."
         open(file="./test_resamp.subspice",newunit=num,access="stream",status="old", iostat=stat)
@@ -139,8 +137,7 @@ module test_cheby
             close(num, status='delete')
             write (*,*) "Done."
         endif
-        if (testpass) msg = "Spice resample tests passed."
-        write (*,*) trim(msg)
+        if (testpass) write (*,*) "PASS Spice resample tests PASS"
     end subroutine test_spice_subset
 
 end module test_cheby

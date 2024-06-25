@@ -27,21 +27,21 @@ module test_frkmin_q
             msg = ""
             if (.not.testpassvec(1)) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//" Sparse Quad integration fail."
+                msg = trim(msg)//new_line("a")//"FAIL Sparse Quad integration FAIL"
             end if
             write (*,*) "Testing dense Quad integration. . ."
             call frk_dense_test(testpassvec(2))
             if (.not.testpassvec(2)) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//" Dense Quad integration fail."
+                msg = trim(msg)//new_line("a")//"FAIL Dense Quad integration FAIL"
             end if
             write (*,*) "Testing Quad integration read/write. . ."
             call frk_readwrite_test(testpassvec(3))
             if (.not.testpassvec(1)) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//" Quad integration read/write fail."
+                msg = trim(msg)//new_line("a")//"FAIL Quad integration read/write FAIL"
             end if
-            if (testpass) msg = "Quad precision integration tests pass."
+            if (testpass) msg = "PASS Quad precision integration tests PASS"
             write (*,*) trim(msg)
         end subroutine
         subroutine frk_sparse_test(testpass)

@@ -174,7 +174,7 @@ module quat
             call me%renorm(q)
             qdyn%q = q
             qtot = qdyn*me%qstat
-            res = qtot%asdcm()
+            res = transpose(qtot%asdcm())
         end function
         function getrotquat(me, t) result(res)
             class(rothist), intent(inout) :: me
@@ -408,13 +408,13 @@ module quat
                 q20 = q2*q0; q23 = q2*q3; q10 = q1*q0
             end associate
             res(:,1) = [sq(1) - sq(2) -sq(3) + sq(0), &
-                      & 2*(q12 - q30), &
-                      & 2*(q13 + q20)]
-            res(:,2) = [2*(q12 + q30), &
+                      & 2*(q12 + q30), &
+                      & 2*(q13 - q20)]
+            res(:,2) = [2*(q12 - q30), &
                       & -sq(1) + sq(2) - sq(3) + sq(0), &
-                      & 2*(q23 - q10)]
-            res(:,3) = [2*(q13 - q20), &
-                      & 2*(q23 + q10), &
+                      & 2*(q23 + q10)]
+            res(:,3) = [2*(q13 + q20), &
+                      & 2*(q23 - q10), &
                       & -sq(1) - sq(2) + sq(3) + sq(0)]
         end function asdcm
         pure subroutine fromdcm(q,dcm) 

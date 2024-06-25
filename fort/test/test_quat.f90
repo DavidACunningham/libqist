@@ -2,12 +2,12 @@ module test_quat
     use quat
     use, intrinsic :: iso_fortran_env, only: dp=>real64, qp=>real128
     use findiffmod
+    use test_util, only: mprint
     implicit none
     contains
 
         subroutine quat_ops_test(testpass)
             logical, intent(inout) :: testpass
-            character(len=500)     :: msg
             real(dp), parameter    :: ang1=0.775406922180032_dp, &
                                       ang2=4.533519244025973_dp
             real(dp), parameter    :: ax1(3) = [0.841804704648762_dp, &
@@ -44,27 +44,33 @@ module test_quat
             quatc = quatb*quata
 
             testpass = .true.
-            msg = ""
             if (norm2(quata%q-quata_true).ge.dtol) then
                 testpass = .false.
-                msg = trim(msg)//" Quaternion axang initialization fail."
+                write (*,*) "FAIL Quaternion axang initialization FAIL"
+                write (*,*) "Error: ", quata%q - quata_true
             endif
             if (norm2(quatd%q-quata_true).ge.dtol) then
-                msg = trim(msg)//new_line("a")//" Quaternion DCM initialization fail."
+                write(*,*) "FAIL Quaternion DCM initialization FAIL"
+                write (*,*) "Error: ", quatd%q - quata_true
             endif
             if (norm2(quatc%q-quatc_true).ge.dtol) then
-                msg = trim(msg)//new_line("a")//" Quaternion composition fail."
+                write(*,*) "FAIL Quaternion composition FAIL"
+                write (*,*) "Error: ", quatc%q - quatc_true
             endif
             if (norm2(quata%asdcm()-dcma_true).ge.dtol) then
-                msg = trim(msg)//new_line("a")//" Quaternion to DCM conversion fail."
+                write(*,*) "FAIL Quaternion to DCM conversion FAIL"
+                write (*,*) "Error: "
+                call mprint(quata%asdcm())
+                print *, ""
+                call mprint(dcma_true)
+                print *, ""
+                call mprint(quata%asdcm() - dcma_true)
             endif
-            if (testpass) msg = "Basic quaternion operations tests passed."
-            write (*,*) trim(msg)
+            if (testpass) write (*,*) "PASS Basic quaternion operations tests PASS"
         end subroutine quat_ops_test
 
         subroutine rot_hist_test(testpass)
             logical, intent(inout) :: testpass
-            character(len=500)     :: msg
             integer, parameter :: nnodes=80
             real(dp), parameter :: pi = asin(1._dp)*2._dp, &
                                    dtol = 1.e-13_dp
@@ -75,7 +81,6 @@ module test_quat
                                         dcmdot_fd(3,3), dcmddot_fd(3,3), &
                                         qdum(4,1), midpoint_time
             type(rothist)            :: rot
-            integer i
 
             t0 = 0.12_dp
             tf = 4._dp*pi
@@ -99,23 +104,24 @@ module test_quat
                               (tf-t0)*1.e-3_qp, 9, real(dcmdot,qp)),dp)
 
             testpass = .true.
-            msg = ""
             if (norm2(qdot-qdot_fd).ge.dtol) then
                 testpass = .false.
-                msg = trim(msg)//" Rothist quaternion derivative fail."
-                print*,(qdot-qdot_fd)
+                write (*,*) "FAIL Rothist quaternion derivative FAIL"
+                write (*,*) "Error: ", (qdot-qdot_fd)
             endif
             if (norm2(dcmdot_fd-dcmdot).ge.dtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//" Rothist DCM derivative fail."
-                print*,norm2(dcmdot-dcmdot_fd)
+                write(*,*) "FAIL Rothist DCM derivative FAIL"
+                write (*,*) "Error: "
+                call mprint(dcmdot_fd - dcmdot)
             endif
             if (norm2(dcmddot_fd-dcmddot).ge.dtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//" Rothist DCM second derivative fail."
+                write(*,*) "FAIL Rothist DCM second derivative FAIL"
+                write (*,*) "Error: "
+                call mprint(dcmddot_fd - dcmddot)
             endif
-            if (testpass) msg = "Rothist tests passed."
-            write (*,*) trim(msg)
+            if (testpass) write (*,*) "PASS Rothist tests PASS"
             contains
             function fitfun(me, ta,tb) result(res)
                 class(rothist), intent(inout) :: me

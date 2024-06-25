@@ -21,13 +21,29 @@ program main
     call m2q(rotmat,qquat)
     print * , real(qquat,4)
     print *, ''
-    call pmat(rotmat)
-    print*, ""
-    call pmat(rotmat2)
-    print*, ""
-    call pmat(matmul(rotmat_comp,rotmat))
-    print*, ""
-    call pmat(rotmat2-matmul(rotmat_comp,rotmat))
+    iquat%q = qquat
+    call qstat%fromdcm(rotmat)
+    rotmat2 = iquat%asdcm()
+    do i = 1,3
+        print *, rotmat(i,:)
+    end do 
+    print *,""
+    do i = 1,3
+        print *, rotmat2(i,:)
+    end do
+    print *,""
+    do i = 1,3
+        print *, rotmat2(i,:) - rotmat(i,:)
+    end do
+    rotmat2 = qstat%asdcm()
+    print *, " "
+    do i = 1,3
+        print *, rotmat2(i,:)
+    end do
+    print *,""
+    do i = 1,3
+        print *, rotmat2(i,:) - rotmat(i,:)
+    end do
 
     !! ALL THAT'S NEEDED TO SETUP ROTS
     call pxform('J2000','IAU_EARTH',epoch,rotmat_comp)
@@ -50,8 +66,8 @@ program main
     
     
     call pxfrm2('IAU_EARTH','IAU_EARTH',epoch,5000._dp,rotmat_comp)
+    call m2q(rotmat_comp,qquat)
      
-    ! call m2q( rotmat_comp,quat)
 
     contains
     function fitfun(me, ta,tb) result(res)

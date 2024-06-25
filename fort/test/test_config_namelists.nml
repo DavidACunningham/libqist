@@ -3,7 +3,7 @@
     qist_filepath = "./test_qist.qist",
 	gravity_filepath = "./test_config_namelists.nml",
 	t0 =  772509669.184287,  ! 2024 Jun 24 14:00 UTC
-	tf =  775101669.183457,  ! 2024 Jul 24 14:00 UTC
+	tf =  772682469.184231,  ! 2024 Jun 26 14:00 UTC
     rtol = 1.e-14,
     atol = 1.e-20,
     reference_trajectory_id = 301,
@@ -34,20 +34,37 @@
     sbar(2,2) =-2.4064244523445002D-10, 
 /
 &RESAMPLE_CONFIG 
-	metakernel_filepath="../../../kernels/mk_gw.tf",
+	metakernel_filepath="../../../kernels/mk_test.tf",
     resample_filepath = "./test_resample.subspice",
 	t0 =  772509669.184287,  ! 2024 Jun 24 14:00 UTC
-	tf =  775101669.183457,  ! 2024 Jul 24 14:00 UTC
+	tf =  772682469.184231,  ! 2024 Jun 26 14:00 UTC
 	central_body=301,
 	body_list= 399,
 	deg=400
 /
 &ROTCONFIG
-	kernelfile_read = "../../../kernels/mk_gw.tf",
+	kernelfile_read = "../../../kernels/mk_test.tf",
     rotfile_write = "./test_rot.rot",
 	fitdeg = 400,
 	t0 =  772509669.184287,  ! 2024 Jun 24 14:00 UTC
-	tf =  775101669.183457,  ! 2024 Jul 24 14:00 UTC
+	tf =  772682469.184231,  ! 2024 Jun 26 14:00 UTC
 	inertial_frame_string = "J2000",
 	rotating_frame_string = "MOON_PA"
+/
+&KERNEL_CONFIG
+    metakernel_filepath = "../../../kernels/mk_test.tf",
+    qist_config_file = "./test_config_namelists.nml"
+	output_kernel_filename = "../../../kernels/test_orbit.bsp",
+	traj_id  = -999,
+	t0 =  772509669.184287,  ! 2024 Jun 24 14:00 UTC
+	tf =  772682469.184231,  ! 2024 Jun 26 14:00 UTC
+	rtol = 1.e-16,
+	atol = 1.e-20,
+	nnodes = 50000,
+	x0(1) =  8.059849800040121D+02, ! procedurally generated 
+	x0(2) =  1.732107143792893D+03, ! rp = 1.1*r_moon, e = 0.3
+	x0(3) =  7.191866537665294D+01, ! random orientation
+	x0(4) =  1.586030952010121D-01, ! starts at periapse
+	x0(5) =  1.724388489487553D-03,
+	x0(6) = -1.818978945873842D+00
 /

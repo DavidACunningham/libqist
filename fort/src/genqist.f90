@@ -121,8 +121,8 @@ module genqist
         close(num)
         
         call furnsh(trim(adjustl(kernelfile_read)))
-        call pxform(rotating_frame_string, &
-                  & inertial_frame_string, &
+        call pxform(inertial_frame_string, &
+                  & rotating_frame_string, &
                   & real(t0,dp), &
                   & rotmat_comp &
                    )
@@ -166,6 +166,132 @@ module genqist
             res = qclass%q
         end function
     end subroutine make_rotation
+
+    subroutine generate_kernel(namefile)
+        type(gqist)                  :: gq
+        type(odesolution)            :: base_sol !, qistsol
+        character(len=*), intent(in) :: namefile
+        character(len=1000)          :: qist_config_file, &
+                                        metakernel_filepath, &
+                                        output_kernel_filename
+        real(qp)                     :: t0, tf, tof, &
+                                        rtol, atol
+        integer                      :: stat, num, nnodes
+        real(qp), parameter          :: Cbar(2,2) = 0._qp, &
+                                        Sbar(2,2) = 0._qp
+        real(qp)                     :: init_state(6)
+        real(qp), allocatable        :: kernel_times(:), &
+                                      & kernelstates(:,:)
+        real(dp)                     :: x0(6)
+        real(dp), allocatable        :: x(:,:), &
+                                        kernel_times_double(:)
+        logical dasein
+        character(len=1) :: yn
+        integer i, traj_id
+        namelist /KERNEL_CONFIG/   metakernel_filepath, &
+                                   qist_config_file, &
+                                   output_kernel_filename, &
+                                   traj_id, &
+                                   x0, &
+                                   t0, &
+                                   tf, &
+                                   rtol, &
+                                   atol, &
+                                   nnodes
+        ! Read in namelist
+        inquire(file=trim(adjustl(namefile)), iostat=stat)
+        if (stat .ne. 0) then 
+            print *, "ERROR: Bad kernel config namelist filename"
+            stop
+        end if
+        open(file=trim(adjustl(namefile)), status="old", &
+             iostat=stat,newunit=num)
+        read(unit=num, nml=KERNEL_CONFIG, iostat=stat)
+        if (stat .ne. 0) then 
+            print *, "ERROR: bad kernel config namelist format"
+            print *, trim(adjustl(namefile))
+            print *, stat
+            stop
+        end if
+        close(num)
+        inquire(file=trim(adjustl(output_kernel_filename)), exist=dasein)
+        if (dasein) then 
+            print *, "WARNING: "
+            print *, trim(adjustl(output_kernel_filename)), " already exists"
+            print *, "Continuing will overwrite. Continue?"
+            yn = "X"
+            do while (yn.ne."Y".and.yn.ne."N")
+                write(*,'(A)',advance='no') "Y/N: "
+                read(*,*) yn
+                print *, ""
+            end do
+            if (yn.eq."N") then
+                print *, "Not continuing."
+                stop
+            else
+                open(newunit=num,file=trim(adjustl(output_kernel_filename)))
+                close(num,status="delete")
+            end if
+        end if
+        call gq%init(qist_config_file)
+        tof = 1._qp
+        gq%dynmod%tof = 1._qp
+        init_state = real(x0,qp)
+        gq%dynmod%tgt_on_rails = .false.
+        gq%dynmod%state = [init_state, t0, 1._qp]
+        print *, "Integrating kernel trajectory"
+        base_sol = solve_ivp(stateonly_eoms,&
+                           & [t0, tf], &
+                           & init_state, &
+                           & dense_output=.true.,&
+                           & rtol=rtol, &
+                           & atol=atol, &
+                           & istep=24._qp*3600._qp &
+                          & )
+        print *, "Done."
+        print *, "Writing kernel. . ."
+
+        allocate(kernel_times(nnodes), &
+               & kernelstates(6,nnodes), &
+                 x(6,nnodes), &
+                 kernel_times_double(nnodes))
+
+        kernel_times = [(t0 + i*(tf-t0)/(nnodes-1), i=0,nnodes-1)]
+        do i = 1, nnodes
+            kernelstates(:,i) = base_sol%call(kernel_times(i))
+        end do
+        x = real(kernelstates,dp)
+        kernel_times_double = real(kernel_times,dp)
+        call spkopn(trim(adjustl(output_kernel_filename)), "SPK_file", 100, num)
+        call spkw13( &
+                    num, &
+                    traj_id, &
+                    gq%dynmod%central_body, &
+                    'J2000', &
+                    kernel_times_double(1), &
+                    kernel_times_double(nnodes), &
+                    "trajectory", &
+                    5, &
+                    nnodes, &
+                    x, &
+                    kernel_times_double &
+                    )
+        call spkcls(num)
+        print *, "Done."
+        contains
+        function stateonly_eoms(me, x, y) result(res)
+            class(RungeKutta), intent(inout) :: me
+            real(qp),          intent(in)    :: x, y(:)
+            real(qp)                         :: res(size(y))
+            real(qp)                         :: jac(8,8), hes(8,8,8), &
+                                                acc(8)
+            gq%dynmod%tgt_on_rails = .false.
+            gq%dynmod%tof = 1._qp
+            gq%dynmod%state = [y, x, 1._qp]
+            call gq%dynmod%get_derivs(x, acc, jac, hes)
+            res = acc(:6)
+        end function stateonly_eoms
+    end subroutine generate_kernel
 
     subroutine load_gravity_model(gravity_file, &
                                 & ref_radius, &
@@ -300,7 +426,7 @@ module genqist
         print *, "Using ephemeris data from ", trim(adjustl(resample_filepath))
         print *, "Relative to body ", central_body_id
         print *, "With perturbations from bodies ", body_list(:n_bodies)
-        print *, "With spherical harmonics gravity? ", me%dynmod%shgrav
+        print *, "With spherical harmonics gravity? ", shgrav
         print *, "From J2000 + ", t0
         print *, "To J2000 + ", tf
         print *, ""

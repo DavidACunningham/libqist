@@ -1,11 +1,11 @@
 module test_sh
     use, intrinsic :: iso_fortran_env, only: dp=>real64
     use tinysh, only: PinesData, shpines, pinesinit
+    use test_util, only: mprint, tprint
     implicit none
     contains
         subroutine sh_test(testpass)
             logical, intent(inout) :: testpass
-            character(len=500)     :: msg
             real(dp)               :: Vtrue, dVtrue(3), d2Vtrue(3,3), d3Vtrue(3,3,3)
             real(dp),allocatable   :: Clm(:,:), Slm(:,:), &
                                       Cml(:,:), Sml(:,:)
@@ -81,25 +81,29 @@ module test_sh
             call pinesinit(6,Cml,Sml,pines)
             call shpines(Rbody, GM, pines,6,3,cart, V, dV, d2V, d3V)
             testpass = .true.
-            msg = ""
             if (abs(V- Vtrue).ge.dtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//" Spherical harmonics potential fail."
+                write(*,*) "FAIL Spherical harmonics potential FAIL"
+                write(*,*) "Error: ", V - Vtrue
             endif
             if (norm2(dV- dVtrue).ge.dtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//" Spherical harmonics gradient fail."
+                write(*,*) "FAIL Spherical harmonics gradient FAIL"
+                write(*,*) "Error: ", dV - dVtrue
             endif
             if (norm2(d2V- d2Vtrue).ge.dtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//" Spherical harmonics Jacobian fail."
+                write(*,*) "FAIL Spherical harmonics Jacobian FAIL"
+                write(*,*) "Error: "
+                call mprint(d2V - d2Vtrue)
             endif
             if (norm2(d3V- d3Vtrue).ge.dtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//" Spherical harmonics Hessian fail."
+                write(*,*) "FAIL Spherical harmonics Hessian FAIL"
+                write(*,*) "Error: "
+                call tprint(d3V - d3Vtrue)
             endif
-            if (testpass) msg = "All spherical harmonics tests passed."
-            print *, trim(msg)
+            if (testpass) write(*,*) "PASS All spherical harmonics tests PASS"
         end subroutine sh_test
 
 end module test_sh

@@ -10,15 +10,20 @@ module test_tensorops
                          vectens2, &
                          vectens3, &
                          quad, &
-                         eyemat
+                         eyemat, &
+                         d_eyemat
+    use test_util, only: mprint,tprint
     implicit none
     contains
-        subroutine test_eyemat(testpass)
+        subroutine test_eyemat(testpass,verbose)
             character(len=100) :: msg
+            logical, intent(in), optional :: verbose
             real(dp), parameter :: dtol = 1.e-14
             real(qp), parameter :: qtol = 1.e-28
             real(dp) :: eye_d(3,3)
             real(qp) :: eye_q(3,3)
+            real(dp) :: diff_d
+            real(qp) :: diff_q
             logical, intent(inout) :: testpass
 
             eye_d(1,:) = [1._dp, 0._dp, 0._dp]
@@ -30,19 +35,25 @@ module test_tensorops
             eye_q(3,:) = [0._qp, 0._qp, 1._qp]
             msg = ""
             testpass = .true.
-            if (norm2(eye_d-eyemat(3)).ge.dtol) then
+            diff_d = norm2(eye_d - d_eyemat(3))
+            diff_q = norm2(eye_q - eyemat(3))
+            if (diff_d.ge.dtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//" Double precision identity matrix fail."
+                write (*,*) "FAIL Double precision identity matrix FAIL."
+                write (*,*) "FAIL Double error: ", diff_d
             endif
-            if (norm2(eye_q-eyemat(3)).ge.qtol) then
+            if (diff_q.ge.qtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//" Quad precision identity matrix fail."
+                write (*,*)" FAIL Quad precision identity matrix FAIL."
+                write (*,*) "Quad error: ", diff_q
             endif
-            if (testpass) msg = " Identity matrix test pass."
-            write (*,*) msg
+            if (testpass) msg = "PASS Identity matrix test PASS."
+            if (verbose) then
+                print *, "Double error: ", diff_d
+                print *, "Quad error:   ", diff_q
+            endif
         end subroutine
         subroutine test_basic_tensorops_d(testpass)
-            character(len=100)     :: msg
             logical, intent(inout) :: testpass
             real(dp), parameter :: dtol = 1.e-13_dp
             real(dp) :: vec(3), mat(3,3), tens(3,3,3), &
@@ -169,48 +180,56 @@ module test_tensorops
             stminvert8_test = stminvert(stm8,8)
 
             testpass = .true.
-            msg = ""
             if (norm2(mt_test - mt_truth).ge.dtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//"Double precision mattens fail."
+                write (*,*) "FAIL Double precision mattens FAIL."
+                write (*,*) " Error:"
+                call tprint(mt_test - mt_truth)
             endif
             if (norm2(quad_test - quad_test).ge.dtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//"Double precision matrix quad fail."
+                write (*,*) "FAIL Double precision matrix quad FAIL."
+                write (*,*) " Error:"
+                call tprint(quad_test - quad_truth)
             endif
             if (norm2(vectens1_test - vectens1_truth).ge.dtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//"Double precision vectens1 fail."
+                write (*,*) "FAIL Double precision vectens1 FAIL."
+                write (*,*) " Error:"
+                call mprint(vectens1_test - vectens1_truth)
             endif
             if (norm2(vectens2_test - vectens2_truth).ge.dtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//"Double precision vectens2 fail."
+                write (*,*) "FAIL Double precision vectens2 FAIL."
+                write (*,*) " Error:"
+                call mprint(vectens2_test - vectens2_truth)
             endif
             if (norm2(vectens3_test - vectens3_truth).ge.dtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//"Double precision vectens3 fail."
+                write (*,*) "FAIL Double precision vectens3 FAIL."
+                write (*,*) " Error:"
+                call mprint(vectens3_test - vectens3_truth)
             endif
             if (norm2(vectensquad_test - vectensquad_truth).ge.dtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//"Double precision vectensquad fail."
+                write (*,*) "FAIL Double precision vectensquad FAIL."
+                write (*,*) " Error:"
+                write (*,*) (vectensquad_test - vectensquad_truth)
             endif
             if (norm2(stminvert6_test - stminvert6_truth).ge.dtol) then
-                print *, norm2(stminvert6_test - stminvert6_truth)
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//"Double precision symplectic invert fail."
+                write (*,*) "FAIL Double precision symplectic invert FAIL."
+                call mprint(stminvert6_test - stminvert6_truth)
             endif
-            if (norm2(stminvert8_test - stminvert8_truth).ge.1.e-7_dp) then
-                print *, norm2(stminvert8_test - stminvert8_truth)
+            if (norm2(stminvert8_test - stminvert8_truth).ge.1.e-7_qp) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//"Double precision 8x8 invert fail."
+                write (*,*) "FAIL Double precision 8X8 invert FAIL."
+                call mprint(stminvert8_test - stminvert8_truth)
             endif
-
-            if (testpass) msg = trim("All basic Double precision tensor operations pass.")
-            write (*,*) msg
+            if (testpass) write (*,*) trim("PASS All basic Double precision tensor operations PASS")
         end subroutine
 
         subroutine test_basic_tensorops_q(testpass)
-            character(len=100)     :: msg
             logical, intent(inout) :: testpass
             real(qp), parameter :: qtol = 1.e-26_qp
             real(qp) :: vec(3), mat(3,3), tens(3,3,3), &
@@ -337,43 +356,52 @@ module test_tensorops
             stminvert8_test = stminvert(stm8,8)
 
             testpass = .true.
-            msg = ""
             if (norm2(mt_test - mt_truth).ge.qtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//"Quad precision mattens fail."
+                write (*,*) "FAIL Quad precision mattens FAIL."
+                write (*,*) " Error:"
+                call tprint(mt_test - mt_truth)
             endif
             if (norm2(quad_test - quad_test).ge.qtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//"Quad precision matrix quad fail."
+                write (*,*) "FAIL Quad precision matrix quad FAIL."
+                write (*,*) " Error:"
+                call tprint(quad_test - quad_truth)
             endif
             if (norm2(vectens1_test - vectens1_truth).ge.qtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//"Quad precision vectens1 fail."
+                write (*,*) "FAIL Quad precision vectens1 FAIL."
+                write (*,*) " Error:"
+                call mprint(vectens1_test - vectens1_truth)
             endif
             if (norm2(vectens2_test - vectens2_truth).ge.qtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//"Quad precision vectens2 fail."
+                write (*,*) "FAIL Quad precision vectens2 FAIL."
+                write (*,*) " Error:"
+                call mprint(vectens2_test - vectens2_truth)
             endif
             if (norm2(vectens3_test - vectens3_truth).ge.qtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//"Quad precision vectens3 fail."
+                write (*,*) "FAIL Quad precision vectens3 FAIL."
+                write (*,*) " Error:"
+                call mprint(vectens3_test - vectens3_truth)
             endif
             if (norm2(vectensquad_test - vectensquad_truth).ge.qtol) then
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//"Quad precision vectensquad fail."
+                write (*,*) "FAIL Quad precision vectensquad FAIL."
+                write (*,*) " Error:"
+                write (*,*) (vectensquad_test - vectensquad_truth)
             endif
             if (norm2(stminvert6_test - stminvert6_truth).ge.qtol) then
-                print *, norm2(stminvert6_test - stminvert6_truth)
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//"Quad precision symplectic invert fail."
+                write (*,*) "FAIL Quad precision symplectic invert FAIL."
+                call mprint(stminvert6_test - stminvert6_truth)
             endif
             if (norm2(stminvert8_test - stminvert8_truth).ge.1.e-7_qp) then
-                print *, norm2(stminvert8_test - stminvert8_truth)
                 testpass = .false.
-                msg = trim(msg)//new_line("a")//"Quad precision 8x8 invert fail."
+                write (*,*) "FAIL Quad precision 8X8 invert FAIL."
+                call mprint(stminvert8_test - stminvert8_truth)
             endif
-
-            if (testpass) msg = trim("All basic Quad precision tensor operations pass.")
-            write (*,*) msg
+            if (testpass) write (*,*) trim("PASS All basic Quad precision tensor operations PASS")
         end subroutine
 end module test_tensorops
