@@ -1,0 +1,53 @@
+&QIST_CONFIG
+    resample_filepath = "./test_resample_withtraj.subspice",
+    qist_filepath = "./test_qist.qist",
+	gravity_filepath = "./test_config_namelists.nml",
+	t0 =  772509669.184287,  ! 2024 Jun 24 14:00 UTC
+	tf =  775101669.183457,  ! 2024 Jul 24 14:00 UTC
+    rtol = 1.e-14,
+    atol = 1.e-20,
+    reference_trajectory_id = -999,
+    central_body_id = 301,
+	central_body_ref_radius = 0.1738000000000000D+04,
+	central_body_mu         = 0.4902799806931690D+04,
+    body_list(1) = 399,
+    shgrav = .true.,
+    mu_list(1) = 398600.5
+/
+&SPHERHARM
+	rotfile = "./test_rot.rot",
+    degord = 2,
+	ref_radius = 0.1738000000000000D+04,
+	mu         = 0.4902799806931690D+04,
+	cbar(0,0)  = 1.0000000000000000D+00, 
+
+    cbar(1,0) =  0.0000000000000000D+00, 
+    cbar(1,1) =  0.0000000000000000D+00, 
+    cbar(2,0) = -9.0882923650770995D-05, 
+    cbar(2,1) =  8.4954064857652003D-11, 
+    cbar(2,2) =  3.4670944268755999D-05,
+
+    sbar(1,0) = 0.0000000000000000D+00, 
+    sbar(1,1) = 0.0000000000000000D+00, 
+    sbar(2,0) = 0.0000000000000000D+00, 
+    sbar(2,1) = 9.7726994478962992D-10, 
+    sbar(2,2) =-2.4064244523445002D-10, 
+/
+&RESAMPLE_CONFIG 
+	metakernel_filepath="../../../kernels/mk_test.tf",
+    resample_filepath = "./test_resample_withtraj.subspice",
+	t0 =  772509669.184287,  ! 2024 Jun 24 14:00 UTC
+	tf =  775101669.183457,  ! 2024 Jul 24 14:00 UTC
+	central_body=301,
+	body_list= 399, -999,
+	deg=400
+/
+&ROTCONFIG
+	kernelfile_read = "../../../kernels/mk_gw.tf",
+    rotfile_write = "./test_rot.rot",
+	fitdeg = 400,
+	t0 =  772509669.184287,  ! 2024 Jun 24 14:00 UTC
+	tf =  775101669.183457,  ! 2024 Jul 24 14:00 UTC
+	inertial_frame_string = "J2000",
+	rotating_frame_string = "MOON_PA"
+/

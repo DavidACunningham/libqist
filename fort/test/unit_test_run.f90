@@ -7,7 +7,7 @@ program main
     use test_frkmin
     use test_frkmin_q
     use test_genqist, only: test_make_spice_subset, test_make_rotation, test_grav_load, test_gq_init
-    use test_makemodel, only: test_kep_grav, test_threebody_grav
+    use test_makemodel, only: test_kep_grav, test_threebody_grav, test_SH_grav
     logical testpass
 
     call test_mmult(testpass)
@@ -26,5 +26,6 @@ program main
     call test_gq_init(testpass)
     call test_kep_grav(testpass)
     call test_threebody_grav(testpass)
+    call test_SH_grav(testpass)
 
 end program main

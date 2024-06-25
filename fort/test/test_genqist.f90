@@ -19,7 +19,7 @@ module test_genqist
             logical                :: testvec(3)
             integer num, stat
             testpass = .true.
-            call make_spice_subset("./test_resamp_config.nml")
+            call make_spice_subset("./test_config_namelists.nml")
             open(file="./test_resample.subspice", iostat=stat, &
                  status="old", access="stream", newunit=num)
              call subspice%read(num)
@@ -39,7 +39,7 @@ module test_genqist
             logical                :: testvec(3)
             integer num, stat
             testpass = .true.
-            call make_rotation("./test_rot_config.nml")
+            call make_rotation("./test_config_namelists.nml")
             open(file="./test_rot.rot", iostat=stat, &
                  status="old", access="stream", newunit=num)
              call rot%read(num)
@@ -61,7 +61,7 @@ module test_genqist
             real(qp), allocatable  :: C(:,:), S(:,:)
             real(qp)               :: mu, ref_radius
             testpass = .true.
-            call load_gravity_model("./test_grav_config.nml", &
+            call load_gravity_model("./test_config_namelists.nml", &
                                     ref_radius,mu, C, S, rot)
             testvec(1) = abs(ref_radius- 0.1738E+04_qp).le.qtol
             testvec(2) = abs(mu-0.4902799806931690E+04_qp).le.qtol
@@ -80,7 +80,7 @@ module test_genqist
             type(gqist)            :: gq
             logical                :: testvec(2)
             testpass = .true.
-            call gq%init("./test_dyn_config_notraj.nml")
+            call gq%init("./test_config_namelists.nml")
             testvec(1) = abs(gq%dynmod%central_body_ref_radius- 0.1738E+04_qp).le.qtol
             testvec(2) = abs(gq%dynmod%central_body_mu-0.4902799806931690E+04_qp).le.qtol
             testpass = all(testvec)
