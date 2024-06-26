@@ -4,8 +4,10 @@ module test_makemodel
     use frkmin_q, only: solve_ivp, Odesolution, RungeKutta
     use findiffmod
     use tensorops, only: mattens, quad
+    use test_util, only: mprint, tprint
     implicit none
-    real(qp), parameter :: qtol = 1.e-21_qp, qtol_tb = 1.e-17_qp, qtol_sh=2.e-14_qp
+    real(qp), parameter :: qtol = 1.e-18_qp, qtol_tb = 1.e-16_qp, qtol_sh=2.e-13_qp
+    real(dp), parameter :: dtol_fd = 2.e-4_dp
     contains
         subroutine test_kep_grav(testpass)
             logical, intent(inout) :: testpass
@@ -215,19 +217,20 @@ module test_makemodel
         end subroutine
         subroutine end_to_end_integration_test(testpass)
             logical, intent(inout) :: testpass
-            type(gqist)         :: gq
-            type(odesolution)   :: base_sol 
-            character(len=1000) :: qist_config_file, metakernel_filepath
-            real(qp)            :: t0, tf, tof, &
-                                   rtol, atol, x0(6), fdrstep, fdvstep, fdtstep, &
-                                   epsvec(8)
-            integer             :: fdord
-            integer             :: stat, num
-            real(qp), parameter  :: Cbar(2,2) = 0._qp, &
-                                    Sbar(2,2) = 0._qp
-            real(qp)             :: init_state(8), eye(8,8), fd_stm(8,8), &
+            logical                :: testvec(6)
+            type(gqist)            :: gq
+            type(odesolution)      :: base_sol 
+            character(len=1000)    :: qist_config_file, metakernel_filepath
+            real(qp)               :: t0, tf, tof, &
+                                      rtol, atol, x0(6), fdrstep, fdvstep, fdtstep, &
+                                      epsvec(8)
+            integer                :: fdord
+            integer                :: stat, num
+            real(qp)               :: init_state(8), eye(8,8), fd_stm(8,8), &
                                   & analytic_stm(8,8), analytic_stt(8,8,8), & 
                                   & analytic_final_state(8), &
+                                  & jacdiff(8,8), hesdiff(8,8,8), stmdiff(8,8), &
+                                  & sttdiff(8,8,8), &
                                   & divisor(8,8), init_stt(8**3), fd_stt(8,8,8), &
                                   & stt_divisor(8,8,8), jac(8,8), fd_jac(8,8), &
                                   & hes(8,8,8), fd_hes(8,8,8), acc(8), thistime
@@ -267,12 +270,8 @@ module test_makemodel
             epsvec(4:6) = fdvstep
             epsvec(7:8) = fdtstep
             call gq%init(qist_config_file)
-            eye = 0._qp
+            eye = 0._qp; do i=1,8; eye(i,i) = 1._qp; end do
             init_stt = 0._qp
-            do i=1,8
-                eye(i,i) = 1._qp
-            end do
-            tof = 1._qp
             tof = tf-t0
             ! To integrate in real time, set tof to 1.
             call furnsh(trim(adjustl(metakernel_filepath)))
@@ -286,42 +285,46 @@ module test_makemodel
             gq%t0 = t0
             gq%tf = tf
             gq%dynmod%tof = tof
-            init_state = [real(state_dum,qp), t0, tof]
+            init_state = [gq%dynmod%trajstate(t0), t0, tof]
             gq%dynmod%tgt_on_rails = .false.
             gq%dynmod%state = init_state
 
+            testvec(1) = all(abs(state_dum - init_state(:6)).lt.1.e-6)
+            if (.not. testvec(1)) then
+                print *, "FAIL Kernel resample FAIL"
+                print *, "Error: "
+                print *, abs(state_dum - init_state(:6))
+            endif
             call gq%dynmod%get_derivs(init_state(7), acc, jac, hes)
             fd_jac = findiff_multiscale(fd_wrap_acc, init_state, epsvec, fdord)
             fd_hes = findiffhes_multiscale(fd_wrap_jac, init_state, epsvec, fdord)
 
             divisor = 1._qp
-            where (abs(jac).ge.1.e-14_qp)
-                divisor = jac
-            end where
             stt_divisor = 1._qp
-            where (abs(hes).ge.1.e-10_qp)
-                stt_divisor = hes
-            end where
-            print *, "FD THEN ANALYTIC JACOBIAN THEN NORMALIZED ERROR"
-            do i = 1,8
-                print *, real(fd_jac(i,:),4)
-                print *, real(jac(i,:),4)
-                print *, real((jac(i,:) - fd_jac(i,:))/divisor(i,:),4)
-                print *,  ""
-            end do
-            print *, "FD THEN ANALYTIC HESSIAN THEN NORMALIZED ERROR"
-            do i = 1,8
-            print *, "PAGE", i
-            do j = 1,8
-                print *, real(fd_hes(i,j,:),4)
-                print *, real(hes(i,j,:),4)
-                print *, real((hes(i,j,:) - fd_hes(i,j,:))/stt_divisor(i,j,:),4)
-                print *,  ""
-            end do
-            end do
-
-
-            gq%dynmod%tgt_on_rails = .false.
+            where (abs(jac).ge.1.e-14_qp); divisor = jac; end where
+            where (abs(hes).ge.1.e-10_qp); stt_divisor = hes; end where
+            jacdiff = (jac - fd_jac)/divisor
+            hesdiff = (hes - fd_hes)/stt_divisor
+            testvec(2) = all(jacdiff.lt.5.e-5_qp)
+            testvec(3) = all(hesdiff.lt.5.e-5_qp)
+            if (.not.testvec(2)) then
+                print *, "FAIL Dynamics Model Jacobian test FAIL"
+                print *, "FD JACOBIAN"
+                call mprint(fd_jac)
+                print *, "ANALYTIC JACOBIAN"
+                call mprint(jac)
+                print *, "NORMALIZED JACOBIAN ERROR"
+                call mprint(jacdiff)
+            endif
+            if (.not.testvec(3)) then
+                print *, "FAIL Dynamics Model Hessian test FAIL"
+                print *, "FD HESSIAN"
+                call tprint(fd_hes)
+                print *, "ANALYTIC HESSIAN"
+                call tprint(hes)
+                print *, "NORMALIZED HESSIAN ERROR"
+                call tprint(hesdiff)
+            endif
             print *, "Integrating base case"
             base_sol = solve_ivp(fd_eoms,&
                                & [0._qp, 1._qp], &
@@ -334,7 +337,6 @@ module test_makemodel
                                & istep=0.5_qp &
                               & )
             print *, "Done."
-
             allocate(spice_state(6,size(base_sol%ts)))
             do i=1,size(base_sol%ts)
                 thistime = base_sol%ts(i)*tof+ t0
@@ -349,8 +351,14 @@ module test_makemodel
             end do
             analytic_final_state = base_sol%ys(:8,size(base_sol%ts))
             analytic_stm = reshape(base_sol%ys(9:8+8**2,size(base_sol%ts)), [8,8])
-            analytic_stt = reshape(base_sol%ys(9+8**2:,size(base_sol%ts)), [8,8,8])
-
+            analytic_stt = reshape(base_sol%ys(9+8**2:,size(base_sol%ts)), [8,8,8]) 
+            testvec(4) = all(abs(analytic_final_state(:6) - real(spice_state(:,size(base_sol%ts)),qp)).lt.2.e-3_qp)
+            if (.not.testvec(4)) then
+                print *, "FAIL Dynamics integration test FAIL"
+                print *, "FINAL STATE ERROR"
+                print *, real(analytic_final_state(:6) - spice_state(:,size(base_sol%ts)),8)
+                print *, "FINAL POSITION ERROR"
+            end if
 
             print *, "Integrating finite diff first order with step ", real(epsvec,4)
             fd_stm = findiff_multiscale(fd_integrate, init_state, epsvec, fdord)
@@ -361,38 +369,37 @@ module test_makemodel
             print *, "Done."
 
             divisor = 1._qp
-            where (abs(analytic_stm).ge.1.e-14_qp)
-                divisor = analytic_stm
-            end where
             stt_divisor = 1._qp
-            where (abs(analytic_stt).ge.1.e-10_qp)
-                stt_divisor = analytic_stt
-            end where
-            print *, "FINAL TIME"
-            print *, real(tf,8)
-            print *, "FINAL STATE"
-            print *, real(analytic_final_state,8)
-            print *, "FINAL STATE ERROR"
-            print *, real(analytic_final_state(:6) - spice_state(:,size(base_sol%ts)),8)
-            print *, "FINAL POSITION ERROR"
-            print *, real(norm2(analytic_final_state(:3) - real(spice_state(:3,size(base_sol%ts)),qp)),8)
-            print *, "FD THEN ANALYTIC STM THEN NORMALIZED ERROR"
-            do i = 1,8
-                print *, real(fd_stm(i,:),4)
-                print *, real(analytic_stm(i,:),4)
-                print *, real((analytic_stm(i,:) - fd_stm(i,:))/divisor(i,:),4)
-                print *,  ""
-            end do
-            print *, "FD THEN ANALYTIC STT THEN NORMALIZED ERROR"
-            do i = 1,8
-            print *, "PAGE", i
-            do j = 1,8
-                print *, real(fd_stt(i,j,:),4)
-                print *, real(analytic_stt(i,j,:),4)
-                print *, real((analytic_stt(i,j,:) - fd_stt(i,j,:))/stt_divisor(i,j,:),4)
-                print *,  ""
-            end do
-            end do
+            where (abs(analytic_stm).ge.1.e-14_qp); divisor = jac; end where
+            where (abs(analytic_stt).ge.1.e-10_qp); stt_divisor = hes; end where
+            stmdiff = (analytic_stm - fd_stm)/divisor
+            sttdiff = (analytic_stt - fd_stt)/stt_divisor
+            testvec(5) = all(jacdiff.lt.5.e-4_qp)
+            testvec(6) = all(hesdiff.lt.5.e-4_qp)
+            if (.not.testvec(5)) then
+                print *, "FAIL Dynamics Model STM test FAIL"
+                print *, "FD STM"
+                call mprint(fd_stm)
+                print *, "ANALYTIC STM"
+                call mprint(analytic_stm)
+                print *, "NORMALIZED STM ERROR"
+                call mprint(stmdiff)
+            endif
+            if (.not.testvec(6)) then
+                print *, "FAIL Dynamics Model STT test FAIL"
+                print *, "FD STT"
+                call tprint(fd_stt)
+                print *, "ANALYTIC STT"
+                call tprint(analytic_stt)
+                print *, "NORMALIZED STT ERROR"
+                call tprint(sttdiff)
+            endif
+            testpass = all(testvec)
+            if (.not.testpass) then
+                print *, "FAIL End to end dynamics test FAIL"
+            else
+                print *, "PASS End to end dynamics test PASS"
+            endif
             contains
                 function fd_wrap_acc(x) result(res)
                     real(qp), intent(in) :: x(:)

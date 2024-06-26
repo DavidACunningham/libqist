@@ -60,7 +60,7 @@
 	tf =  772682469.184231,  ! 2024 Jun 26 14:00 UTC
 	rtol = 1.e-16,
 	atol = 1.e-20,
-	nnodes = 50000,
+	nnodes = 80000,
 	x0(1) =  8.059849800040121D+02, ! procedurally generated 
 	x0(2) =  1.732107143792893D+03, ! rp = 1.1*r_moon, e = 0.3
 	x0(3) =  7.191866537665294D+01, ! random orientation

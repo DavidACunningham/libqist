@@ -2,9 +2,9 @@
     resample_filepath = "./test_resample_withtraj.subspice",
     qist_filepath = "./test_qist.qist",
 	gravity_filepath = "./test_config_namelists_genqist.nml",
-	t0 =  772509669.184287,  ! 2024 Jun 24 14:00 UTC
-	tf =  772682469.184231,  ! 2024 Jun 26 14:00 UTC
-    rtol = 1.e-14,
+	t0 =  772509669.18429,  ! 2024 Jun 24 14:00 UTC
+	tf =  772682469.18423,  ! 2024 Jun 26 14:00 UTC
+    rtol = 1.e-10,
     atol = 1.e-20,
     reference_trajectory_id = -999,
     central_body_id = 301,
@@ -40,17 +40,22 @@
 	tf =  772682469.184231,  ! 2024 Jun 26 14:00 UTC
 	central_body=301,
 	body_list= 399, -999
-	deg=400
+	deg=800
 /
 &FD_CONFIG
     metakernel_filepath = "../../../kernels/mk_test_withorbit.tf",
     qist_config_file = "./test_config_namelists_genqist.nml"
 	t0    =  772512669.184287,  ! 2024 Jun 24 14:00 UTC
 	tf    =  772680469.184231,  ! 2024 Jun 26 14:00 UTC
-	rtol  = 1.0D-12,
+	rtol  = 1.0D-10,
 	atol  = 1.0D-16,
-	fdrstep = 1.0D+2,
-	fdvstep = 1.0D-2,
+	fdrstep = 1.0D+0,
+	fdvstep = 1.0D-5,
 	fdtstep = 1.0D+2,
 	fdord   = 9
+/
+&ITRAJ_CONFIG
+    qist_filepath = "./test_qist.qist",
+	t0 =  772509669.184297,  ! 2024 Jun 24 14:00 UTC
+	tf =  772682469.184231,  ! 2024 Jun 26 14:00 UTC
 /
