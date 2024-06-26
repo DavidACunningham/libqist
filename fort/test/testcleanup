@@ -1,0 +1,1 @@
+rm -v test_qist.qist test_resample_withtraj.subspice test_resample.subspice test_rot.rot
