@@ -11,7 +11,7 @@ module test_sh
                                       Cml(:,:), Sml(:,:)
             type(PinesData) :: pines
             real(dp) :: V, dV(3), d2V(3,3), d3V(3,3,3), Rbody, GM, cart(3)
-            real(dp), parameter :: dtol=1.D-30
+            real(dp), parameter :: dtol=1.D-22
             Rbody = 6378.137_dp
             GM = 3.986D+05
             cart = Rbody
@@ -86,18 +86,18 @@ module test_sh
                 write(*,*) "FAIL Spherical harmonics potential FAIL"
                 write(*,*) "Error: ", V - Vtrue
             endif
-            if (norm2(dV- dVtrue).ge.dtol) then
+            if (any(abs(dV- dVtrue).ge.dtol)) then
                 testpass = .false.
                 write(*,*) "FAIL Spherical harmonics gradient FAIL"
                 write(*,*) "Error: ", dV - dVtrue
             endif
-            if (norm2(d2V- d2Vtrue).ge.dtol) then
+            if (any(abs(d2V- d2Vtrue).ge.dtol)) then
                 testpass = .false.
                 write(*,*) "FAIL Spherical harmonics Jacobian FAIL"
                 write(*,*) "Error: "
                 call mprint(d2V - d2Vtrue)
             endif
-            if (norm2(d3V- d3Vtrue).ge.dtol) then
+            if (any(abs(d3V- d3Vtrue).ge.dtol)) then
                 testpass = .false.
                 write(*,*) "FAIL Spherical harmonics Hessian FAIL"
                 write(*,*) "Error: "

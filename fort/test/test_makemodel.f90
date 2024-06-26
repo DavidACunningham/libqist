@@ -463,7 +463,7 @@ module test_makemodel
                                                         acc(8)
 
                     gq%dynmod%tgt_on_rails = .false.
-                    gq%dynmod%state = y
+                    gq%dynmod%state = y(:8)
                     call gq%dynmod%get_derivs(y(7), acc, jac, hes)
                     if (size(y)==8) then
                         res = acc

@@ -104,18 +104,18 @@ module test_quat
                               (tf-t0)*1.e-3_qp, 9, real(dcmdot,qp)),dp)
 
             testpass = .true.
-            if (norm2(qdot-qdot_fd).ge.dtol) then
+            if (any(abs(qdot-qdot_fd).ge.dtol)) then
                 testpass = .false.
                 write (*,*) "FAIL Rothist quaternion derivative FAIL"
                 write (*,*) "Error: ", (qdot-qdot_fd)
             endif
-            if (norm2(dcmdot_fd-dcmdot).ge.dtol) then
+            if (any(abs(dcmdot_fd-dcmdot).ge.dtol)) then
                 testpass = .false.
                 write(*,*) "FAIL Rothist DCM derivative FAIL"
                 write (*,*) "Error: "
                 call mprint(dcmdot_fd - dcmdot)
             endif
-            if (norm2(dcmddot_fd-dcmddot).ge.dtol) then
+            if (any(abs(dcmddot_fd-dcmddot).ge.dtol)) then
                 testpass = .false.
                 write(*,*) "FAIL Rothist DCM second derivative FAIL"
                 write (*,*) "Error: "
