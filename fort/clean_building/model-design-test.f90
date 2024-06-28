@@ -9,7 +9,7 @@ program main
     integer, parameter :: npoints=500
     real(qp), allocatable :: Cbar(:,:), Sbar(:,:)
     real(qp)              :: ref_radius, mu
-    integer     :: num_bodies, current_bodylist(30)
+    integer     :: num_bodies, current_bodylist(30), len
     character(len=1000) :: arg, gravfile
     real(dp)    :: current_mulist(30), &
                  & spicepoints(6,npoints), &
@@ -20,7 +20,7 @@ program main
     call get_command_argument(1,arg)
     call gq%init(trim(adjustl(arg)))
 
-    gravfile = "/home/david/wrk/nstgro/qist/libqist/fort/data/moon8by8.nml"
+    gravfile = arg
     call load_gravity_model(gravfile, ref_radius, mu, Cbar, Sbar, rot)
     num_bodies = gq%dynmod%num_bodies
     current_bodylist(:num_bodies) = gq%dynmod%bodylist
@@ -37,6 +37,7 @@ program main
                               testtimes &
                              )
 
+    len = size(testtimes)
     call print_to_file("testtimes",testtimes)
     call print_to_file("spicex", spicepoints(1,:))
     call print_to_file("spicey", spicepoints(2,:))
@@ -71,6 +72,17 @@ program main
     print *, "MEAN VELOCITY DIFFERENCE (ND): "
     print *, real(mean(norm2(testpoints(4:6,:)-spicepoints(4:6,:),dim=1)/norm2(spicepoints(4:6,:),dim=1)),4)
 
+    print *, ""
+    print *, ""
+    print *, "FINAL POSITION DIFFERENCE (KM): "
+    print *, real(norm2(testpoints(:3,len)-spicepoints(:3,len),dim=1),4)
+    print *, "FINAL VELOCITY DIFFERENCE (KM/S): "
+    print *, real(norm2(testpoints(4:6,len)-spicepoints(4:6,len),dim=1),4)
+
+    print *, "FINAL POSITION DIFFERENCE (ND): "
+    print *, real(norm2(testpoints(:3,len)-spicepoints(:3,len),dim=1)/norm2(spicepoints(:3,len),dim=1),4)
+    print *, "FINAL VELOCITY DIFFERENCE (ND): "
+    print *, real(norm2(testpoints(4:6,len)-spicepoints(4:6,len),dim=1)/norm2(spicepoints(4:6,len),dim=1),4)
     contains
         function rms(val) result(res)
             real(dp), intent(in) :: val(:)

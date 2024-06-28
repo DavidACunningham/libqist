@@ -246,7 +246,7 @@ module genqist
                            & dense_output=.true.,&
                            & rtol=rtol, &
                            & atol=atol, &
-                           & istep=24._qp*3600._qp &
+                           & istep=(tf-t0)/2._qp &
                           & )
         print *, "Done."
         print *, "Writing kernel. . ."
@@ -579,7 +579,7 @@ module genqist
         ! Change bodylist and SHGrav Parameters
         call me_qist%dynmod%new_bodies(bodylist, mulist)
         call me_qist%dynmod%new_gravstatus(shgrav, Cbars,Sbars)
-        me_qist%dynmod%tof = tf-t0
+        me_qist%dynmod%tof = 1._qp
         me_qist%dynmod%tgt_on_rails = .false.
         testsol = solve_ivp(test_eoms,&
                       & [real(t0,qp), real(tf,qp)], &
@@ -600,7 +600,7 @@ module genqist
                 real(qp),          intent(in)    :: x, y(:)
                 real(qp)                         :: acc(8), jac(8,8), hes(8,8,8)
                 real(qp)                         :: res(size(y))
-                me_qist%dynmod%state = [y, 0._qp, 1._qp]
+                me_qist%dynmod%state = [y, x, 1._qp]
                 call me_qist%dynmod%get_derivs(x,acc,jac,hes)
                 res = acc(:6)
             end function test_eoms

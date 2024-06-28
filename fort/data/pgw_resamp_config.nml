@@ -1,9 +1,0 @@
-&RESAMPLE_CONFIG 
-				  metakernel_filepath="/home/david/wrk/nstgro/qist/kernels/mk_pseudogw.tf",
-				  resample_filepath="/home/david/wrk/nstgro/qist/libqist/fort/data/pgw_resample.subspice",
-				  t0 =  769169009.1852001,
-				  tf =  769945939.185063,
-				  central_body=301,
-				  body_list= 10, 399, -60001, 5, 6,
-				  deg=8000
-/

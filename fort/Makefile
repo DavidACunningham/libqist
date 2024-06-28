@@ -46,7 +46,6 @@ GQ_OBJECTS :=$(call source-to-extension,$(GQ_SOURCES),o)
 GQ_ANCHORS :=$(call source-to-extension,$(GQ_SOURCES),anc)
 GQ_OBJECTS := $(call changefolder,$(GQ_OBJECTS),$(OBJDIR),$(SRCDIR))
 GQ_ANCHORS := $(call changefolder,$(GQ_ANCHORS),$(ANCDIR),$(SRCDIR))
-GQ_OBJECTS += $(SPICE)
 Q_SOURCES := $(SOURCES) \
 			 $(SRCDIR)qist.f90
 Q_OBJECTS :=$(call source-to-extension,$(Q_SOURCES),o)
@@ -112,6 +111,8 @@ COMPILE.F08 = $(FC) $(FFLAGS)  -c
 
 mat: mqist.a
 test: $(TESTDIR)unit_test_run 
+genqist: make_qist_existing_kernel
+genkernel: make_new_kernel
 pq: pyqist$(EXT_SUFFIX)
 modfiles: $(T_ANCHORS) $(I_ANCHORS)
 
@@ -125,6 +126,10 @@ clean:
 	-test -d $(TESTOBJDIR) && rm --verbose $(TESTOBJDIR)*
 	-test -d $(TESTANCDIR) && rm --verbose $(TESTANCDIR)*
 
+make_new_kernel: $(GQ_OBJECTS)
+	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
+make_qist_existing_kernel: $(GQ_OBJECTS)
+	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
 $(TESTDIR)unit_test_run: $(T_OBJECTS)
 	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
 
