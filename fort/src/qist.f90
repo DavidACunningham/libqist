@@ -2,7 +2,8 @@ module qist
     use, intrinsic :: ieee_arithmetic, only: IEEE_Value, IEEE_QUIET_NAN
     use globals
     use tensorops, only:  sttchain, sttchain_invert, vectensquad, &
-                          stminvert, sttinvert
+                          stminvert, sttinvert, vectens3, mattens, &
+                          quad
     use denseLight, only: lightSol
     implicit none
     private
@@ -24,8 +25,10 @@ module qist
             procedure, private   :: prop_many
             procedure, private   :: init_nml
             procedure, private   :: init_var
-            procedure stts_ab
-            procedure zmap
+            procedure            :: stts_ab
+            procedure            :: stt_update
+            procedure            :: tensor_change_of_basis
+            procedure            :: zmap
     end type Itraj
     contains
     ! Initializer
@@ -654,6 +657,28 @@ module qist
                     & self%stm(tb), self%stt(tb), &
                     & stm, stt, n)
     end subroutine stts_ab
+    subroutine stt_update(self, ta, tb, xa,new_stm,new_stt)
+        !! Return the STM and STT for a perturbation to the relative trajectory
+        class(Itraj), intent(inout)  :: self
+        real(dp),     intent(in)     :: ta, tb, xa(n)
+        real(dp),     intent(out)    :: new_stm(n,n), new_stt(n,n,n)
+        real(dp)                     :: ref_stm(n,n), ref_stt(n,n,n), &
+                                      & stmupdate(n,n)
+        call self%stts_ab(ta,tb, ref_stm, ref_stt)
+        stmupdate = vectens3(xa,ref_stt,n)
+        new_stm = ref_stm + stmupdate
+        new_stt = ref_stt
+    end subroutine stt_update
+    subroutine tensor_change_of_basis(self, RNO, old_stm, old_stt, &
+                                      new_stm, new_stt)
+        !! Transform an STM and STT from an old coordinate basis to a new one
+        !! RNO defined by vec_new = RNO@vec_old
+        class(Itraj), intent(inout)  :: self
+        real(dp),     intent(in)     :: RNO(n,n), old_stm(n,n), old_stt(n,n,n)
+        real(dp),     intent(out)    :: new_stm(n,n), new_stt(n,n,n)
+        new_stm = mmult(RNO, mmult(old_stm,transpose(RNO)))
+        new_stt = mattens(RNO,quad(transpose(RNO),old_stt,n),n)
+    end subroutine tensor_change_of_basis
     function zmap(self, t,order) result(res)
         !! Testing procedure that chains an stm and stt with their own
         !! inverse--you ought to get I and 0, respectively

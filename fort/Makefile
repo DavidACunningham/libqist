@@ -86,6 +86,13 @@ ifneq ($(MODDIR),)
 endif
 
 PFFLAGS := -lgomp 
+PFLAGS := -O3 -mcmodel=large \
+	      -Wl,--no-relax\
+		  -fPIC\
+		  -ffast-math \
+		  -march=native \
+		  -ffree-line-length-none\
+		  -fcheck=bounds
 FFLAGS := -O3 -mcmodel=large \
 	      -Wl,--no-relax\
 		  -fPIC\
@@ -136,12 +143,10 @@ $(TESTDIR)unit_test_run: $(T_OBJECTS)
 %.a : $(I_OBJECTS)
 	$(FC) $(MFLAGS) $(SPICE) $^ -c -o $@
 
-%$(EXT_SUFFIX) : $(SRCDIR)%.f90 %.pyf $(I_OBJECTS)
-	$(PFC) --f90flags='$(FFLAGS)' $(PFFLAGS) -c $^ 
-	-cp -v $@ $(SPICE) $(LIBDIR)
+%$(EXT_SUFFIX) : $(SRCDIR)%.f90 $(I_OBJECTS)
+	$(PFC) -m $* --f90flags='$(PFLAGS)' $(PFFLAGS) -c $^ 
+	-cp -v $@ $(LIBDIR)
 
-%.pyf : %.f90
-	$(PFC) $^ -m $* -h $@ --overwrite-signature
 $(ANCDIR)%.anc: $(SRCDIR)%.f90
 	$(MAKEMOD.F08) $<
 	@touch $@

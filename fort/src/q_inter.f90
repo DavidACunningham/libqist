@@ -97,6 +97,21 @@ module q_inter
         real(dp),     intent(out) :: stm(n,n), stt(n,n,n)
         call it%stts_ab(ta,tb,stm,stt)
     end subroutine stts_ab
+    subroutine stt_update(ta, tb, xa,new_stm,new_stt)
+        !! Return the STM and STT for a perturbation to the relative trajectory
+        real(dp),     intent(in)     :: ta, tb, xa(n)
+        real(dp),     intent(out)    :: new_stm(n,n), new_stt(n,n,n)
+        call it%stt_update(ta,tb, xa, new_stm, new_stt)
+    end subroutine stt_update
+    subroutine tensor_change_of_basis(RNO, old_stm, old_stt, &
+                                      new_stm, new_stt)
+        !! Transform an STM and STT from an old coordinate basis to a new one
+        !! RNO defined by vec_new = RNO@vec_old
+        real(dp),     intent(in)     :: RNO(n,n), old_stm(n,n), old_stt(n,n,n)
+        real(dp),     intent(out)    :: new_stm(n,n), new_stt(n,n,n)
+    call it%tensor_change_of_basis( RNO, old_stm, old_stt, &
+                                      new_stm, new_stt)
+    end subroutine tensor_change_of_basis
 
      function zmap(t,order) result(res)
         !! Testing procedure that chains an stm and stt with their own
