@@ -1,11 +1,11 @@
 module test_genqist
     use genqist, only: gqist, &
                        make_spice_subset, &
-                       load_gravity_model, &
                        model_accuracy_check, &
                        make_rotation, &
                        generate_kernel, &
-                       make_qist_model
+                       make_qist_model, &
+                       configdata
     use cheby, only: spice_subset
     use tensorops, only: quad, mattens
     use quat, only: rothist
@@ -67,6 +67,7 @@ module test_genqist
              write (*,*) trim(msg)
         end subroutine
         subroutine test_grav_load(testpass)
+            type(configdata)       :: cd
             character(len=175)     :: msg
             logical, intent(inout) :: testpass
             type(rothist)          :: rot
@@ -74,12 +75,11 @@ module test_genqist
             real(qp), allocatable  :: C(:,:), S(:,:)
             real(qp)               :: mu, ref_radius
             testpass = .true.
-            call load_gravity_model("./test_config_namelists.nml", &
-                                    ref_radius,mu, C, S, rot)
-            testvec(1) = abs(ref_radius- 0.1738E+04_qp).le.qtol
-            testvec(2) = abs(mu-0.4902799806931690E+04_qp).le.qtol
-            testvec(3) = abs(C(1,1)-1._qp).le.qtol
-            testvec(4) = abs(S(3,2)-9.7726994478962992E-10_qp).le.qtol
+            call cd%init("./test_config_namelists.nml")
+            testvec(1) = abs(cd%central_body_ref_radius- 0.1738E+04_qp).le.qtol
+            testvec(2) = abs(cd%central_body_mu-0.4902799806931690E+04_qp).le.qtol
+            testvec(3) = abs(cd%cbar(0,0)-1._qp).le.qtol
+            testvec(4) = abs(cd%sbar(2,1)-9.7726994478962992E-10_qp).le.qtol
             testpass = all(testvec)
              msg = "PASS Gravity loading test PASS"
              testpass = all(testvec)
@@ -109,7 +109,7 @@ module test_genqist
             integer stat, num
             testpass =.false.
             call generate_kernel("./test_config_namelists.nml")
-            call make_spice_subset("./test_config_namelists_genqist.nml")
+            call make_spice_subset("./test_config_namelists.nml",.true.)
             open(file="./test_resample_withtraj.subspice", iostat=stat, &
                  status="old", access="stream", newunit=num)
              call testspice%read(num)
@@ -156,9 +156,9 @@ module test_genqist
             logical, intent(inout) :: testpass
             logical                :: testvec(4)
             testpass = .true.
-            call make_qist_model("./test_config_namelists_genqist.nml")
-            call gq%init("./test_config_namelists_genqist.nml")
-            call it%init("./test_config_namelists_genqist.nml")
+            call make_qist_model("./test_config_namelists.nml")
+            call gq%init("./test_config_namelists.nml",.true.)
+            call it%init("./test_config_namelists.nml")
             call it%stts_ab(it%t0,it%tf,itraj_stm0f, itraj_stt0f)
             itraj_stm_0 = it%stm(it%t0)
             itraj_stt_0 = it%stt(it%t0)

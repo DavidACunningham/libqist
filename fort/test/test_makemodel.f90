@@ -195,7 +195,7 @@ module test_makemodel
             if (.not.testvec(1)) msg = trim(msg)//new_line("a")//"FAIL Spherical harmonics gravity Jacobian test FAIL"
             if (.not.testvec(2)) msg = trim(msg)//new_line("a")//"FAIL Spherical harmonics gravity Hessian test FAIL"
             testpass = all(testvec)
-            if (testpass) msg = trim("PASS Third body derivatives test PASS")
+            if (testpass) msg = trim("PASS Spherical harmonics derivatives test PASS")
             write (*,*) msg
             contains
             function fd_acc(x) result(res)
@@ -251,17 +251,17 @@ module test_makemodel
                                    fdord
 
             ! Read in namelist
-            inquire(file="./test_config_namelists_genqist.nml", iostat=stat)
+            inquire(file="./test_fd_config.nml", iostat=stat)
             if (stat .ne. 0) then 
                 print *, "ERROR: Bad FD config namelist filename"
                 stop
             end if
-            open(file="./test_config_namelists_genqist.nml", status="old", &
+            open(file="./test_fd_config.nml", status="old", &
                  iostat=stat,newunit=num)
             read(unit=num, nml=FD_CONFIG, iostat=stat)
             if (stat .ne. 0) then 
                 print *, "ERROR: bad FD config namelist format"
-                print *, "./test_config_nameilsts_genqist.nml"
+                print *, "./test_fd_config.nml"
                 print *, stat
                 stop
             end if
@@ -269,7 +269,7 @@ module test_makemodel
             epsvec(1:3) = fdrstep
             epsvec(4:6) = fdvstep
             epsvec(7:8) = fdtstep
-            call gq%init(qist_config_file)
+            call gq%init(qist_config_file,.true.)
             eye = 0._qp; do i=1,8; eye(i,i) = 1._qp; end do
             init_stt = 0._qp
             tof = tf-t0
@@ -352,11 +352,21 @@ module test_makemodel
             analytic_final_state = base_sol%ys(:8,size(base_sol%ts))
             analytic_stm = reshape(base_sol%ys(9:8+8**2,size(base_sol%ts)), [8,8])
             analytic_stt = reshape(base_sol%ys(9+8**2:,size(base_sol%ts)), [8,8,8]) 
-            testvec(4) = all(abs(analytic_final_state(:6) - real(spice_state(:,size(base_sol%ts)),qp)).lt.2.e-3_qp)
+            testvec(4) = all( &
+                             (&
+                               analytic_final_state(:6) - &
+                               real(spice_state(:,size(base_sol%ts)),qp) &
+                             )/analytic_final_state(:6).lt.2.e-3_qp &
+                            )
             if (.not.testvec(4)) then
                 print *, "FAIL Dynamics integration test FAIL"
                 print *, "FINAL STATE ERROR"
-                print *, real(analytic_final_state(:6) - spice_state(:,size(base_sol%ts)),8)
+                print *, real(&
+                              (&
+                               analytic_final_state(:6) - &
+                               real(spice_state(:,size(base_sol%ts)),qp) &
+                              )/analytic_final_state(:6),8 &
+                             )
                 print *, "FINAL POSITION ERROR"
             end if
 

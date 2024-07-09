@@ -17,7 +17,8 @@ module makemodel
                                & degord
         integer,  allocatable :: bodylist(:) ! num_bodies
         logical               :: shgrav, &
-                               & tgt_on_rails
+                               & tgt_on_rails, &
+                               & regularize
         real(qp)              :: central_body_ref_radius, &
                                & central_body_rad(3), &
                                & state(8), &
@@ -40,7 +41,7 @@ module makemodel
     contains
     subroutine init_dm(me, subspice, traj_id, central_body, bodylist, &
                      & central_body_mu, central_body_ref_radius, mu_list, &
-                     & shgrav, rails,rot, Cbar, Sbar)
+                     & shgrav, rails,rot, Cbar, Sbar,reg)
         ! init_dm: method to initialize dynamicsModel object
         ! INPUTS:
         ! NAME           TYPE           DESCRIPTION
@@ -77,6 +78,7 @@ module makemodel
         ! Sbar           real (:,:)     OPTIONAL: 4 pi (Kaula) normalized 
         !                               sine Stokes coefficients for
         !                               central body
+        ! reg           logical         OPTIONAL: whether to use regularization
         ! OUTPUTS:
         ! NONE
         class(dynamicsModel), intent(inout)           :: me
@@ -89,6 +91,7 @@ module makemodel
                                                          central_body_mu, &
                                                          mu_list(:)
         logical,              intent(in)              :: shgrav, rails
+        logical,              intent(in), optional    :: reg
         real(qp),             intent(in), optional    :: Cbar(:,:), &
                                                          Sbar(:,:)
         real(dp),             allocatable             :: Cbaralloc(:,:), &
@@ -132,6 +135,11 @@ module makemodel
                 print *, "None provided."
                 error stop
             end if
+        endif
+        if (present(reg)) then
+            me%regularize = reg
+        else
+            me%regularize = .false.
         endif
     end subroutine init_dm
     subroutine new_bodies(me, bodylist, mulist)
@@ -256,11 +264,13 @@ module makemodel
         hes = hes_2b
         hes(4:6,:,:) = hes(4:6,:,:) + hes_nb(4:6,:,:)
         !! EXTRA REGULARIZATION
-        ! pos = y(:3)
-        ! r = sqrt(sum(pos**2))
-        ! acc = acc*r**(1.5_qp)
-        ! jac = jac*r**(1.5_qp)
-        ! hes = hes*r**(1.5_qp)
+        if (me%regularize) then
+            pos = y(:3)
+            r = sqrt(sum(pos**2))
+            acc = acc*r**(1.5_qp)
+            jac = jac*r**(1.5_qp)
+            hes = hes*r**(1.5_qp)
+        end if
         contains
             function sme(y) result(res)
                 real(qp), intent(in) :: y(:)

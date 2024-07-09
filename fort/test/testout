@@ -1,0 +1,122 @@
+ PASS Matrix multiplication tests PASS
+ PASS All basic Double precision tensor operations PASS
+ PASS All basic Quad precision tensor operations PASS
+ PASS Scalar Chebyshev interpolation tests PASS
+ PASS Rothist tests PASS
+ PASS Basic quaternion operations tests PASS
+ WARNING: pines working memory not allocated, exiting (deallocatepines)
+ PASS All spherical harmonics tests PASS
+ Writing to temporary subspice file. . .
+ Done
+ Reading from temporary subspice file. . .
+ Done
+ Removing temporary subspice file. . .
+ Done.
+ PASS Spice resample tests PASS
+ Writing solution to temp file
+ Reading solution from temp file
+ Cleaning up solution temp file. . .
+ Done.
+ PASS Double precision integration tests PASS
+ Testing sparse Quad integration. . .
+ Testing dense Quad integration. . .
+ Testing Quad integration read/write. . .
+ Writing solution to temp file
+ Reading solution from temp file
+ Cleaning up solution temp file. . .
+ Done.
+ PASS Quad precision integration tests PASS
+ Resampling SPICE bodies          399
+ Relative to body          301
+ from J2000 +    772509669.18428695     
+ to J2000 +    772682469.18423104     
+ degree of fit:          800
+ writing resampled SPICE to ./test_resample.subspice
+ PASS Make SPICE subset test PASS
+ WARNING: 
+ ./test_rot.rot already exists
+ Continuing will overwrite. Continue?
+Y/N:  
+ PASS Make rotation history test PASS
+ PASS Gravity loading test PASS
+ Loading QIST model for reference trajectory         -999
+ Using ephemeris data from ./test_resample.subspice
+ Relative to body          301
+ With perturbations from bodies          399
+ With spherical harmonics gravity?  T
+ From J2000 +    772509669.184286999999999999999999953      
+ To J2000 +    772682469.184230999999999999999999991      
+ 
+ WARNING: pines working memory not allocated, exiting (deallocatepines)
+ PASS Dynamics model loading test PASS
+ Loading QIST model for reference trajectory         -999
+ Using ephemeris data from ./test_resample.subspice
+ Relative to body          301
+ With perturbations from bodies          399
+ With spherical harmonics gravity?  T
+ From J2000 +    772509669.184286999999999999999999953      
+ To J2000 +    772682469.184230999999999999999999991      
+ 
+ WARNING: pines working memory not allocated, exiting (deallocatepines)
+ PASS Keplerian derivatives test PASS                                                                                                                                                                    
+ Loading QIST model for reference trajectory         -999
+ Using ephemeris data from ./test_resample.subspice
+ Relative to body          301
+ With perturbations from bodies          399
+ With spherical harmonics gravity?  T
+ From J2000 +    772509669.184286999999999999999999953      
+ To J2000 +    772682469.184230999999999999999999991      
+ 
+ WARNING: pines working memory not allocated, exiting (deallocatepines)
+ PASS Third body derivatives test PASS                                                                                                                                                                   
+ Loading QIST model for reference trajectory         -999
+ Using ephemeris data from ./test_resample.subspice
+ Relative to body          301
+ With perturbations from bodies          399
+ With spherical harmonics gravity?  T
+ From J2000 +    772509669.184286999999999999999999953      
+ To J2000 +    772682469.184230999999999999999999991      
+ 
+ WARNING: pines working memory not allocated, exiting (deallocatepines)
+ PASS Spherical harmonics derivatives test PASS                                                                                                                                                          
+ WARNING: 
+ ../../../kernels/test_orbit.bsp already exists
+ Continuing will overwrite. Continue?
+Y/N:  
+ Loading QIST model for reference trajectory         -999
+ Using ephemeris data from ./test_resample.subspice
+ Relative to body          301
+ With perturbations from bodies          399
+ With spherical harmonics gravity?  T
+ From J2000 +    772509669.184286999999999999999999953      
+ To J2000 +    772682469.184230999999999999999999991      
+ 
+ WARNING: pines working memory not allocated, exiting (deallocatepines)
+ Integrating kernel trajectory
+ Done.
+ Writing kernel. . .
+ Done.
+ Resampling SPICE bodies          399        -999
+ Relative to body          301
+ from J2000 +    772509669.18428695     
+ to J2000 +    772682469.18423104     
+ degree of fit:          800
+ writing resampled SPICE to ./test_resample_withtraj.subspice
+  -1.6654871615173761E-007  -3.4924073588626925E-007   4.1565769492990512E-008  -1.9292359931810665E-009   1.4504097950885503E-009   3.0150455687660838E-008
+   3.2078532967716455E-006  -3.8413563743233681E-006  -2.1366868168115616E-006   1.2280176875378856E-011   8.3790752114509814E-012   4.2811865164082974E-012
+ Loading QIST model for reference trajectory         -999
+ Using ephemeris data from ./test_resample_withtraj.subspice
+ Relative to body          301
+ With perturbations from bodies          399
+ With spherical harmonics gravity?  T
+ From J2000 +    772509669.184286999999999999999999953      
+ To J2000 +    772682469.184230999999999999999999991      
+ 
+ WARNING: pines working memory not allocated, exiting (deallocatepines)
+ Integrating base case
+ Done.
+ FAIL Dynamics integration test FAIL
+ FINAL STATE ERROR
+  -1.4704082909403904E-003  -2.8146938780792364E-004   1.5710365458402473E-002   2.5799098137995470E-006   5.6658270173028644E-006   5.0396680432460942E-007
+ FINAL POSITION ERROR
+ Integrating finite diff first order with step    1.00000000       1.00000000       1.00000000       9.99999975E-06   9.99999975E-06   9.99999975E-06   1.00000000       1.00000000    

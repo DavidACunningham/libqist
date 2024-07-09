@@ -1,0 +1,18 @@
+&FD_CONFIG
+    metakernel_filepath ="../../../kernels/mk_test_withorbit.tf"
+    qist_config_file = "./test_config_namelists.nml"
+	x0(1) =  8.059849800040121D+02, ! procedurally generated 
+	x0(2) =  1.732107143792893D+03, ! rp = 1.1*r_moon, e = 0.3
+	x0(3) =  7.191866537665294D+01, ! random orientation
+	x0(4) =  1.586030952010121D-01, ! starts at periapse
+	x0(5) =  1.724388489487553D-03,
+	x0(6) = -1.818978945873842D+00
+    t0=  772509669.184287,  ! 2024 Jun 24 14:00 UTC
+    tf=  772682469.184231,  ! 2024 Jun 26 14:00 UTC
+	rtol = 1.e-10,
+	atol = 1.e-16,
+	fdrstep = 1.0D+0,
+	fdvstep = 1.0D-5,
+	fdtstep = 1.0D+0,
+	fdord = 9
+/
