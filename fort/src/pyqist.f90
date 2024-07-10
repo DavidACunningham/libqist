@@ -4,12 +4,12 @@ module pq
     contains
     !! Initializers
     !! Initializers
-    subroutine pw_init_v(t0, tf, trajfile)
-        character(len=*), intent(in) :: trajfile
+    subroutine pw_init_v(t0, tf, trajfile,kvtaufile)
+        character(len=*), intent(in) :: trajfile, kvtaufile
         real(8),            intent(in) ::t0, tf
         !! The initial and final simulation independent variable (tau)
         !! The function _returns_ an instance of the type. 
-        call init_v(t0, tf, trajfile)
+        call init_v(t0, tf, trajfile, kvtaufile)
     end subroutine pw_init_v
     subroutine pw_init_n(namefile)
         character(len=*), intent(in) :: namefile

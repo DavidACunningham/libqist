@@ -18,12 +18,12 @@ module q_inter
         !! The function _returns_ an instance of the type. 
         call it%init(namefile)
     end subroutine init_n
-    subroutine init_v(t0, tf, trajfile)
-        character(len=*), intent(in) :: trajfile
+    subroutine init_v(t0, tf, trajfile,kvtaufile)
+        character(len=*), intent(in) :: trajfile, kvtaufile
         real(dp),            intent(in) ::t0, tf
         !! The initial and final simulation independent variable (t)
         !! The function _returns_ an instance of the type. 
-        call it%init(t0, tf, trajfile)
+        call it%init(t0, tf, trajfile,kvtaufile)
     end subroutine init_v
     !! Calling functions 
     !! Physical time calling functions

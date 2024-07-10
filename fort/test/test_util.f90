@@ -8,11 +8,11 @@ module test_util
             select type(mat)
             type is (real(dp))
                 do i= 1,size(mat,1)
-                    write (*,*) mat(i,:)
+                    write (*,*) real(mat(i,:), 4)
                 end do
             type is (real(qp))
                 do i= 1,size(mat,1)
-                    write (*,*) mat(i,:)
+                    write (*,*) real(mat(i,:), 4)
                 end do
             end select
         end subroutine
@@ -24,13 +24,13 @@ module test_util
             type is (real(dp))
                 do i= 1,size(tens,1)
                 do j= 1,size(tens,2)
-                    write (*,*) tens(i,j,:)
+                    write (*,*) real(tens(i,j,:), 4)
                 end do
                 end do
             type is (real(qp))
                 do i= 1,size(tens,1)
                 do j= 1,size(tens,2)
-                    write (*,*) tens(i,j,:)
+                    write (*,*) real(tens(i,j,:), 4)
                 end do
                 end do
             end select

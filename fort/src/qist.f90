@@ -5,12 +5,14 @@ module qist
                           stminvert, sttinvert, vectens3, mattens, &
                           quad
     use denseLight, only: lightSol
+    use frkmin,     only: odesolution
     implicit none
     private
     type, public :: Itraj
         real(dp)                 :: t0, tf, tof
-        logical                  :: initq
+        logical                  :: initq, regularized
         type(lightSol)           :: reftraj
+        type(odesolution)        :: kvtau
         contains
             generic,   public    :: init => init_nml, init_var
             procedure            :: call_raw
@@ -35,12 +37,18 @@ module qist
     subroutine init_nml(self, namefile)
         character(len=*), intent(in) :: namefile
         real(dp)                     :: t0, tf
-        character(len=1000)          :: qist_filepath
+        character(len=1000)          :: qist_filename
+        character(len=1000)          :: kvtau_filename
         integer                      :: stat, num
         class(Itraj),  intent(inout) :: self
-        namelist /ITRAJ_CONFIG/ qist_filepath, &
+        namelist /ITRAJ_CONFIG/ qist_filename, &
+                                kvtau_filename, &
                                 t0, &
                                 tf
+        t0 = 0._dp
+        tf = 0._dp
+        qist_filename = ""
+        kvtau_filename = ""
         inquire(file=trim(adjustl(namefile)), iostat=stat)
         if (stat .ne. 0) then 
             print *, "ERROR: Bad ITRAJ config namelist filename"
@@ -56,10 +64,10 @@ module qist
             stop
         end if
         close(num)
-        call self%init(t0,tf,qist_filepath)
+        call self%init(t0,tf,qist_filename,kvtau_filename)
     end subroutine init_nml
-    subroutine init_var(self, t0, tf, trajfile)
-        character(len=*), intent(in) :: trajfile
+    subroutine init_var(self, t0, tf, trajfile, kvtaufile)
+        character(len=*), intent(in) :: trajfile, kvtaufile
         real(dp),         intent(in) :: t0, tf
         integer                      :: stat, num
         class(Itraj),  intent(inout) :: self
@@ -67,6 +75,7 @@ module qist
         self%t0               = t0
         self%tf               = tf
         self%tof              = tf-t0
+        self%regularized      = .false.
         inquire(file=trim(adjustl(trajfile)), iostat=stat)
         if (stat.ne.0) then
             print *, "ERROR: Trajectory file not found."
@@ -77,6 +86,19 @@ module qist
              status="old", access="stream",iostat=stat)
         call self%reftraj%read(num)
         close(num)
+        if (kvtaufile.ne."") then
+            self%regularized = .true.
+            inquire(file=trim(adjustl(kvtaufile)), iostat=stat)
+            if (stat.ne.0) then
+                print *, "ERROR: Trajectory file not found."
+                print *, "error code ", stat
+                stop
+            end if
+            open(newunit=num, file=trim(adjustl(kvtaufile)), &
+                 status="old", access="stream",iostat=stat)
+            call self%kvtau%read(num)
+            close(num)
+        end if
     end subroutine init_var
     !! Calling functions 
     function call_raw(self,t,lind,uind) result(res)
@@ -104,18 +126,25 @@ module qist
         integer, optional, intent(in) :: uind, lind
         !! The value of the independent variable to generate
         real(dp), allocatable         :: res(:)
-        real(dp)                      :: t_elapsed
+        real(dp)                      :: t_elapsed, tau, k, dum(1)
         integer l, u
         l = 1
         u = plen
         t_elapsed = t - self%t0
+        tau = t_elapsed/self%tof
+        if (self%regularized) then
+            dum = self%kvtau%call(tau)
+            k = dum(1)
+        else
+            k = tau
+        end if
         if (present(lind)) l=lind
         if (present(uind)) u=uind
         allocate(res(u-l+1))
-        res = self%call_raw(t_elapsed/self%tof,l,u)
+        res = self%call_raw(k,l,u)
     end function
     function state(self,t) result(res)
-        !! Return a regularized state at time t
+        !! Return a state at time t
         class(ITraj), intent(inout) :: self
         real(dp),     intent(in) :: t
         !! The value of t at which to get the state
@@ -185,7 +214,7 @@ module qist
         res(8,8)=1._dp
     end function stm
     function stm_i(self,t) result(res)
-        !! Return a regularized stm at time tau
+        !! Return an stm at time t
         class(Itraj), intent(inout) :: self
         real(dp),     intent(in) :: t
         real(dp), dimension(n,n) :: res
@@ -587,7 +616,7 @@ module qist
         res(6,8,8) = packlin(265)
     end function stt
     function stt_i(self,t) result(res)
-        !! Return a regularized stm at time t
+        !! Return an inverse stt at time t
         class(Itraj), intent(inout) :: self
         real(dp),     intent(in) :: t
         real(dp), dimension(n,n,n) :: res

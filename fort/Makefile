@@ -93,9 +93,10 @@ PFLAGS := -O3 -mcmodel=large \
 		  -march=native \
 		  -ffree-line-length-none\
 		  -fcheck=bounds
-FFLAGS := -O3 -mcmodel=large \
+FFLAGS := -O0 -mcmodel=large \
 	      -Wl,--no-relax\
 		  -fPIC\
+		  -g \
 		  -ffast-math \
 		  -march=native \
 		  -ffree-line-length-none\

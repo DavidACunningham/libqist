@@ -1,0 +1,33 @@
+&QIST_CONFIGURATION
+!	 metakernel_filename_with_trajectory=
+!	 metakernel_filename_no_trajectory=
+!	 resample_filename_with_trajectory=
+!	 resample_filename_no_trajectory=
+!	 rotation_filename=
+!	 output_kernel_filename=
+!	 qist_filename=
+!	 inertial_frame_string=
+!	 rotating_frame_string=
+!	 t0_resamp=
+!	 tf_resamp=
+!	 t0_qist=
+!	 tf_qist=
+!	 mu_list=
+!	 rtol_kernel=
+!	 atol_kernel=
+!	 x0=
+!	 rtol_qist=
+!	 atol_qist=
+!	 central_body_ref_radius=
+!	 central_body_mu=
+!	 Cbar=
+!	 Sbar=
+!	 central_body_id=
+!	 body_list=
+!	 n_bodies=
+!	 resamp_fit_deg=
+!	 rot_fit_deg=
+!	 traj_id=
+!	 spherical_harmonics_degree=
+!	 nnodes_kernel=
+/
