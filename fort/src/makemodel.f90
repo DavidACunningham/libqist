@@ -662,20 +662,28 @@ module makemodel
         ! res            real (577)     big vector of dynamics
         class(dynamicsModel), intent(inout) :: me
         real(qp)            , intent(in)    :: t, y(:)
-        real(qp)                            :: stm(m,m), &
+        real(qp)                            :: state(6), &
+                                               stm(m,m), &
                                                stt(m,m,m), &
                                                stmdot(m,m), &
                                                sttdot(m,m,m), &
                                                acc(m), &
                                                jac(m,m), &
-                                               hes(m,m,m)
+                                               hes(m,m,m), &
+                                               r
         real(qp)                            :: res(size(y))
         stm = reshape(y(2:(1 + m**2)),[m,m])
         stt = reshape(y((2 + m**2):),[m,m,m])
         call me%get_derivs(y(1), acc, jac, hes)
         stmdot = matmul(jac,stm)
         sttdot = mattens(jac,stt,m) + quad(stm,hes,m)
-        res(1) = me%tof
+        if (me%regularize) then
+            state = me%trajstate(y(1))
+            r = sqrt(sum(state(:3)**2))
+            res(1) = r**(1.5_qp)*me%tof
+        else 
+            res(1) = me%tof
+        endif
         res(2:1 + 8**2) = reshape(stmdot,[8**2])
         res(2+8**2:) = reshape(sttdot,[8**3])
     end function eoms_rails

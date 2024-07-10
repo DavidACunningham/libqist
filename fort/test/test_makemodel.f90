@@ -35,6 +35,7 @@ module test_makemodel
             calltime =  (tf-t0)/2 + t0
             call gq%init("./test_config_namelists.nml")
             gq%dynmod%tgt_on_rails = .false.
+            gq%dynmod%regularize = .false.
             gq%dynmod%tof = gq%tf - gq%t0
             y = [5000._qp, 1000._qp, 500._qp, 0._qp, 0._qp, 0._qp, calltime, tf-t0]
             call gq%dynmod%allderivs_kepler(gq%dynmod%central_body_mu, y, &
@@ -98,6 +99,7 @@ module test_makemodel
             calltime =  (tf-t0)/2 + t0
             call gq%init("./test_config_namelists.nml")
             gq%dynmod%tgt_on_rails = .false.
+            gq%dynmod%regularize = .false.
             gq%dynmod%tof = gq%tf - gq%t0
             y = [5000._qp, 1000._qp, 500._qp, 0._qp, 0._qp, 0._qp, calltime, tf-t0]
             pos_tb = real(gq%dynmod%bod_db%call(real(calltime,dp), &
@@ -181,6 +183,7 @@ module test_makemodel
             calltime =  (tf-t0)/2 + t0
             call gq%init("./test_config_namelists.nml")
             gq%dynmod%tgt_on_rails = .false.
+            gq%dynmod%regularize = .false.
             y = [5000._qp, 1000._qp, 500._qp, 0._qp, 0._qp, 0._qp, calltime, tf-t0]
             call gq%dynmod%allderivs_sh(calltime, y, acc, jac, hes)
             jac_fd = 0._qp
@@ -286,6 +289,7 @@ module test_makemodel
             gq%tf = tf
             gq%dynmod%tof = tof
             init_state = [gq%dynmod%trajstate(t0), t0, tof]
+            gq%dynmod%regularize = .false.
             gq%dynmod%tgt_on_rails = .false.
             gq%dynmod%state = init_state
 

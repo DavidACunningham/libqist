@@ -173,6 +173,7 @@ module test_genqist
             init_state = [gq%dynmod%trajstate(gq%t0), test_t0, tof]
             gq%dynmod%tgt_on_rails = .false.
             gq%dynmod%state = init_state
+            gq%dynmod%regularize = .false.
             print *, "Integrating base case"
             base_sol = solve_ivp(fd_eoms,&
                                & [0._qp, 1._qp], &
