@@ -240,6 +240,7 @@ module test_genqist
                 print *, "FAIL Make QIST test FAIL"
             else
                 print *, "PASS Make QIST test PASS"
+                print *, "QIST regularization? ", it%regularized
             end if
             contains
                 function fd_eoms(me, x, y) result(res)

@@ -5,7 +5,7 @@
  resample_filename_with_trajectory="./test_resample_withtraj.subspice"
  resample_filename_no_trajectory="./test_resample.subspice"
  rotation_filename="./test_rot.rot"
- kvtau_filename="./kvtau_test.odesolution"
+ ! kvtau_filename="./kvtau_test.odesolution"
  output_kernel_filename="../../../kernels/test_orbit.bsp"
  qist_filename= "./test_qist.qist"
  inertial_frame_string= "J2000"
@@ -50,11 +50,11 @@
  traj_id=-999
  spherical_harmonics_degree=2
  nnodes_kernel= 80000
- regularize = .true.
+ regularize = .false.
 /
 &ITRAJ_CONFIG
  qist_filename= "./test_qist.qist"
- kvtau_filename="./kvtau_test.odesolution"
+ ! kvtau_filename="./kvtau_test.odesolution"
  t0=  772509669.184287,  ! 2024 Jun 24 14:00 UTC
  tf=  772682469.184231,  ! 2024 Jun 26 14:00 UTC
 /
