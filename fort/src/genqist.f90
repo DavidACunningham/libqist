@@ -4,7 +4,7 @@ module genqist
     use, intrinsic :: iso_fortran_env, only: dp=>real64, qp=>real128
     use makemodel
     use frkmin_q, only: solve_ivp, Odesolution, RungeKutta
-    use cheby, only: spice_subset
+    use subspice, only: spice_subset
     use quat, only: rothist, quaternion
     implicit none
     type configdata
@@ -59,6 +59,7 @@ module genqist
         procedure, private :: gq_namelist_init
         procedure, private :: var_init
     end type gqist
+
     contains
     subroutine namelist_init(me, namefile)
         class(configdata), intent(inout) :: me

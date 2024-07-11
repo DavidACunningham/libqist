@@ -1,5 +1,4 @@
 import numpy as np
-from myplottools import *
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 
@@ -92,8 +91,6 @@ def CR3BEOM(x,mu):
                      Ux[2]])
     return xdot
 
-
-
 def CR3BA(x,mu):
     x0 = mu + x[0]
     x1 = x0**2
@@ -129,39 +126,3 @@ def CR3BA(x,mu):
         [O, I],
         [Uxx, B]])
     return A
-
-def plotFunc(traj,opt,axexist=False,quiv=True,show=True,lab=''):
-    # This one will plot the trajectory as output by the solve_ivp
-    if not axexist:
-        plt.style.use('bmh')
-        ax = plt.axes(projection='3d')
-        ax.scatter(*EMLs[0],marker='x',s=100,label='L1')
-        ax.scatter(*EMLs[1],marker='x',s=100,label='L2')
-        ax.scatter(*EMLs[2],marker='x',s=100,label='L3')
-        ax.scatter(*EMLs[3],marker='x',s=100,label='L4')
-        ax.scatter(*EMLs[4],marker='x',s=100,label='L5')
-        ax.plot3D(traj[0,:], traj[1,:], traj[2,:],label=''.join([lab,' Trajectory']))
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('z')
-        ax.set_title('Propagated Trajectory')
-        re = 6378/384400
-        rm = 0.273*re
-        makesphere(ax,r=re,x0=-mu)
-        makesphere(ax,r=rm,x0=1-mu)
-    else:
-        fig = plt.gcf()
-        ax = plt.gca()
-        line = plt3d.art3d.Line3D(traj[0,:],traj[1,:],traj[2,:])
-        ax.add_line(line)
-    ax.scatter(traj[0,0],traj[1,0],traj[2,0],marker='o',s=50,label=''.join([lab,' Initial']))
-    ax.scatter(traj[0,-1],traj[1,-1],traj[2,-1],marker='d',s=50,label=''.join([lab,' Final']))
-    r0 = traj[:3,0]
-    v0 = traj[-3:,0]
-    if quiv:
-        ax.quiver(*r0,*v0,length = 0.2, colors='black')
-
-    ax.legend()
-    CR3BAxequal(ax,opt=opt,mu=mu)
-    if show:
-        plt.show()

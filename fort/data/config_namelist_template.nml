@@ -1,0 +1,66 @@
+&ITRAJ_CONFIG
+ qist_filename   = "./test_qist.qist"
+ ! kvtau_filename ="./kvtau_test.odesolution"
+ t0              =  772509669.184287   ! 2024 Jun 24 14:00 UTC
+ tf              =  772682469.184231   ! 2024 Jun 26 14:00 UTC
+/
+&QIST_CONFIGURATION
+ ! Master config parameters
+	 qist_filename                       = "./test_qist.qist"
+	 t0_qist                             =  772509669.184287             ! 2024 Jun 24 14:00 UTC
+	 tf_qist                             =  772682469.184231             ! 2024 Jun 26 14:00 UTC
+	 t0_resamp                           =  772509669.184287             ! 2024 Jun 24 14:00 UTC
+	 tf_resamp                           =  772682469.184231             ! 2024 Jun 26 14:00 UTC
+	 traj_id                             = -999
+	 central_body_id                     =  301
+	 central_body_mu                     =  0.4902799806931690D+04
+	 n_bodies                            =  1                            ! number of PERTURBING bodies
+	 body_list(1)				         =  399                          ! PERTURBING bodies only
+	 mu_list(1)				             =  398600.5
+	 spherical_harmonics_degree          =  2                            ! Set to zero to turn off SH
+	 rtol_qist                           =  1.e-10
+	 atol_qist                           =  1.e-20
+	 regularize                          = .false.                       ! whether to do sundman regularization
+	 ! kvtau_filename                     = "./kvtau_test.odesolution"    ! Only needed if regularizing, otherwise comment out
+
+ ! SPICE resampling configuration
+	 metakernel_filename_with_trajectory = "../../../kernels/mk_test_withorbit.tf"
+	 metakernel_filename_no_trajectory   = "../../../kernels/mk_test.tf"
+	 resample_filename_with_trajectory   = "./test_resample_withtraj.subspice"
+	 resample_filename_no_trajectory     = "./test_resample.subspice"
+	 resamp_fit_deg						 =  800
+
+ ! Rotation interpolation configuration
+	 rotation_filename                   = "./test_rot.rot"
+	 inertial_frame_string			     = "J2000"
+	 rotating_frame_string               = "MOON_PA"
+	 rot_fit_deg                         =  400
+
+ ! Kernel generation configuration parameters
+	 output_kernel_filename              = "../../../kernels/test_orbit.bsp"
+	 rtol_kernel                         =  1.e-16
+	 atol_kernel                         =  1.e-20
+	 nnodes_kernel                       =  80000
+	 x0(1)                               =  8.059849800040121D+02        ! procedurally generated 
+	 x0(2)                               =  1.732107143792893D+03        ! rp = 1.1*r_moon, e = 0.3
+	 x0(3)                               =  7.191866537665294D+01        ! random orientation
+	 x0(4)                               =  1.586030952010121D-01        ! starts at periapse
+	 x0(5)                               =  1.724388489487553D-03
+	 x0(6)                               = -1.818978945873842D+00
+
+ ! Spherical harmonics gravity parameters
+	 central_body_ref_radius             =  0.1738000000000000D+04
+	 cbar(0,0)                           =  1.0000000000000000D+00 
+	 
+	 cbar(1,0)                           =  0.0000000000000000D+00 
+	 cbar(1,1)                           =  0.0000000000000000D+00 
+	 cbar(2,0)                           = -9.0882923650770995D-05 
+	 cbar(2,1)                           =  8.4954064857652003D-11 
+	 cbar(2,2)                           =  3.4670944268755999D-05
+	 
+	 sbar(1,0)                           =  0.0000000000000000D+00 
+	 sbar(1,1)                           =  0.0000000000000000D+00 
+	 sbar(2,0)                           =  0.0000000000000000D+00 
+	 sbar(2,1)                           =  9.7726994478962992D-10 
+	 sbar(2,2)                           = -2.4064244523445002D-10 
+/

@@ -1,12 +1,12 @@
 module test_cheby
     use, intrinsic :: iso_fortran_env, only: dp => real64, qp=>real128
     use cheby, only: vectorcheb, &
-                     spice_subset, &
                      chcall, &
                      chnodes, &
                      chfit, &
                      chderiv, &
                      pi
+    use subspice, only: spice_subset
     use test_util, only: mprint
     implicit none
     contains

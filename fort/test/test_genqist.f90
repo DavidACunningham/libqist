@@ -6,7 +6,7 @@ module test_genqist
                        generate_kernel, &
                        make_qist_model, &
                        configdata
-    use cheby, only: spice_subset
+    use subspice, only: spice_subset
     use tensorops, only: quad, mattens
     use quat, only: rothist
     use frkmin_q, only: odesolution, rungekutta, solve_ivp

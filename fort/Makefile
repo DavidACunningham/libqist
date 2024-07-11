@@ -28,7 +28,6 @@ endef
 
 SOURCES := $(SRCDIR)globals.f90 \
 		   $(SRCDIR)tensorops.f90 \
-		   $(SRCDIR)cheby.f90 \
 	       $(SRCDIR)frkmin.f90 \
 		   $(SRCDIR)denselight.f90
 OBJECTS :=$(call source-to-extension,$(SOURCES),o)
@@ -38,6 +37,8 @@ ANCHORS := $(call changefolder,$(ANCHORS),$(ANCDIR),$(SRCDIR))
 
 GQ_SOURCES := $(SOURCES) \
 	        $(SRCDIR)quat.f90 \
+		    $(SRCDIR)cheby.f90 \
+	        $(SRCDIR)subspice.f90 \
 	        $(SRCDIR)tinysh.f90 \
 	        $(SRCDIR)makemodel.f90 \
 	        $(SRCDIR)frkmin_q.f90 \
@@ -85,7 +86,8 @@ ifneq ($(MODDIR),)
 	FFLAGS+= -J$(MODDIR)
 endif
 
-PFFLAGS := -lgomp 
+PFFLAGS := -lgomp \
+		   --build-dir $(MODDIR)
 PFLAGS := -O3 -mcmodel=large \
 	      -Wl,--no-relax\
 		  -fPIC\
@@ -93,10 +95,10 @@ PFLAGS := -O3 -mcmodel=large \
 		  -march=native \
 		  -ffree-line-length-none\
 		  -fcheck=bounds
-FFLAGS := -O0 -mcmodel=large \
+		  
+FFLAGS := -O3 -mcmodel=large \
 	      -Wl,--no-relax\
 		  -fPIC\
-		  -g \
 		  -ffast-math \
 		  -march=native \
 		  -ffree-line-length-none\
