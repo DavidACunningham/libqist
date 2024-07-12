@@ -1,11 +1,9 @@
 from addlib import *
 from pyqist import pq
-defaultQIST = {
-     "t0"       : 0.00000000000000000000000000000000000,
-     "tf"       : 1.51111111111111111111282993860588617,
-     "filepath" : "/home/david/wrk/nstgro/pycurve/denseqists/",
-     "trajfile" : "denseQISTGW_16_0.0.strm",
-     }
+defaultQIST = {"path" : "/home/david/wrk/nstgro/qist/data/europa/",
+               "nml"  : "europa_config_namelist_2024Aug142100002024Aug20120000.qist"
+               }
+
 
 class Itraj(object):
     def __init__(self, **kwargs):
@@ -18,27 +16,28 @@ class Itraj(object):
         """
         for k,v in kwargs.items():
             setattr(self,k,v)
-        pq.pw_init_i(self.t0,self.tf, self.filepath, self.trajfile)
+        pq.pw_init_n(self.path+self.nml)
     def state(self,t):
-        return pq.pw_state(t)[:6]
+        return pq.pw_state(t)
     def stm(self,t):
-        return pq.pw_stm(t)[:6,:6]
+        return pq.pw_stm(t)
     def stt(self,t):
-        return pq.pw_stt(t)[:6,:6,:6]
+        return pq.pw_stt(t)
     def stmInv(self,t):
-        return pq.pw_stm_i(t)[:6,:6]
+        return pq.pw_stm_i(t)
     def sttInv(self,t):
-        return pq.pw_stt_i(t)[:6,:6,:6]
+        return pq.pw_stt_i(t)
     def prop(self,ta,tb,xa,order=None):
         ordr= 2
         func = {1: pq.pw_prop_once, 2: pq.pw_prop_many}
         r = xa.ndim
         if order is not None : ordr=order
-        if tb>self.tf:
-            return norbit_push(self,ta,tb,xa, ordr)
-        else:
-            return func[r](ta,tb,xa, ordr)[:6]
+        return func[r](ta,tb,xa, ordr)
     def sttsAToB(self,ta,tb):
         return pq.pw_stts_ab(ta,tb)
+    def sttUpdate(self,ta,tb,xa):
+        return pq.pw_stt_update(ta, tb, xa)
+    def tensorChangeBasis(RNewOld, old_stm, old_stt):
+        return pq.pw_tensor_change_of_basis(RNewOld, old_stm, old_stt)
     def zMap(self,t,order):
         return pq.pw_zmap(t,order)

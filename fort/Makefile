@@ -36,8 +36,8 @@ OBJECTS := $(call changefolder,$(OBJECTS),$(OBJDIR),$(SRCDIR))
 ANCHORS := $(call changefolder,$(ANCHORS),$(ANCDIR),$(SRCDIR))
 
 GQ_SOURCES := $(SOURCES) \
-	        $(SRCDIR)quat.f90 \
 		    $(SRCDIR)cheby.f90 \
+	        $(SRCDIR)quat.f90 \
 	        $(SRCDIR)subspice.f90 \
 	        $(SRCDIR)tinysh.f90 \
 	        $(SRCDIR)makemodel.f90 \

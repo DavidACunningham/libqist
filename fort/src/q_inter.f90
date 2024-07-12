@@ -31,7 +31,7 @@ module q_inter
         !! Return a nonregularized state at time t
         real(dp),       intent(in) :: t
         !! The value of the independent variable to generate
-        real(dp)                   :: res(n)
+        real(dp)                   :: res
         res = it%state(t)
     end function state
      function stm(t) result(res)

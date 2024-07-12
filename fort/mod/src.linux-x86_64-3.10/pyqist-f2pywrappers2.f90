@@ -5,7 +5,7 @@
       subroutine f2pywrap_pq_pw_state (pw_statef2pywrap, tau)
       use pq, only : pw_state
       real(kind=8) tau
-      real(kind=8) pw_statef2pywrap(8)
+      real(kind=8) pw_statef2pywrap
       pw_statef2pywrap = pw_state(tau)
       end subroutine f2pywrap_pq_pw_state
       subroutine f2pywrap_pq_pw_stm (pw_stmf2pywrap, tau)
@@ -38,7 +38,7 @@
       real(kind=8) ta
       real(kind=8) tb
       integer order
-      real(kind=8) xa(6)
+      real(kind=8) xa(8)
       real(kind=8) pw_prop_oncef2pywrap(8)
       pw_prop_oncef2pywrap = pw_prop_once(ta, tb, xa, order)
       end subroutine f2pywrap_pq_pw_prop_once
@@ -71,7 +71,7 @@
       interface 
       subroutine f2pywrap_pq_pw_state (pw_statef2pywrap, tau)
       real(kind=8) tau
-      real(kind=8) pw_statef2pywrap(8)
+      real(kind=8) pw_statef2pywrap
       end subroutine f2pywrap_pq_pw_state 
       subroutine f2pywrap_pq_pw_stm (pw_stmf2pywrap, tau)
       real(kind=8) tau
@@ -94,7 +94,7 @@
       real(kind=8) ta
       real(kind=8) tb
       integer order
-      real(kind=8) xa(6)
+      real(kind=8) xa(8)
       real(kind=8) pw_prop_oncef2pywrap(8)
       end subroutine f2pywrap_pq_pw_prop_once 
       subroutine f2pywrap_pq_pw_prop_many (pw_prop_manyf2pywrap, ta, tb,&

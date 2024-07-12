@@ -148,9 +148,11 @@ module qist
         class(ITraj), intent(inout) :: self
         real(dp),     intent(in) :: t
         !! The value of t at which to get the state
-        real(dp), dimension(n)   :: res
+        real(dp)                 :: dum(1)
+        real(dp)                 :: res
         !! The returned state
-        res = self%call(t,uind=1)
+        dum = self%call(t,uind=1)
+        res = dum(1)
     end function state
     function stm(self,t) result(res)
         class(Itraj), intent(inout) :: self

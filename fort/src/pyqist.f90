@@ -19,10 +19,9 @@ module pq
     end subroutine pw_init_n
      function pw_state(tau) result(res)
         !! Return a regularized state at time tau
-        integer, parameter :: n=8
         real(8),     intent(in) :: tau
         !! The value of tau at which to get the state
-        real(8), dimension(n)   :: res
+        real(8)            :: res
         !! The returned state
         res = state(tau)
     end function pw_state
@@ -70,14 +69,14 @@ module pq
         !! time-to-tau to adjust tau for the relative
         !! trajectory.
         integer :: o 
-        real(8),     intent(in) :: ta, tb, xa(6)
+        real(8),     intent(in) :: ta, tb, xa(8)
         integer, intent(in), optional :: order
         !! xa is the initial relative state 
         !! should be dimension 6
         real(8)                 :: res(8)
         o = 2
         if (present(order)) o=order
-        res = prop(ta,tb,[xa, 0._8, 0._8],o)
+        res = prop(ta,tb,xa,o)
     end function pw_prop_once
 
     function pw_prop_many(ta, tb, xa, order) result(res)
