@@ -108,14 +108,14 @@ module pq
         real(8),     intent(out)    :: new_stm(n,n), new_stt(n,n,n)
         call stt_update(ta,tb, xa, new_stm, new_stt)
     end subroutine pw_stt_update
-    subroutine pw_tensor_change_of_basis(RNO, old_stm, old_stt, &
+    subroutine pw_tensor_change_of_basis(RNOf, RNO0, old_stm, old_stt, &
                                       new_stm, new_stt)
         !! Transform an STM and STT from an old coordinate basis to a new one
         !! RNO defined by vec_new = RNO@vec_old
         integer, parameter :: n=8
-        real(8),     intent(in)     :: RNO(n,n), old_stm(n,n), old_stt(n,n,n)
+        real(8),     intent(in)     :: RNOf(n,n), RNO0(n,n), old_stm(n,n), old_stt(n,n,n)
         real(8),     intent(out)    :: new_stm(n,n), new_stt(n,n,n)
-        call tensor_change_of_basis( RNO, old_stm, old_stt, &
+        call tensor_change_of_basis( RNOf, RNO0, old_stm, old_stt, &
                                       new_stm, new_stt)
     end subroutine pw_tensor_change_of_basis
 

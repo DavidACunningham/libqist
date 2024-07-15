@@ -37,7 +37,7 @@ class Itraj(object):
         return pq.pw_stts_ab(ta,tb)
     def sttUpdate(self,ta,tb,xa):
         return pq.pw_stt_update(ta, tb, xa)
-    def tensorChangeBasis(RNewOld, old_stm, old_stt):
-        return pq.pw_tensor_change_of_basis(RNewOld, old_stm, old_stt)
+    def tensorChangeBasis(self,RNewOldf, RNewOld0, old_stm, old_stt):
+        return pq.pw_tensor_change_of_basis(RNewOldf, RNewOld0, old_stm, old_stt)
     def zMap(self,t,order):
         return pq.pw_zmap(t,order)

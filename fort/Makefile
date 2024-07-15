@@ -124,6 +124,7 @@ test: $(TESTDIR)unit_test_run
 genqist: make_qist_existing_kernel
 genkernel: make_new_kernel
 pq: pyqist$(EXT_SUFFIX)
+pqtest: pyqist.a
 modfiles: $(T_ANCHORS) $(I_ANCHORS)
 
 .PHONY: clean
@@ -143,7 +144,7 @@ make_qist_existing_kernel: $(GQ_OBJECTS)
 $(TESTDIR)unit_test_run: $(T_OBJECTS)
 	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
 
-%.a : $(I_OBJECTS)
+%.a : $(SRCDIR)%.f90 $(I_OBJECTS)
 	$(FC) $(MFLAGS) $(SPICE) $^ -c -o $@
 
 %$(EXT_SUFFIX) : $(SRCDIR)%.f90 $(I_OBJECTS)
