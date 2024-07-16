@@ -1,4 +1,5 @@
 from addlib import *
+import numpy as np
 from pyqist import pq
 defaultQIST = {"path" : "/home/david/wrk/nstgro/qist/data/europa/",
                "nml"  : "europa_config_namelist_2024Aug142100002024Aug20120000.qist"
@@ -34,10 +35,14 @@ class Itraj(object):
         if order is not None : ordr=order
         return func[r](ta,tb,xa, ordr)
     def sttsAToB(self,ta,tb):
-        return pq.pw_stts_ab(ta,tb)
+        scratchm, scratcht = pq.pw_stts_ab(ta,tb)
+        stm = scratchm.T
+        stt = np.einsum('kji -> ijk', scratcht)
+        return stm,stt
     def sttUpdate(self,ta,tb,xa):
-        return pq.pw_stt_update(ta, tb, xa)
-    def tensorChangeBasis(self,RNewOldf, RNewOld0, old_stm, old_stt):
-        return pq.pw_tensor_change_of_basis(RNewOldf, RNewOld0, old_stm, old_stt)
+        stm, stt = pq.pw_stt_update(ta,tb,xa)
+        return stm,stt
+    def tensorChangeBasis(self,RNewOldf, ROldNew0, old_stm, old_stt):
+        return pq.pw_tensor_change_of_basis(RNewOldf, ROldNew0, old_stm, old_stt)
     def zMap(self,t,order):
         return pq.pw_zmap(t,order)

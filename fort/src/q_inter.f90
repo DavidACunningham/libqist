@@ -103,13 +103,13 @@ module q_inter
         real(dp),     intent(out)    :: new_stm(n,n), new_stt(n,n,n)
         call it%stt_update(ta,tb, xa, new_stm, new_stt)
     end subroutine stt_update
-    subroutine tensor_change_of_basis(RNOf, RNO0, old_stm, old_stt, &
+    subroutine tensor_change_of_basis(RNOf, RON0, old_stm, old_stt, &
                                       new_stm, new_stt)
         !! Transform an STM and STT from an old coordinate basis to a new one
         !! RNO defined by vec_new = RNO@vec_old
-        real(dp),     intent(in)     :: RNOf(n,n), RNO0(n,n), old_stm(n,n), old_stt(n,n,n)
+        real(dp),     intent(in)     :: RNOf(n,n), RON0(n,n), old_stm(n,n), old_stt(n,n,n)
         real(dp),     intent(out)    :: new_stm(n,n), new_stt(n,n,n)
-    call it%tensor_change_of_basis( RNOf, RNO0, old_stm, old_stt, &
+    call it%tensor_change_of_basis( RNOf, RON0, old_stm, old_stt, &
                                       new_stm, new_stt)
     end subroutine tensor_change_of_basis
 

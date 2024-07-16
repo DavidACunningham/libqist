@@ -700,15 +700,16 @@ module qist
         new_stm = ref_stm + stmupdate
         new_stt = ref_stt
     end subroutine stt_update
-    subroutine tensor_change_of_basis(self, RNOf, RNO0, old_stm, old_stt, &
+    subroutine tensor_change_of_basis(self, RNOf, RON0, old_stm, old_stt, &
                                       new_stm, new_stt)
         !! Transform an STM and STT from an old coordinate basis to a new one
         !! RNO defined by vec_new = RNO@vec_old
         class(Itraj), intent(inout)  :: self
-        real(dp),     intent(in)     :: RNOf(n,n), RNO0(n,n), old_stm(n,n), old_stt(n,n,n)
+        real(dp),     intent(in)     :: RNOf(n,n), RON0(n,n), &
+                                        old_stm(n,n), old_stt(n,n,n)
         real(dp),     intent(out)    :: new_stm(n,n), new_stt(n,n,n)
-        new_stm = mmult(RNOf, mmult(old_stm,transpose(RNO0)))
-        new_stt = mattens(RNOf,quad(transpose(RNO0),old_stt,n),n)
+        new_stm = mmult(RNOf, mmult(old_stm,RON0))
+        new_stt = mattens(RNOf,quad(RON0,old_stt,n),n)
     end subroutine tensor_change_of_basis
     function zmap(self, t,order) result(res)
         !! Testing procedure that chains an stm and stt with their own
