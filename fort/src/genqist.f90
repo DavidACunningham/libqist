@@ -417,7 +417,7 @@ module genqist
         base_sol = solve_ivp(stateonly_eoms,&
                            & [t0, tf], &
                            & init_state, &
-                           & dense_output=.true.,&
+                           & dense_output=.false.,&
                            & rtol=rtol, &
                            & atol=atol, &
                            & istep=(tf-t0)/2._qp &
@@ -425,17 +425,18 @@ module genqist
         print *, "Done."
         print *, "Writing kernel. . ."
 
+        nnodes = size(base_sol%ts)
         allocate(kernel_times(nnodes), &
                & kernelstates(6,nnodes), &
                  x(6,nnodes), &
                  kernel_times_double(nnodes))
 
-        kernel_times = [(t0 + i*(tf-t0)/(nnodes-1), i=0,nnodes-1)]
-        do i = 1, nnodes
-            kernelstates(:,i) = base_sol%call(kernel_times(i))
-        end do
-        x = real(kernelstates,dp)
-        kernel_times_double = real(kernel_times,dp)
+        ! kernel_times = [(t0 + i*(tf-t0)/(nnodes-1), i=0,nnodes-1)]
+        ! do i = 1, nnodes
+        !     kernelstates(:,i) = base_sol%call(kernel_times(i))
+        ! end do
+        x = real(base_sol%ys,dp)
+        kernel_times_double = real(base_sol%ts,dp)
         call spkopn(trim(adjustl(output_kernel_filename)), "SPK_file", 100, num)
         call spkw13( &
                     num, &
@@ -445,7 +446,7 @@ module genqist
                     kernel_times_double(1), &
                     kernel_times_double(nnodes), &
                     "trajectory", &
-                    5, &
+                    27, &
                     nnodes, &
                     x, &
                     kernel_times_double &
@@ -493,6 +494,7 @@ module genqist
             resample_filepath = cd%resample_filename_no_trajectory
         endif
         degord = cd%spherical_harmonics_degree
+        shgrav = .false.
         if (degord>0) then
             shgrav = .true.
             allocate(C(degord+1,degord+1), &
@@ -500,24 +502,24 @@ module genqist
             C = cd%Cbar(0:degord,0:degord)
             S = cd%Sbar(0:degord,0:degord)
             rotfile = cd%rotation_filename
+            inquire(file=trim(adjustl(rotfile)), iostat=stat, exist=dasein)
+            if (stat .ne. 0 .or. .not.dasein) then 
+                print *, "ERROR: Bad body frame filename"
+                stop
+            end if
+            open(file=rotfile, status="old", &
+                 iostat=stat, access="stream", newunit=num)
+                call rot%read(num)
+            close(num)
+            shgrav = .true.
         else
             shgrav = .false.
             allocate(C(2,2),S(2,2))
             C = 0._qp
             S = 0._qp
         end if
-        inquire(file=trim(adjustl(rotfile)), iostat=stat, exist=dasein)
-        if (stat .ne. 0 .or. .not.dasein) then 
-            print *, "ERROR: Bad body frame filename"
-            stop
-        end if
-        open(file=rotfile, status="old", &
-             iostat=stat, access="stream", newunit=num)
-            call rot%read(num)
-        close(num)
-        shgrav = .true.
-        rails = .true.
         ! Set number of bodies
+        rails = .true.
         n_bodies = findloc(cd%body_list,0,dim=1)-1
         tof = cd%tf_qist - cd%t0_qist
         ! Print status
@@ -538,8 +540,8 @@ module genqist
                      &  cd%central_body_mu, &
                      &  cd%central_body_ref_radius, &
                      &  cd%mu_list(:n_bodies), &
-                     &  rails, &
                      &  shgrav, &
+                     &  rails, &
                      &  rot, &
                      &  C, S, &
                      &  cd%regularize, &
