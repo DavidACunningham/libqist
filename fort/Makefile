@@ -137,10 +137,19 @@ clean:
 	-test -d $(TESTOBJDIR) && rm --verbose $(TESTOBJDIR)*
 	-test -d $(TESTANCDIR) && rm --verbose $(TESTANCDIR)*
 
+make_resample: $(GQ_OBJECTS)
+	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
+	-mv -v $@ ./exe/
+make_rot: $(GQ_OBJECTS)
+	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
+	-mv -v $@ ./exe/
+
 make_new_kernel: $(GQ_OBJECTS)
 	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
+	-mv -v $@ ./exe/
 make_qist_existing_kernel: $(GQ_OBJECTS)
 	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
+	-mv -v $@ ./exe/
 $(TESTDIR)unit_test_run: $(T_OBJECTS)
 	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
 

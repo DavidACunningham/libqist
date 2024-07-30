@@ -367,9 +367,9 @@ module genqist
         real(qp)                     :: t0, tf, tof, &
                                         rtol, atol
         integer                      :: num, nnodes
-        real(qp)                     :: init_state(6)
+        real(qp)                     :: init_state(6), energy
         real(qp), allocatable        :: kernel_times(:), &
-                                      & kernelstates(:,:)
+                                        ediff(:)
         real(dp)                     :: x0(6)
         real(dp), allocatable        :: x(:,:), &
                                         kernel_times_double(:)
@@ -427,18 +427,20 @@ module genqist
 
         nnodes = size(base_sol%ts)
         allocate(kernel_times(nnodes), &
-               & kernelstates(6,nnodes), &
                  x(6,nnodes), &
-                 kernel_times_double(nnodes))
+                 kernel_times_double(nnodes), &
+                 ediff(nnodes))
 
-        ! kernel_times = [(t0 + i*(tf-t0)/(nnodes-1), i=0,nnodes-1)]
-        ! do i = 1, nnodes
-        !     kernelstates(:,i) = base_sol%call(kernel_times(i))
-        ! end do
+        energy = en(base_sol%ys(:,1))
         x = real(base_sol%ys,dp)
+        do i=1,nnodes
+            ediff(i) = en(real(x(:,i),qp)) - energy
+        end do
+        print *, "Kernel nodes: ", nnodes
+        print *, "Deviation from Keplerian: ", maxval(abs(ediff))
         kernel_times_double = real(base_sol%ts,dp)
         call spkopn(trim(adjustl(output_kernel_filename)), "SPK_file", 100, num)
-        call spkw13( &
+        call spkw09( &
                     num, &
                     traj_id, &
                     gq%dynmod%central_body, &
@@ -446,7 +448,7 @@ module genqist
                     kernel_times_double(1), &
                     kernel_times_double(nnodes), &
                     "trajectory", &
-                    27, &
+                    5, &
                     nnodes, &
                     x, &
                     kernel_times_double &
@@ -454,6 +456,11 @@ module genqist
         call spkcls(num)
         print *, "Done."
         contains
+        function en(x) result(res)
+            real(qp), intent(in) :: x(6)
+            real(qp)             :: res
+            res = sum(x(4:6)**2)/2._qp - gq%dynmod%central_body_mu/sqrt(sum(x(:3)**2))
+        end function en
         function stateonly_eoms(me, x, y) result(res)
             class(RungeKutta), intent(inout) :: me
             real(qp),          intent(in)    :: x, y(:)
