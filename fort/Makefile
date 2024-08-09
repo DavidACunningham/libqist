@@ -96,7 +96,7 @@ PFLAGS := -O3 -mcmodel=large \
 		  -ffree-line-length-none\
 		  -fcheck=bounds
 		  
-FFLAGS := -O3 -mcmodel=large \
+FFLAGS := -O0 -g -mcmodel=large \
 	      -Wl,--no-relax\
 		  -fPIC\
 		  -ffast-math \
@@ -123,6 +123,7 @@ mat: mqist.a
 test: $(TESTDIR)unit_test_run 
 genqist: make_qist_existing_kernel
 genkernel: make_new_kernel
+gencheby: make_cheby_kernel
 pq: pyqist$(EXT_SUFFIX)
 pqtest: pyqist.a
 modfiles: $(T_ANCHORS) $(I_ANCHORS)
@@ -144,6 +145,9 @@ make_rot: $(GQ_OBJECTS)
 	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
 	-mv -v $@ ./exe/
 
+make_cheby_kernel: $(GQ_OBJECTS)
+	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
+	-mv -v $@ ./exe/
 make_new_kernel: $(GQ_OBJECTS)
 	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
 	-mv -v $@ ./exe/

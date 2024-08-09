@@ -5,6 +5,7 @@ module genqist
     use makemodel
     use frkmin_q, only: solve_ivp, Odesolution, RungeKutta
     use subspice, only: spice_subset
+    use cheby, only: chnodes, chfit
     use quat, only: rothist, quaternion
     implicit none
     type configdata
@@ -357,6 +358,142 @@ module genqist
             res = qclass%q
         end function
     end subroutine make_rotation
+    subroutine generate_kernel_cheby(namefile)
+        integer, parameter           :: degree=25
+        type(configdata)             :: cd
+        type(gqist)                  :: gq
+        type(odesolution)            :: base_sol !, qistsol
+        character(len=*), intent(in) :: namefile
+        character(len=1000)          :: qist_config_file, &
+                                        output_kernel_filename
+        real(qp)                     :: t0, tf, tof, &
+                                        rtol, atol
+        integer                      :: num
+        real(qp)                     :: init_state(6), energy, &
+                                        thisxcoeffs(degree,6)
+        real(qp), allocatable        :: record_starts(:),&
+                                        record_ends(:)
+        real(dp)                     :: x0(6)
+        real(dp), allocatable        :: bigxcoeffs(:)
+        logical dasein
+        character(len=1) :: yn
+        integer i, traj_id, records
+        call cd%init(namefile)
+        qist_config_file = cd%config_filename
+        output_kernel_filename = cd%output_kernel_filename
+        traj_id = cd%traj_id
+        x0 = real(cd%x0,dp)
+        t0 = cd%t0_resamp
+        tf = cd%tf_resamp
+        rtol = cd%rtol_kernel
+        atol = cd%atol_kernel
+        records = cd%nnodes_kernel
+        allocate(bigxcoeffs(records*degree*6))
+        allocate(record_starts(records), record_ends(records))
+        inquire(file=trim(adjustl(output_kernel_filename)), exist=dasein)
+        if (dasein) then 
+            print *, "WARNING: "
+            print *, trim(adjustl(output_kernel_filename)), " already exists"
+            print *, "Continuing will overwrite. Continue?"
+            yn = "X"
+            do while (yn.ne."Y".and.yn.ne."N")
+                write(*,'(A)',advance='no') "Y/N: "
+                read(*,*) yn
+                print *, ""
+            end do
+            if (yn.eq."N") then
+                print *, "Not continuing."
+                stop
+            else
+                open(newunit=num,file=trim(adjustl(output_kernel_filename)))
+                close(num,status="delete")
+            end if
+        end if
+        call gq%init(qist_config_file)
+        ! Make sure nonphysical integration stuff is turned off
+        gq%dynmod%regularize = .false.
+        tof = 1._qp
+        gq%dynmod%tof = 1._qp
+        gq%dynmod%tgt_on_rails = .false.
+        init_state = real(x0,qp)
+        gq%dynmod%state = [init_state, t0, 1._qp]
+        print *, "Integrating kernel trajectory"
+        base_sol = solve_ivp(stateonly_eoms,&
+                           & [t0, tf], &
+                           & init_state, &
+                           & dense_output=.true.,&
+                           & rtol=rtol, &
+                           & atol=atol, &
+                           & istep=(tf-t0)/2._qp &
+                          & )
+        print *, "Done."
+
+        print *, "Generating Chebyshev Coefficients"
+        record_starts = [(i*(tf-t0)/records + t0, i=0,records-1)] 
+        record_ends   = [(i*(tf-t0)/records + t0, i=1,records)] 
+        do i=1,records
+            thisxcoeffs = rec_coeffs( &
+                                     record_starts(i), &
+                                     record_ends(i) &
+                                    )
+            bigxcoeffs(1+(6*degree)*(i-1) : 6*degree*i) = real( &
+                                                        reshape( &
+                                                          thisxcoeffs,[6*degree] &
+                                                        ), &
+                                                       dp)
+        end do
+
+        print *, "Writing kernel. . ."
+        call spkopn(trim(adjustl(output_kernel_filename)), "SPK_file", 100, num)
+        call spkw03( &
+                    num, &
+                    traj_id, &
+                    gq%dynmod%central_body, &
+                    'J2000', &
+                    real(t0,dp), &
+                    real(tf,dp), &
+                    "trajectory", &
+                    real(tf-t0,dp)/records, &
+                    records, &
+                    degree-1, &
+                    bigxcoeffs, &
+                    real(t0,dp) &
+                    )
+        call spkcls(num)
+        print *, "Done."
+        contains
+        function en(x) result(res)
+            real(qp), intent(in) :: x(6)
+            real(qp)             :: res
+            res = sum(x(4:6)**2)/2._qp - gq%dynmod%central_body_mu/sqrt(sum(x(:3)**2))
+        end function en
+        function stateonly_eoms(me, x, y) result(res)
+            class(RungeKutta), intent(inout) :: me
+            real(qp),          intent(in)    :: x, y(:)
+            real(qp)                         :: res(size(y))
+            real(qp)                         :: jac(8,8), hes(8,8,8), &
+                                                acc(8)
+            gq%dynmod%tgt_on_rails = .false.
+            gq%dynmod%tof = 1._qp
+            gq%dynmod%state = [y, x, 1._qp]
+            call gq%dynmod%get_derivs(x, acc, jac, hes)
+            res = acc(:6)
+        end function stateonly_eoms
+        function rec_coeffs(ta,tb) result(res)
+            real(qp), intent(in) :: ta, tb
+            real(dp)             :: fi(degree,6)
+            real(qp)             :: res(degree,6)
+            real(qp)             :: nodes(degree)
+            integer i
+            nodes = real(chnodes(degree,real(ta,dp),real(tb,dp)),qp)
+            do i=1,degree
+                fi(i,:) = real(base_sol%call(nodes(i)),dp)
+            end do
+            do i=1,6
+                res(:,i) = real(chfit(degree,fi(:,i)),qp)
+            end do
+        end function rec_coeffs
+    end subroutine generate_kernel_cheby
     subroutine generate_kernel(namefile)
         type(configdata)             :: cd
         type(gqist)                  :: gq
