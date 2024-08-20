@@ -1,1 +1,0 @@
-gfortran -g -O0 -fopenmp -mcmodel=large -ffree-line-length-none -o itraj_scratch scratch_interface.f90 ../src/qist.f90 ../src/denselight.f90 ../src/globals.f90 ../src/tensorops.f90  ../src/frkmin.f90

@@ -9,7 +9,6 @@ module frkmin
                     & N_STAGES = 12, &
                     & N_STAGES_EXTENDED = 16, &
                     & INTERPOLATOR_POWER = 7
-
     ! Machine epsilon needed for step sizing
     real(WP), parameter :: de= epsilon(1._wp), &
                        nan = huge(nan)
@@ -430,13 +429,13 @@ module frkmin
         ! fun : callable
         !     Right-hand side of the system. The calling signature is ``fun(t, y)``.
         !     Here, ``t`` is a scalar, and there are two options for the ndarray ``y``:
-        !     It can either have shape (n,); then ``fun`` must return array_like with
+        !     It can either have shape (n,); then ``fun`` must return array with
         !     shape (n,). Alternatively it can have shape (n, k); then ``fun``
-        !     must return an array_like with shape (n, k), i.e. each column
+        !     must return an array with shape (n, k), i.e. each column
         !     corresponds to a single column in ``y``. The choice between the two
         !     options is determined by `vectorized` argument (see below).
         ! t0 : float
-        !     Initial time.  ! y0 : array_like, shape (n,)
+        !     Initial time.  ! y0 : array, shape (n,)
         !     Initial state.
         ! t_bound : float
         !     Boundary time - the integration won't continue beyond it. It also
@@ -447,7 +446,7 @@ module frkmin
         ! max_step : float, optional
         !     Maximum allowed step size. Default is np.inf, i.e. the step size is not
         !     bounded and determined solely by the solver.
-        ! rtol, atol : float and array_like, optional
+        ! rtol, atol : float and array, optional
         !     Relative and absolute tolerances. The solver keeps the local error
         !     estimates less than ``atol + rtol * abs(y)``. Here `rtol` controls a
         !     relative accuracy (number of correct digits), while `atol` controls
@@ -459,7 +458,7 @@ module frkmin
         !     desired `atol` set `rtol` such that ``rtol * abs(y)`` is always smaller
         !     than `atol`. If components of y have different scales, it might be
         !     beneficial to set different `atol` values for different components by
-        !     passing array_like with shape (n,) for `atol`. Default values are
+        !     passing array with shape (n,) for `atol`. Default values are
         !     1e-3 for `rtol` and 1e-6 for `atol`.
         ! vectorized : bool, optional
         !     Whether `fun` is implemented in a vectorized fashion. Default is False.
@@ -530,7 +529,6 @@ module frkmin
         real(WP) :: t_old, t, t_min, t_max, h
         real(WP), allocatable :: y_old(:), Frev(:,:)!, Ffwd(:,:)
         integer  :: n
-
         contains
             generic :: dcall => scall, mcall
             procedure :: scall
@@ -556,7 +554,7 @@ module frkmin
 
         !       Parameters
         !       ----------
-        !       ts : array_like, shape (n_segments + 1,)
+        !       ts : array shape (n_segments + 1,)
         !           Time instants between which local interpolants are defined. Must
         !           be strictly increasing or decreasing (zero segment with two points is
         !           also allowed).
@@ -776,7 +774,7 @@ module frkmin
 
         !Parameters
         !----------
-        !t : float or array_like with shape (n_points,)
+        !t : float or array with shape (n_points,)
         !    Points to evaluate at.
  
         !Returns
@@ -863,7 +861,7 @@ module frkmin
         self%nfev = self%nfev+1
         res = self%eom(t,y)
     end function 
-    ! ExtensibleInterpolantArray Procedures
+    ! ExtensibleDOArray Procedures
     subroutine DOcreateflat(self, element)
         class(ExtensibleDOArray), intent(inout) :: self
         type(DOP853DenseOutput),  optional,  intent(in)    :: element
@@ -1110,8 +1108,6 @@ module frkmin
         f_new = solver%fn(t + h, y_new)
         K(N_STAGES,:) = f_new
     end subroutine
-    
-
     ! procedures for base class RungeKutta
     subroutine rkinit(self, fun, t0, y0, t_bound, max_step_opt, &
                  rtol_opt, atol_opt)
@@ -1192,7 +1188,6 @@ module frkmin
         self%statmsg = "running"
     end subroutine
     !DOP853 Type Procedures
-
     function estimate_error(self, K, h) result(res)
         class(RungeKutta), intent(in) :: self
         real(WP), intent(in)      :: K(:,:), h
@@ -1212,7 +1207,6 @@ module frkmin
         class(RungeKutta), intent(in) :: self
         real(WP),      intent(in) :: K(:,:), h, scaleval(self%n)
         real(WP)                  :: res, err5(self%n), err3(self%n), err5_norm_2, err3_norm_2, denom
-        !  scaleval = atol + rtol*max(abs(y),abs(ynew))
         err5 = 0._wp
         err3 = 0._wp
         where (abs(scaleval) > 0._WP) 
@@ -1221,8 +1215,6 @@ module frkmin
         endwhere
         err5_norm_2 = sum(err5**2)
         err3_norm_2 = sum(err3**2)
-        ! err5_norm_2 = error_stabilize(sum(err5**2))
-        ! err3_norm_2 = error_stabilize(sum(err3**2))
         if (err5_norm_2 == 0._wp .and. err3_norm_2 == 0._wp) then
             res =  0._wp
         end if

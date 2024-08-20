@@ -1,1 +1,0 @@
-gfortran -g -O0 -fbacktrace -mcmodel=large -ffree-line-length-none -o qwrite quatwritetest.f90 ../src/cheby.f90 ../src/quat.f90 ../src/genqist.f90 ../src/makemodel.f90 ../src/tensorops.f90 ../src/frkmin.f90 ../src/frkmin_q.f90 ../src/denselight.f90 ../src/tinysh.f90 ../src/globals.f90 ~/libf/spicelib.a 

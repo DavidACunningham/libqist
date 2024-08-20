@@ -1,1 +1,0 @@
-gfortran -g -ffree-line-length-none time_derivs_test.f90 ../src/cheby.f90 ../src/makemodel.f90 ../src/globals.f90 ../src/tensorops.f90 ~/libf/spicelib.a ~/wrk/nstgro/shLib/build/pinesmodule.o ~/wrk/nstgro/shLib/build/kindmodule.o ~/wrk/nstgro/shLib/build/shdatamodule.o ~/libf/src/findiff/findiffmod.f90

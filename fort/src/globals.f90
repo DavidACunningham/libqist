@@ -25,6 +25,7 @@ module globals
                           stmu = 1+n**2, &
                           ! sttl = STT Lower index, unpacked
                           sttl = 1+n**2+1, &
+                          ! sttu = STT Upper index, unpacked
                           sttu = 1+n**2+n**3
     interface mmult
         ! Wraps interface to locally-defined matrix multiplication functions

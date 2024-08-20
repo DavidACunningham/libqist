@@ -1,9 +1,0 @@
-&ROTCONFIG
-	kernelfile_read = "/home/david/wrk/nstgro/qist/kernels/mk_gw.tf",
-	rotfile_write = "/home/david/wrk/nstgro/qist/libqist/fort/test/testrot",
-	fitdeg = 100,
-    t0 = 769269009.185, 
-    tf = 769845939.185, 
-	inertial_frame_string = "J2000",
-	rotating_frame_string = "MOON_PA"
-/

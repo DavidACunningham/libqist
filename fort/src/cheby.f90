@@ -22,13 +22,6 @@ module cheby
             real(dp)             :: res(n)
         end function
     end interface chnodes
-    interface chcall_mult
-         function chcall_mult(a,b,coeffs,x) result(res)
-            import
-            real(dp), intent(in) :: a, b, x, coeffs(:)
-            real(dp) :: res(size(coeffs))
-        end function chcall_mult
-    end interface chcall_mult
     interface chfit
          function chfit_s(n,fi) result(res)
             import
@@ -126,7 +119,7 @@ module cheby
             enddo
         end function deriv
 end module cheby
- function chnodes(n,a,b) result(res)
+function chnodes(n,a,b) result(res)
     use cheby, only: pi, dp
     integer, intent(in) :: n
     integer :: i
@@ -145,7 +138,7 @@ end module cheby
     res = [(cos(pi*(i-0.5_dp)/n)*bma+bpa, i=n,1,-1)]
 end function chnodes
 
- function chcall_v(a,b,coeffs,x)
+function chcall_v(a,b,coeffs,x)
     use cheby, only: chnodes, pi, dp
     implicit none
     integer :: n,j
@@ -207,35 +200,7 @@ function chcall_s(a,b,coeffs,x)
     end do
 end function chcall_s
 
- function chcall_mult(a,b,coeffs,x) result(res)
-    use cheby, only: chnodes, pi, dp
-    implicit none
-    integer :: n,j
-    real(dp), intent(in) :: a, b, x, coeffs(:)
-    real(dp) :: u, Tjm1, Tj, Tjp1
-    real(dp) :: res(size(coeffs))
-    ! a: beginning of range
-    ! b: end of range
-    ! val: value(s) at which to evaluate function (independent variable)
-    ! coeffs: the list of chebyshev coefficients for the interpolant
-
-    ! return the value of a chebyshev polynomial (defined by coeffs)
-    ! at a value val
-
-    n=size(coeffs)
-    u = (2.0_dp*x-a-b)/(b-a)
-    Tjm1 = 1.0_dp
-    Tj = u
-    res(1) = Tjm1*coeffs(1)
-    do j=2,n
-        Tjp1 = 2.0_dp*u*Tj - Tjm1
-        res(j) = res(j-1) + Tj*coeffs(j)
-        Tjm1 = Tj
-        Tj = Tjp1
-    end do
-end function chcall_mult
-
- function chfit_s(n,fi) result(res)
+function chfit_s(n,fi) result(res)
     use cheby, only: chnodes, pi, dp
     implicit none
     integer, intent(in) :: n
@@ -262,7 +227,7 @@ end function chcall_mult
     res = matmul(fi,polyarray)/n
 end function chfit_s
 
- function chderiv_s(coeffs,a, b) result(res)
+function chderiv_s(coeffs,a, b) result(res)
     ! Source: "Modern Computing Methods", Goodwin, E. T., ed., 1961, p. 79
     ! This is done in quad based on advice from the source above
     use cheby, only: dp

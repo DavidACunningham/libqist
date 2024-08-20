@@ -9,7 +9,6 @@ module frkmin_q
                     & N_STAGES = 12, &
                     & N_STAGES_EXTENDED = 16, &
                     & INTERPOLATOR_POWER = 7
-
     ! Machine epsilon needed for step sizing
     real(WP), parameter :: de= epsilon(1._wp), &
                        nan = huge(nan)
@@ -693,7 +692,6 @@ module frkmin_q
         seg = self%interpolants(segment)
         res = seg%dcall(t)
     end function
-
     subroutine solwrite(self,unit_num,prec)
         class(Odesolution), intent(inout) :: self
         integer, intent(in)           :: unit_num
@@ -762,7 +760,6 @@ module frkmin_q
             call self%interpolants(i)%read(unit_num)
         end do
     end subroutine solread
-
     function call_(self, t) result(res)
         class(Odesolution), intent(in) :: self
         real(WP),           intent(in) :: t(:)
@@ -805,14 +802,12 @@ module frkmin_q
         end do
         !$OMP END PARALLEL DO
     end function call_
-
     !RungeKutta Procedures
     subroutine dense_output(self,tgt) 
         class(RungeKutta), intent(inout) :: self
         type(DOP853DenseOutput), intent(out) :: tgt
         call self%dense_output_impl(tgt)
     end subroutine
-
     function step_size(self) result(res)
         class(RungeKutta), intent(in) :: self
         real(WP)                      :: res
@@ -822,7 +817,6 @@ module frkmin_q
             res  = abs(self%t - self%t_old)
         end if
     end function step_size
-
     function step(self) result(res)
         class(RungeKutta), intent(inout) :: self
         character(len=20) :: res
@@ -863,7 +857,7 @@ module frkmin_q
         self%nfev = self%nfev+1
         res = self%eom(t,y)
     end function 
-    ! ExtensibleInterpolantArray Procedures
+    ! ExtensibleDOArray Procedures
     subroutine DOcreateflat(self, element)
         class(ExtensibleDOArray), intent(inout) :: self
         type(DOP853DenseOutput),  optional,  intent(in)    :: element
@@ -1110,8 +1104,6 @@ module frkmin_q
         f_new = solver%fn(t + h, y_new)
         K(N_STAGES,:) = f_new
     end subroutine
-    
-
     ! procedures for base class RungeKutta
     subroutine rkinit(self, fun, t0, y0, t_bound, max_step_opt, &
                  rtol_opt, atol_opt)
@@ -1192,7 +1184,6 @@ module frkmin_q
         self%statmsg = "running"
     end subroutine
     !DOP853 Type Procedures
-
     function estimate_error(self, K, h) result(res)
         class(RungeKutta), intent(in) :: self
         real(WP), intent(in)      :: K(:,:), h
@@ -1221,15 +1212,12 @@ module frkmin_q
         endwhere
         err5_norm_2 = sum(err5**2)
         err3_norm_2 = sum(err3**2)
-        ! err5_norm_2 = error_stabilize(sum(err5**2))
-        ! err3_norm_2 = error_stabilize(sum(err3**2))
         if (err5_norm_2 == 0._wp .and. err3_norm_2 == 0._wp) then
             res =  0._wp
         end if
         denom = err5_norm_2 + 0.01_WP * err3_norm_2
         res = abs(h) * err5_norm_2 / sqrt(denom * size(scaleval))
     end function
-
     function step_impl(self) result(res)
         class(RungeKutta), intent(inout) :: self
         real(WP)                         :: t, y(self%n), &
@@ -1353,8 +1341,6 @@ module frkmin_q
 
         call tgt%init(self%t_old, self%t, self%y_old, F)
     end subroutine
-
-
     ! Procedures for DOP853DenseOutput type
     subroutine DOP853denseinit(self, t_old, t, y_old, F)
         class(DOP853DenseOutput), intent(inout) :: self
@@ -1433,7 +1419,6 @@ module frkmin_q
         read(unit_num) self%y_old
         read(unit_num) self%Frev
     end subroutine
-
     function DOP853densecall(self, t) result(res)
         class(DOP853DenseOutput), intent(in) :: self
         real(WP),                 intent(in)    :: t(:)
@@ -1470,7 +1455,6 @@ module frkmin_q
         real(WP)                       :: res(self%n,size(t))
         res = self%call_impl(t)
     end function mcall
-
     function select_initial_step(solver, t0, y0, f0, direction, order, rtol, atol) result(res)
         ! Empirically select a good initial step.
 
