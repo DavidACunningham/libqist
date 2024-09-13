@@ -684,7 +684,7 @@ module qist
         real(dp),     intent(in)  :: ta, tb
         real(dp),     intent(out) :: stm(n,n), stt(n,n,n)
 
-        call sttchain_invert(self%stm(ta),self%stt(ta), &
+        call sttchain(self%stm_i(ta),self%stt_i(ta), &
                     & self%stm(tb), self%stt(tb), &
                     & stm, stt, n)
     end subroutine stts_ab

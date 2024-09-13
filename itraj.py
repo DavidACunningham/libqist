@@ -36,8 +36,8 @@ class Itraj(object):
         return func[r](ta,tb,xa, ordr)
     def sttsAToB(self,ta,tb):
         scratchm, scratcht = pq.pw_stts_ab(ta,tb)
-        stm = scratchm.T
-        stt = np.einsum('kji -> ijk', scratcht)
+        stm = scratchm
+        stt = scratcht #np.einsum('kji -> ijk', scratcht)
         return stm,stt
     def sttUpdate(self,ta,tb,xa):
         stm, stt = pq.pw_stt_update(ta,tb,xa)

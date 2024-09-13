@@ -96,7 +96,7 @@ PFLAGS := -O3 -mcmodel=large \
 		  -ffree-line-length-none\
 		  -fcheck=bounds
 		  
-FFLAGS := -O0 -g -mcmodel=large \
+FFLAGS := -O3  -mcmodel=large \
 	      -Wl,--no-relax\
 		  -fPIC\
 		  -ffast-math \
