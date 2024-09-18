@@ -369,10 +369,10 @@ module genqist
         real(qp)                     :: t0, tf, tof, &
                                         rtol, atol
         integer                      :: num
-        real(dp)                     :: test_spice_states(6,300), &
-                                        test_integ_states(6,300), &
-                                        test_states_diff(6,300), &
-                                        lt_dum, test_times(300)
+        real(dp)                     :: test_spice_states(6,500), &
+                                        test_integ_states(6,500), &
+                                        test_states_diff(6,500), &
+                                        lt_dum, test_times(500)
         real(qp)                     :: init_state(6), energy, &
                                         thisxcoeffs(degree,6)
         real(qp), allocatable        :: record_starts(:),&
@@ -466,8 +466,8 @@ module genqist
         call spkcls(num)
         call furnsh(trim(adjustl(output_kernel_filename)))
         print *, "Done."
-        test_times = [(i*(tf-t0)/300 + t0, i=1,300)]
-        do i=1,300
+        test_times = [(i*(tf-t0)/500 + t0, i=1,500)]
+        do i=1,500
             call spkgeo( &
                         traj_id, &
                         test_times(i), &
@@ -479,7 +479,10 @@ module genqist
             test_integ_states(:,i) = real(base_sol%call(real(test_times(i),qp)),dp)
         end do
         test_states_diff = test_spice_states - test_integ_states
-        print *, sum(norm2(test_states_diff(:3,:),dim=1))/300
+        print *, "Time     dx       dy      dz"
+        do i=1,500
+            print *, test_times(i), " ", real(test_states_diff(:,i)/test_integ_states(:,i),4)
+        end do
         contains
         function en(x) result(res)
             real(qp), intent(in) :: x(6)
