@@ -1,9 +1,14 @@
+! Title: globals.f90 
+! Description:
+!     Module containing global functions, constants, 
+!     and subroutines for the QIST package
+!
+! References:
+!     None
+! 
+! author: David Cunningham
+! Last edited: See git log
 module globals
-     ! use, intrinsic :: iso_c_binding
-     use, intrinsic :: ieee_arithmetic, only: ieee_value, &
-                       ieee_is_finite, ieee_is_nan, ieee_negative_inf, &
-                       ieee_positive_inf, ieee_quiet_nan, ieee_copy_sign, &
-                       ieee_is_normal
     use, intrinsic :: iso_fortran_env, only: wp => real128, dp => real64
     implicit none
     ! Convenience variables for indexing dynamical state and packed state

@@ -1,7 +1,17 @@
+! Title: denselight.f90 
+! Description:
+!     Types, functions, and parameters for reading, writing, packing, unpacking,
+!     and calling integrator results that include the STM and STT for QIST.
+! 
+! author: David Cunningham
+! Last edited: See git log
 module denseLight
     use frkmin, only: ODESolution, DOP853DenseOutput
     use, intrinsic :: iso_fortran_env, only: wp=>real64
     implicit none
+    ! This is the integer array that maps the unpacked state
+    ! to the packed state, removing symmetric second derivatives
+    ! and constant values from the stored variables.
     integer, parameter :: qistpack(265) = [ &  
             1, 2, 3, 4, 5, 6, 7, 10, 11, 12, &
             13, 14, 15, 18, 19, 20, 21, 22, &
@@ -40,6 +50,8 @@ module denseLight
                           ncoeff = 7
 
     type lightSol
+        ! A "light", i.e. trimmed down, implementation of the 
+        ! ODESolution type, including read and write functions.
         integer               :: ndim, n_segments, fs(3)
         real(WP)              :: t_min, t_max 
         logical               :: ascending
@@ -48,9 +60,8 @@ module denseLight
                                  t_mins(:), t_maxs(:), hs(:), &
                                  !Note Frev in DOP853DenseOutput has shape (n_coeff, ndim)
                                  !For lightsol it is (ndim, n_coeff, n_segments)
-                                 ! to be in good column major order
+                                 !to be in good column major order
                                  y_olds(:,:), Frevs(:,:,:), ys(:,:)
-
         contains
             procedure :: allocator
             generic :: convert => convert_from_file, &
@@ -74,6 +85,8 @@ module denseLight
     end type lightSol
     contains
     subroutine selectElements(self, elementlist)
+        ! Keep only the elements in elementlist from the calling
+        ! instance
         class(lightSol), intent(inout) :: self
         integer,         intent(in)    :: elementlist(:)
         integer                        :: newndim
@@ -110,6 +123,7 @@ module denseLight
                     t_mins, t_maxs, hs, &
                     y_olds, Frevs, ys)
 
+        ! Initialize the lightSol type
         class(lightSol), intent(inout) :: self
         integer        , intent(in)    :: ndim, n_segments
         real(WP)       , intent(in)    :: t_min, t_max 
@@ -138,6 +152,7 @@ module denseLight
         self%ys     = ys
     end subroutine init
     subroutine LSwrite(self,unit_num)
+        ! Write the LightSol to disk
         class(lightSol), intent(inout) :: self
         integer,         intent(in)    :: unit_num
         write(unit_num) self%fs
@@ -158,6 +173,7 @@ module denseLight
         write(unit_num) self%ys
     end subroutine LSwrite
     subroutine LSread(self,unit_num)
+        ! Read the LightSol from disk
         class(lightSol), intent(inout) :: self
         integer,         intent(in)    :: unit_num
         ! Read non-allocatable quantities
@@ -184,6 +200,8 @@ module denseLight
         read(unit_num) self%ys
     end subroutine LSread
     subroutine convert_from_object(self, ODESol)
+        ! Convert an ODESolution with dense output
+        ! into a LightSol object
         class(lightSol), intent(inout) :: self
         type(ODESolution), intent(in) :: ODESol
         integer i
@@ -213,6 +231,8 @@ module denseLight
         end do
     end subroutine convert_from_object
     subroutine convert_from_object_and_pack(self, ODESol,elementlist)
+        ! Convert an ODESolution with dense output
+        ! into a LightSol object and discard some state elements
         class(lightSol),  intent(inout) :: self
         type(ODESolution),  intent(in) :: ODESol
         integer,            intent(in) :: elementlist(:)
@@ -220,6 +240,8 @@ module denseLight
         call self%pack(elementlist)
     end subroutine convert_from_object_and_pack
     subroutine convert_from_file_and_pack(self,filename, elementlist)
+        ! Convert an ODESolution with dense output from a file on disk
+        ! into a LightSol object and discard some state elements
         class(lightSol),  intent(inout) :: self
         character(len=*),  intent(in) :: filename
         integer,            intent(in) :: elementlist(:)
@@ -227,6 +249,8 @@ module denseLight
         call self%pack(elementlist)
     end subroutine convert_from_file_and_pack
     subroutine convert_from_file(self,filename)
+        ! Convert an ODESolution with dense output from a file on disk
+        ! into a LightSol object
         class(lightSol), intent(inout) :: self
         type(ODESolution) :: ODESol
         character(*), intent(in)    :: filename
@@ -236,12 +260,13 @@ module denseLight
         call self%convert_from_object(ODESol)
     end subroutine convert_from_file
     function call_single(self, t,lind,uind) result(res)
+        ! Call some elements of the interpolant, at one value of t
         class(lightSol), intent(inout) :: self
         real(WP),           intent(in) :: t
         integer,            intent(in) :: lind,uind
         real(WP)                       :: res(self%ndim)
         integer                        :: ind, segment
-        ! Here we preserve a certain symmetry that when t is in self.ts,
+        ! Here we preserve a certain symmetry that when t is in ts,
         ! then we prioritize a segment with a lower index.
         ind = binsearch(self%ts_sorted, t)
 
@@ -253,6 +278,7 @@ module denseLight
         res = self%scall(t,segment,lind,uind)
     end function
     function call_(self, t,lind,uind) result(res)
+        ! Call some elements of the interpolant, at multiple values of t
         class(lightSol), intent(inout) :: self
         real(WP),           intent(in) :: t(:)
         integer,            intent(in) :: lind, uind
@@ -260,20 +286,17 @@ module denseLight
         integer                        :: segments(size(t))
         integer iter
 
-
         !Evaluate the solution.
 
         !Parameters
         !----------
-        !t : float or array_like with shape (n_points,)
+        !t : real (n_points)
         !    Points to evaluate at.
  
         !Returns
         !-------
-        !y : ndarray, shape (n_states,) or (n_states, n_points)
-        !    Computed values. Shape depends on whether `t` is a scalar or a
-        !    1-D array.
-
+        !y : real(n_states, n_points)
+        !    Computed values.
         ! t must be sorted, unlike the scipy version
 
         !$OMP PARALLEL DO
@@ -302,6 +325,7 @@ module denseLight
         res = resarray(:,1)
     end function scall
     function call_impl(self, t,segment,lind,uind) result(res)
+        ! THe actual implementation of the interpolant calling
         class(lightSol),    intent(in) :: self
         integer,            intent(in) :: segment, lind, uind
         real(WP),           intent(in)    :: t(:)
@@ -328,6 +352,7 @@ module denseLight
         res = y
     end function
     function binsearch(array,val) result(res)
+        ! Binary search in a sorted array for the interval containing val
         real(WP), intent(in) :: array(:), val
         real(WP)             :: workarray(size(array))
         logical              :: flipped
@@ -360,6 +385,8 @@ module denseLight
         if (bot==n) res = n-1
     end function binsearch
     subroutine deallocator(self)
+        ! Convenience function for deallocating all allocated 
+        ! lightSol variables
         class(lightSol), intent(inout) :: self
         if(allocated(self%t_olds)) deallocate(self%t_olds)
         if(allocated(self%ts)) deallocate(self%ts)
@@ -371,9 +398,10 @@ module denseLight
         if(allocated(self%y_olds)) deallocate(self%y_olds)
         if(allocated(self%Frevs)) deallocate(self%Frevs)
         if(allocated(self%ys)) deallocate(self%ys)
-
     end subroutine deallocator
     subroutine allocator(self)
+        ! Convenience subroutine for allocating all allocatable
+        ! LightSol variables
         class(lightSol), intent(inout) :: self
         call self%deallocator()
         allocate( &

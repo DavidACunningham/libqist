@@ -1,6 +1,20 @@
+! Title: frkmin.f90 
+! Description:
+!     Double precision implementation of DOP853 integrator tailored for use
+!     with QIST. Based on SciPy implementation of DOP853.
+!
+! References:
+!     Hairer, E.: Solving Ordinary Differential Equations I. Springer Series 
+!         in Computational Mathematics, vol. 8. Springer, Berlin, 
+!         Heidelberg (1993)
+!     Virtanen, P.. et. al.: Fundamental algorithms for scientific computing
+!         in Python. Nat. Methods 17, 261–272 (2020). 
+!         https://doi.org/10.1038/s41592-019-0686-2
+! 
+! author: David Cunningham
+! Last edited: See git log
 module frkmin
     use, intrinsic :: iso_fortran_env, only: real64, real128
-    use, intrinsic :: ieee_arithmetic, only: ieee_quiet_nan, ieee_value
     implicit none
     ! Basic parameters for shapes and precision
     integer, parameter :: DP=real64, &
@@ -310,7 +324,6 @@ module frkmin
     ! B: Values weighting final contribution of computed stages
     B(0:N_STAGES-1) = A(N_STAGES, :N_STAGES-1), &
     ! Error stage coefficients
-    ! SciPy
     E3(0:N_STAGES) = [ &
                   B(0) - 0.244094488188976377952755905512_WP, &
                   B(1:7), &
@@ -417,78 +430,45 @@ module frkmin
     character(len=15)  :: MESSAGES(0:1) = ["Solver success.", &
                                            "Solver failure."]
     type :: RungeKutta
-        ! Explicit Runge-Kutta method of order 8.
-
-        ! This is a modern Fortran implementation of "DOP853" algorithm originally written
-        ! in fixed format FORTRAN [1]_, [2]_. Note that this is not a literal translation, but
-        ! the algorithmic core and coefficients are the same. This implementation is based heavily
-        ! on the Scipy DOP853 implementation to leverage its dense output capability.
-
+        ! Type storing DOP853 initialization, step, error estimation, etc.
         ! Parameters
         ! ----------
-        ! fun : callable
-        !     Right-hand side of the system. The calling signature is ``fun(t, y)``.
-        !     Here, ``t`` is a scalar, and there are two options for the ndarray ``y``:
-        !     It can either have shape (n,); then ``fun`` must return array with
-        !     shape (n,). Alternatively it can have shape (n, k); then ``fun``
-        !     must return an array with shape (n, k), i.e. each column
-        !     corresponds to a single column in ``y``. The choice between the two
-        !     options is determined by `vectorized` argument (see below).
-        ! t0 : float
-        !     Initial time.  ! y0 : array, shape (n,)
+        ! fun : function
+        !     Right-hand side of the system. The calling signature is
+        !     found below in the interface ``eomsig''
+        !     corresponds to a single column in ``y``
+        ! t0 : real
+        !     Initial time.  
+        ! y0 : real, shape (n)
         !     Initial state.
-        ! t_bound : float
-        !     Boundary time - the integration won't continue beyond it. It also
-        !     determines the direction of the integration.
-        ! first_step : float or None, optional
-        !     Initial step size. Default is ``None`` which means that the algorithm
-        !     should choose.
-        ! max_step : float, optional
-        !     Maximum allowed step size. Default is np.inf, i.e. the step size is not
-        !     bounded and determined solely by the solver.
-        ! rtol, atol : float and array, optional
+        ! t_bound : real
+        ! max_step : real, optional
+        !     Maximum allowed step size. Default is unbounded.
+        ! rtol, atol : real, optional
         !     Relative and absolute tolerances. The solver keeps the local error
-        !     estimates less than ``atol + rtol * abs(y)``. Here `rtol` controls a
-        !     relative accuracy (number of correct digits), while `atol` controls
-        !     absolute accuracy (number of correct decimal places). To achieve the
-        !     desired `rtol`, set `atol` to be smaller than the smallest value that
-        !     can be expected from ``rtol * abs(y)`` so that `rtol` dominates the
-        !     allowable error. If `atol` is larger than ``rtol * abs(y)`` the
-        !     number of correct digits is not guaranteed. Conversely, to achieve the
-        !     desired `atol` set `rtol` such that ``rtol * abs(y)`` is always smaller
-        !     than `atol`. If components of y have different scales, it might be
-        !     beneficial to set different `atol` values for different components by
-        !     passing array with shape (n,) for `atol`. Default values are
-        !     1e-3 for `rtol` and 1e-6 for `atol`.
-        ! vectorized : bool, optional
-        !     Whether `fun` is implemented in a vectorized fashion. Default is False.
+        !     estimates less than ``atol + rtol * abs(y)``. 
+        !     1e-5 for `rtol` and 1e-8 for `atol`.
 
         ! Attributes
         ! ----------
-        ! n : int
+        ! n : integer
         !     Number of equations.
-        ! status : string
+        ! status : character
         !     Current status of the solver: 'running', 'finished' or 'failed'.
-        ! t_bound : float
+        ! t_bound : real
         !     Boundary time.
-        ! direction : float
+        ! direction : real
         !     Integration direction: +1 or -1.
-        ! t : float
+        ! t : real
         !     Current time.
-        ! y : ndarray
+        ! y : real(n)
         !     Current state.
-        ! t_old : float
-        !     Previous time. None if no steps were made yet.
-        ! step_size : float
-        !     Size of the last successful step. None if no steps were made yet.
-        ! nfev : int
+        ! t_old : real
+        !     Previous time.
+        ! step_size : real
+        !     Size of the last successful step.
+        ! nfev : integer
         !     Number evaluations of the system's right-hand side.
-        ! References
-        ! ----------
-        ! .. [1] E. Hairer, S. P. Norsett G. Wanner, "Solving Ordinary Differential
-        !        Equations I: Nonstiff Problems", Sec. II.
-        ! .. [2] `Page with original Fortran code of DOP853
-        !         <http://www.unige.ch/~hairer/software.html>`_.
         character(len=56)     :: TOO_SMALL_STEP = "Required step size is less than spacing between numbers."
         character(len=20)     :: statmsg
         character(len=20)     :: message
@@ -516,18 +496,17 @@ module frkmin
                                  n_stages_extended = N_STAGES_EXTENDED
         contains 
             procedure :: init => rkinit
-            procedure estimate_error
             procedure estimate_error_norm
             procedure step_impl
             procedure :: step_size
             procedure :: step
-            procedure :: dense_output
+            procedure :: dense_output => DOP853DenseOutputImpl
             procedure :: fn
-            procedure :: dense_output_impl => DOP853DenseOutputImpl
     end type
     type  :: Dop853DenseOutput
+        ! Type storing DOP853 solution
         real(WP) :: t_old, t, t_min, t_max, h
-        real(WP), allocatable :: y_old(:), Frev(:,:)!, Ffwd(:,:)
+        real(WP), allocatable :: y_old(:), Frev(:,:)
         integer  :: n
         contains
             generic :: dcall => scall, mcall
@@ -540,31 +519,29 @@ module frkmin
     end type
     type Odesolution
         !       Continuous ODE solution.
-
-        !       It is organized as a collection of `DenseOutput` objects which represent
-        !       local interpolants. It provides an algorithm to select a right interpolant
-        !       for each given point.
-
+        !       A collection of `DenseOutput` objects which represent
+        !       local interpolants. 
+        !       The correct interpolant to use is determined by binary search.
         !       The interpolants cover the range between `t_min` and `t_max` (see
-        !       Attributes below). Evaluation outside this interval is not forbidden, but
+        !       Attributes below). Evaluation outside this interval is allowed, but
         !       the accuracy is not guaranteed.
-
         !       When evaluating at a breakpoint (one of the values in `ts`) a segment with
         !       the lower index is selected.
 
         !       Parameters
         !       ----------
-        !       ts : array shape (n_segments + 1,)
+        !       ts : real (n_segments + 1)
         !           Time instants between which local interpolants are defined. Must
         !           be strictly increasing or decreasing (zero segment with two points is
         !           also allowed).
-        !       interpolants : list of DenseOutput with n_segments elements
-        !           Local interpolants. An i-th interpolant is assumed to be defined
-        !           between ``ts[i]`` and ``ts[i + 1]``.
+        !       interpolants (n_segments) : 
+        !           List of DenseOutput with n_segments elements
+        !           Local interpolants. The i-th interpolant is assumed to be defined
+        !           between ``ts(i)'' and ``ts(i + 1)''.
 
         !       Attributes
         !       ----------
-        !       t_min, t_max : float
+        !       t_min, t_max : real
         !           Time range of the interpolation.
         integer                              :: n_segments, nfev, ndim
         real(WP),                allocatable :: ts(:), ts_sorted(:), ys(:,:)
@@ -581,6 +558,12 @@ module frkmin
             procedure :: read => solread
     end type
     type ExtensibleDOArray
+        ! A dynamic-length array for storing dense output objects
+        ! Necessary for computing variable step length solutions,
+        ! When you don't know beforehand how many steps the integrator
+        ! Will take.
+        ! Once the integration is done, the extensible array is 
+        ! ``sealed'' and can be stored in a normal Fortran array.
         integer               :: length, allocatedSize
         type(DOP853DenseOutput), allocatable :: dataArray(:)
         contains
@@ -591,6 +574,12 @@ module frkmin
             procedure :: doublesize => DOdoublesize
     end type ExtensibleDOArray
     type ExtensibleRealArray
+        ! A dynamic-length array for storing real numbers.
+        ! Necessary for computing variable step length solutions,
+        ! When you don't know beforehand how many steps the integrator
+        ! Will take.
+        ! Once the integration is done, the extensible array is 
+        ! ``sealed'' and can be stored in a normal Fortran array.
         integer               :: length, allocatedSize, vecdim
         real(WP), allocatable :: dataArray(:,:)
 
@@ -609,6 +598,8 @@ module frkmin
     end type ExtensibleRealArray
     interface 
         function eomsig(self,t,y) result(res)
+            ! EOMs for the solve_ivp function MUST
+            ! follow this function signature.
             import
             class(RungeKutta), intent(inout) :: self
             real(WP),            intent(in)    :: t
@@ -619,6 +610,7 @@ module frkmin
     contains
     ! ODESolution Procedures
     subroutine init_odesol(self, ts, ys, nfev, statmsg, interpolants)
+        ! Initialize ode solution
         class(Odesolution),      intent(inout)        :: self
         real(WP),                intent(in)           :: ts(:), ys(:,:)
         integer,                 intent(in)           :: nfev
@@ -674,12 +666,13 @@ module frkmin
         endif
     end subroutine
     function call_single(self, t) result(res)
+        ! Call ODE solution at time t
         class(Odesolution), intent(in) :: self
         real(WP),           intent(in) :: t
         real(WP)                       :: res(self%interpolants(1)%n)
         type(DOP853DenseOutput)        :: seg
         integer                        :: ind, segment
-        ! Here we preserve a certain symmetry that when t is in self.ts,
+        ! Here we preserve a certain symmetry that when t is in ts,
         ! then we prioritize a segment with a lower index.
         ind = binsearch(self%ts_sorted, t)
 
@@ -693,6 +686,9 @@ module frkmin
     end function
 
     subroutine solwrite(self,unit_num,prec)
+        ! Write ODE solution to disk. 
+        ! the file handle given by unit_num must be opened
+        ! with ``stream'' access and writable.
         class(Odesolution), intent(inout) :: self
         integer, intent(in)           :: unit_num
         integer, intent(in), optional :: prec
@@ -734,6 +730,9 @@ module frkmin
         end do
     end subroutine solwrite
     subroutine solread(self,unit_num)
+        ! Write ODE solution to disk. 
+        ! the file handle given by unit_num must be opened
+        ! with ``stream'' access and readable.
         class(Odesolution), intent(inout) :: self
         integer, intent(in)           :: unit_num
         integer i
@@ -762,29 +761,23 @@ module frkmin
     end subroutine solread
 
     function call_(self, t) result(res)
+        !Evaluate the solution.
+        !Parameters
+        !----------
+        !t : real array with shape (n_points)
+        !    Points to evaluate at.
+ 
+        !Returns
+        !-------
+        !y : real (n_states, n_points)
+
+        ! t must be sorted, unlike the scipy version
         class(Odesolution), intent(in) :: self
         real(WP),           intent(in) :: t(:)
         real(WP)                       :: res(self%interpolants(1)%n,size(t))
         integer                        :: segments(size(t))
         type(DOP853DenseOutput)        :: seg(size(t))
         integer iter
-
-
-        !Evaluate the solution.
-
-        !Parameters
-        !----------
-        !t : float or array with shape (n_points,)
-        !    Points to evaluate at.
- 
-        !Returns
-        !-------
-        !y : ndarray, shape (n_states,) or (n_states, n_points)
-        !    Computed values. Shape depends on whether `t` is a scalar or a
-        !    1-D array.
-
-        ! t must be sorted, unlike the scipy version
-
         !$OMP PARALLEL DO
         do iter=1,size(t)
             segments(iter) = binsearch(self%ts_sorted, t(iter))
@@ -804,14 +797,9 @@ module frkmin
         !$OMP END PARALLEL DO
     end function call_
 
-    !RungeKutta Procedures
-    subroutine dense_output(self,tgt) 
-        class(RungeKutta), intent(inout) :: self
-        type(DOP853DenseOutput), intent(out) :: tgt
-        call self%dense_output_impl(tgt)
-    end subroutine
-
     function step_size(self) result(res)
+        ! Compute the DOP853 step size
+        ! given the current solver state
         class(RungeKutta), intent(in) :: self
         real(WP)                      :: res
         if (self%t_old==nan) then
@@ -822,6 +810,7 @@ module frkmin
     end function step_size
 
     function step(self) result(res)
+        ! Take a runge-kutta step given the current solver state
         class(RungeKutta), intent(inout) :: self
         character(len=20) :: res
         logical           :: success
@@ -854,6 +843,8 @@ module frkmin
         endif
     end function step
     function fn(self, t, y) result(res)
+        ! Wrapper for using the EOMs that increments
+        ! the solver nfev counter
         class(RungeKutta), intent(inout) :: self
         real(WP),         intent(in)    :: t, y(:)
         real(WP)                        :: res(size(y))
@@ -1043,46 +1034,38 @@ module frkmin
         ! This function computes a prediction of an explicit Runge-Kutta method and
         ! also estimates the error of a less accurate method.
 
-        ! Notation for Butcher tableau is as in [1]_.
-
         ! Parameters
         ! ----------
-        ! solver : RungeKutta Class
-        !     Used to obtain right-hand side of the system.
-        ! t : float
+        ! solver : RungeKutta type
+        ! t : real
         !     Current time.
-        ! y : ndarray, shape (n,)
+        ! y : real (n)
         !     Current state.
-        ! f : ndarray, shape (n,)
+        ! f : real (n)
         !     Current value of the derivative, i.e., ``fun(x, y)``.
-        ! h : float
+        ! h : real
         !     Step to use.
-        ! A : ndarray, shape (n_stages, n_stages)
+        ! A : real(n_stages, n_stages)
         !     Coefficients for combining previous RK stages to compute the next
         !     stage. For explicit methods the coefficients at and above the main
         !     diagonal are zeros.
-        ! B : ndarray, shape (n_stages,)
+        ! B : real(n_stages,)
         !     Coefficients for combining RK stages for computing the final
         !     prediction.
-        ! C : ndarray, shape (n_stages,)
+        ! C : real(n_stages,)
         !     Coefficients for incrementing time for consecutive RK stages.
         !     The value for the first stage is always zero.
-        ! K : ndarray, shape (n_stages + 1, n)
+        ! K : real(n_stages + 1, n)
         !     Storage array for putting RK stages here. Stages are stored in rows.
         !     The last row is a linear combination of the previous rows with
         !     coefficients
 
         ! Returns
         ! -------
-        ! y_new : ndarray, shape (n,)
+        ! y_new : real(n)
         !     Solution at t + h computed with a higher accuracy.
-        ! f_new : ndarray, shape (n,)
+        ! f_new : real(n)
         !     Derivative ``fun(t + h, y_new)``.
-
-        ! References
-        ! ----------
-        ! .. [1] E. Hairer, S. P. Norsett G. Wanner, "Solving Ordinary Differential
-        !        Equations I: Nonstiff Problems", Sec. II.4.
         class(RungeKutta),   intent(inout) :: solver
         real(WP),           intent(in)    :: t, &
                                            & y(:), &
@@ -1111,6 +1094,7 @@ module frkmin
     ! procedures for base class RungeKutta
     subroutine rkinit(self, fun, t0, y0, t_bound, max_step_opt, &
                  rtol_opt, atol_opt)
+        ! initialize the solver
         class(RungeKutta),  intent(inout) :: self
         procedure(eomsig)                 :: fun
         real(WP),           intent(in)    :: t0, y0(:), t_bound
@@ -1188,21 +1172,6 @@ module frkmin
         self%statmsg = "running"
     end subroutine
     !DOP853 Type Procedures
-    function estimate_error(self, K, h) result(res)
-        class(RungeKutta), intent(in) :: self
-        real(WP), intent(in)      :: K(:,:), h
-        real(WP)                  :: err5(self%n), err3(self%n), denom(self%n), correction_factor(self%n)
-        real(WP)                  :: res(self%n)
-        integer i
-        err5 = matmul(transpose(K), self%E5)
-        err3 = matmul(transpose(K), self%E3)
-        do i = 1,self%n
-            denom(i) = sqrt(abs(err5(i))**2 + (0.1_WP*abs(err3(i)))**2)
-        end do
-        correction_factor = 1._WP
-        where (denom > 0._WP) correction_factor = abs(err5) / denom
-        res = h * err5 * correction_factor
-    end function
     function estimate_error_norm(self, K, h, scaleval) result(res)
         class(RungeKutta), intent(in) :: self
         real(WP),      intent(in) :: K(:,:), h, scaleval(self%n)
@@ -1223,6 +1192,8 @@ module frkmin
     end function
 
     function step_impl(self) result(res)
+        ! Carry out bookkeeping for accepting/rejecting an RK step
+        ! including error estimation and step size selection
         class(RungeKutta), intent(inout) :: self
         real(WP)                         :: t, y(self%n), &
                                           & rtol(self%n), &
@@ -1311,6 +1282,7 @@ module frkmin
         res = .True. 
     end function
     subroutine DOP853DenseOutputImpl(self,tgt) 
+        ! Copmute the extra stages required for dense output
         class(RungeKutta), intent(inout)          :: self
         type(DOP853DenseOutput), intent(out)      :: tgt
         real(WP), allocatable        :: testmat(:,:)
@@ -1349,6 +1321,7 @@ module frkmin
 
     ! Procedures for DOP853DenseOutput type
     subroutine DOP853denseinit(self, t_old, t, y_old, F)
+        ! Initializer
         class(DOP853DenseOutput), intent(inout) :: self
         real(WP), intent(in)                    :: t_old, t, y_old(:), F(0:,0:)
         self%t_old = t_old
@@ -1359,12 +1332,11 @@ module frkmin
         allocate(self%y_old,mold=y_old)
         self%y_old = y_old
         self%n = size(y_old)
-        ! allocate(self%Ffwd, mold(F))
         allocate(self%Frev(0:size(F,1)-1,0:size(F,2)-1))
-        ! self%F = F
         self%Frev = F(size(F,1)-1:0:-1,:)
     end subroutine
     subroutine DOwrite(self, unit_num,prec)
+        ! Write to disk
         class(DOP853DenseOutput), intent(inout) :: self
         integer, intent(in)                     :: unit_num
         integer, intent(in), optional           :: prec
@@ -1406,6 +1378,7 @@ module frkmin
         end select
     end subroutine
     subroutine DOread(self, unit_num)
+        ! Read from disk
         class(DOP853DenseOutput), intent(inout) :: self
         integer, intent(in)                     :: unit_num
         integer yos, frs1, frs2
@@ -1427,9 +1400,12 @@ module frkmin
     end subroutine
 
     function DOP853densecall(self, t) result(res)
+        ! compute the value of the stored interpolant
         class(DOP853DenseOutput), intent(in) :: self
         real(WP),                 intent(in)    :: t(:)
-        real(WP)                                :: res(self%n,size(t)), x(size(t)), y(self%n,size(t))
+        real(WP)                                :: res(self%n,size(t)), &
+                                                 & x(size(t)), &
+                                                 & y(self%n,size(t))
         integer i, j
         x = (t - self%t_old) / self%h
 
@@ -1450,6 +1426,7 @@ module frkmin
         res = y
     end function
     function scall(self, t) result(res)
+        ! Call the stored interpolant once
         class(DOP853DenseOutput), intent(inout) :: self
         real(WP),           intent(in) :: t
         real(WP) :: resarray(self%n,1), res(self%n)
@@ -1457,6 +1434,7 @@ module frkmin
         res = resarray(:,1)
     end function scall
     function mcall(self, t) result(res)
+        ! Call the stored interpolant at multiple values
         class(DOP853DenseOutput), intent(inout) :: self
         real(WP),           intent(in) :: t(:)
         real(WP)                       :: res(self%n,size(t))
@@ -1466,37 +1444,28 @@ module frkmin
     function select_initial_step(solver, t0, y0, f0, direction, order, rtol, atol) result(res)
         ! Empirically select a good initial step.
 
-        ! The algorithm is described in [1]_.
-
         ! Parameters
         ! ----------
-        ! fun : callable
-        !     Right-hand side of the system.
-        ! t0 : float
+        ! solver : RungeKutta type
+        ! t0 : real
         !     Initial value of the independent variable.
-        ! y0 : ndarray, shape (n,)
-        !     Initial value of the dependent variable.
-        ! f0 : ndarray, shape (n,)
+        ! y0 : real (n)
+        !     Initial state
+        ! f0 : real (n)
         !     Initial value of the derivative, i.e., ``fun(t0, y0)``.
-        ! direction : float
+        ! direction : real
         !     Integration direction.
         ! order : integer
         !     Error estimator order. It means that the error controlled by the
         !     algorithm is proportional to ``step_size ** (order + 1)`.
-        ! rtol : float
+        ! rtol : real
         !     Desired relative tolerance.
-        ! atol : float
+        ! atol : real
         !     Desired absolute tolerance.
-
         ! Returns
         ! -------
-        ! h_abs : float
+        ! h_abs : real
         !     Absolute value of the suggested initial step.
-
-        ! References
-        ! ----------
-        ! .. [1] E. Hairer, S. P. Norsett G. Wanner, "Solving Ordinary Differential
-        !        Equations I: Nonstiff Problems", Sec. II.4.
         class(RungeKutta)       :: solver
         real(WP), intent(in)    :: t0, y0(:), f0(:), direction, rtol(:), atol(:)
         integer                 :: order

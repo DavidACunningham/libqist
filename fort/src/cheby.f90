@@ -1,46 +1,64 @@
+! Title: cheby.f90 
+! Description:
+!     types, functions, and subroutines implementing Chebyshev
+!     interpolation of functions of one variable.
+!     
+!
+! References:
+!     Goodwin, E.T., ed., Modern Computing Methods, Her Majesty's Stationery
+!         Office, 1961, p. 79ff
+!     Press, W.H., Teukolsky, S.A., Flannery, B.P., Vetterling, W.T.: Numerical
+!         Recipes in Fortran 77: The Art of Scientific Computing, vol. 1. 
+!         Cambridge University Press, Cambridge, 1992
+! 
+! author: David Cunningham
+! Last edited: See git log
 module cheby
     use, intrinsic :: iso_fortran_env, only: dp => real64
     implicit none
     real(dp), parameter :: pi=4.0_dp*atan(1.0_dp)
+    ! See functions below for documentation of these interfaces
     interface chcall
-         function chcall_s(a,b,coeffs,x)
+        function chcall_s(a,b,coeffs,x)
             import
             real(dp), intent(in) :: a, b, x, coeffs(:)
             real(dp) :: chcall_s
         end function chcall_s
-         function chcall_v(a,b,coeffs,x)
+        function chcall_v(a,b,coeffs,x)
             import
             real(dp), intent(in) :: a, b, x(:), coeffs(:)
             real(dp) :: chcall_v(size(x))
         end function chcall_v
     end interface chcall
     interface chnodes
-         function chnodes(n,a,b) result(res)
-            import
-            integer, intent(in) :: n
-            real(dp), intent(in) :: a, b
-            real(dp)             :: res(n)
+        function chnodes(n,a,b) result(res)
+           import
+           integer, intent(in) :: n
+           real(dp), intent(in) :: a, b
+           real(dp)             :: res(n)
         end function
     end interface chnodes
     interface chfit
-         function chfit_s(n,fi) result(res)
-            import
-            integer, intent(in) :: n
-            real(dp), intent(in) :: fi(n)
-            real(dp) :: res(n)
+        function chfit_s(n,fi) result(res)
+           import
+           integer, intent(in) :: n
+           real(dp), intent(in) :: fi(n)
+           real(dp) :: res(n)
         end function chfit_s
     end interface chfit
     interface chderiv
-         function chderiv_s(coeffs,a,b) result(res)
-            import
-            real(dp), intent(in) :: coeffs(:), a, b
-            real(dp) :: res(size(coeffs)-1)
+        function chderiv_s(coeffs,a,b) result(res)
+           import
+           real(dp), intent(in) :: coeffs(:), a, b
+           real(dp) :: res(size(coeffs)-1)
         end function chderiv_s
     end interface chderiv
     type vectorcheb
+        ! vectorcheb: type for computing, manipulating, and storing
+        !    Chebyshev interpolants of functions g: R -> R^n
         integer               :: ndim, ndeg
-        real(dp), allocatable :: coeffs(:,:) !(ndeg, ndim)
-        real(dp)              :: a,b
+        real(dp), allocatable :: coeffs(:,:) !Shape will be (ndeg, ndim)
+        real(dp)              :: a,b ! Beginning and end of interpolant domain
         contains
             procedure fit
             generic, public :: call => call_s, call_v
@@ -52,6 +70,19 @@ module cheby
     end type vectorcheb
     contains
         subroutine vectorchebwrite(me,unit_num)
+            ! vectorchebwrite:
+            ! Write the calling instance of the type to disk
+            ! NOTE: as a type bound procedure, the signature of this function
+            ! will be:
+            !   CALL me%write(unit_num)
+            ! INPUTS:
+            ! NAME     TYPE        DESCRIPTION
+            ! me       vectorcheb  Calling instance of the type
+            ! unitnum  integer     unit number/file handle of open
+            !                      file in which type will be written.
+            !                      file must be opened with the ``ACCESS''
+            !                      flag set to ``stream'' and the ``STATUS''
+            !                      flag set to ``new'' or ``replace''
             class(vectorcheb), intent(inout) :: me
             integer,             intent(in) :: unit_num
             write(unit_num) me%ndim
@@ -61,6 +92,21 @@ module cheby
             write(unit_num) me%coeffs
         end subroutine vectorchebwrite
         subroutine vectorchebread(me,unit_num)
+            ! vectorchebread:
+            ! Read a stored vectorcheb type instance from disk into
+            ! the calling instance
+            ! NOTE: as a type bound procedure, the signature of this function
+            ! will be:
+            !   CALL me%read(unit_num)
+            ! NOTE: This function modifies the state of the calling instance
+            ! INPUTS:
+            ! NAME     TYPE        DESCRIPTION
+            ! me       vectorcheb  Calling instance of the type
+            ! unitnum  integer     unit number/file handle of open
+            !                      file in which type will be written.
+            !                      file must be opened with the ``ACCESS''
+            !                      flag set to ``stream'' and the ``STATUS''
+            !                      flag set to ``old''
             class(vectorcheb), intent(inout) :: me
             integer,             intent(in) :: unit_num
             read(unit_num) me%ndim
@@ -71,10 +117,29 @@ module cheby
             read(unit_num) me%coeffs
         end subroutine vectorchebread
         subroutine fit(me, fi, a, b)
+            ! fit:
+            ! compute and store a set of Chebyshev coefficients in the calling
+            ! instance
+            ! NOTE: as a type bound procedure, the signature of this function
+            ! will be:
+            !   CALL me%fit(fi, a, b)
+            ! NOTE: This function modifies the state of the calling instance
+            ! INPUTS:
+            ! NAME     TYPE           DESCRIPTION
+            ! me       vectorcheb     Calling instance of the type
+            ! unitnum  integer        unit number/file handle of open
+            !                         file in which type will be written.
+            !                         file must be opened with the ``ACCESS''
+            !                         flag set to ``stream'' and the ``STATUS''
+            !                         flag set to ``old''
+            ! fi       real (n,ndim)  Values of function to interpolate at 
+            !                         Chebyshev nodes of order n 
+            !                         (i.e. evaluated at the output of 
+            !                         chnodes(n,a,b))
+            ! a        real           beginning of interpolant domain
+            ! b        real           end of interpolant domain
             class(vectorcheb), intent(inout) :: me
-            real(dp),          intent(in)    :: fi(:,:), &
-                                                ! (n x ndim)
-                                              & a, b
+            real(dp),          intent(in)    :: fi(:,:), a, b
             integer i
             me%ndeg  = size(fi,1)
             me%ndim  = size(fi,2)
@@ -87,6 +152,20 @@ module cheby
             end do
         end subroutine fit
         function call_s(me, x) result(res)
+            ! call_s:
+            ! Return the value of a Chebyshev polynomial at a value specified by x.
+            ! This function returns a _single_ value of an interpolant
+            ! NOTE: as a type bound procedure, the signature of this function
+            ! will be:
+            !   res = me%call(x)
+            ! INPUTS:
+            ! NAME     TYPE        DESCRIPTION
+            ! me       vectorcheb  Calling instance of the type
+            ! x        real        value at which to evaluate 
+            !                      interpolant
+            ! OUTPUTS:
+            ! NAME     TYPE   DESCRIPTION
+            ! res      real   value of interpolant at x
             class(vectorcheb), intent(in) :: me
             real(dp),          intent(in)    :: x
             real(dp)                         :: res(me%ndim)
@@ -96,6 +175,20 @@ module cheby
             enddo
         end function call_s
         function call_v(me, x) result(res)
+            ! call_v:
+            ! Return the values of a Chebyshev polynomial at values specified by x.
+            ! This function returns _multiple_ value of an interpolant
+            ! NOTE: as a type bound procedure, the signature of this function
+            ! will be:
+            !   res = me%call(x)
+            ! INPUTS:
+            ! NAME     TYPE            DESCRIPTION
+            ! me       vectorcheb      Calling instance of the type
+            ! x        real (:)        values at which to evaluate 
+            !                          interpolant
+            ! OUTPUTS:
+            ! NAME     TYPE            DESCRIPTION
+            ! res      real (size(x))  values of interpolant at elements of x
             class(vectorcheb), intent(in) :: me
             real(dp),          intent(in)    :: x(:)
             real(dp)                         :: res(size(x),me%ndim)
@@ -105,6 +198,22 @@ module cheby
             enddo
         end function call_v
         function deriv(me) result(res)
+            ! deriv:
+            ! Return the list of Chebyshev coefficients that interpolate a function
+            ! evaluated at the Chebyshev nodes of a given degree
+            ! NOTE: as a type bound procedure, the signature of this function
+            ! will be:
+            !   res = me%deriv()
+            ! INPUTS:
+            ! chderiv:
+            ! INPUTS:
+            ! NAME     TYPE        DESCRIPTION
+            ! me       vectorcheb  Calling instance of the type
+            ! OUTPUTS:
+            ! NAME     TYPE        DESCRIPTION
+            ! res      vectorcheb  a new instance of vectorcheb
+            !                      storing the elementwise derivative of
+            !                      ``me''
             class(vectorcheb), intent(in) :: me
             type(vectorcheb)             :: res
             integer                          :: i
@@ -120,39 +229,49 @@ module cheby
         end function deriv
 end module cheby
 function chnodes(n,a,b) result(res)
+    ! chnodes:
+    ! return the list of Chebyshev nodes at which to evaluate
+    ! a function for Chebyshev approximation
+    ! INPUTS:
+    ! NAME     TYPE     DESCRIPTION
+    ! n        integer  Degree of interpolating polynomial
+    ! a        real     beginning of interpolant domain
+    ! b        real     end of interpolant domain
+    ! OUTPUTS:
+    ! NAME     TYPE     DESCRIPTION
+    ! res      real (n) n-dimensional array of Chebyshev nodes
     use cheby, only: pi, dp
     integer, intent(in) :: n
     integer :: i
     real(dp), intent(in) :: a, b
     real(dp) :: bma, bpa
     real(dp) :: res(n)
-    ! n: Order of approximation
-    ! a: beginning of range
-    ! b: end of range
-    ! nodearray: n-dimensional array of chebyshev nodes
-
-    ! return the list of chebyshev nodes at which to evaluate 
-    ! a function for chebyshev approximation
     bma=0.5_dp*(b-a)
     bpa = 0.5_dp*(b+a)
     res = [(cos(pi*(i-0.5_dp)/n)*bma+bpa, i=n,1,-1)]
 end function chnodes
 
 function chcall_v(a,b,coeffs,x)
+    ! chcall_v:
+    ! Return the values of a Chebyshev polynomial at values specified by x. 
+    ! This function returns _multiple_ values of an interpolant
+    ! INPUTS:
+    ! NAME      TYPE           DESCRIPTION
+    ! a         real           beginning of interpolant domain
+    ! b         real           end of interpolant domain
+    ! coeffs    real (:)       list of Chebyshev coefficients for the 
+    !                          interpolant
+    ! x         real (:)       list of values at which to evaluate
+    !                          interpolant
+    ! OUTPUTS:
+    ! NAME      TYPE           DESCRIPTION
+    ! chcall_v  real (size(x)) values of interpolant at each element of x      
     use cheby, only: chnodes, pi, dp
     implicit none
     integer :: n,j
     real(dp), intent(in) :: a, b, x(:), coeffs(:)
     real(dp) :: u(size(x)), Tjm1(size(x)), Tj(size(x)), Tjp1(size(x))
     real(dp) :: chcall_v(size(x))
-    ! a: beginning of range
-    ! b: end of range
-    ! val: value(s) at which to evaluate function (independent variable)
-    ! coeffs: the list of chebyshev coefficients for the interpolant
-
-    ! return the value(s) of a chebyshev polynomial (defined by coeffs)
-    ! at a value val
-
     n=size(coeffs)
     u = (2.0_dp*x-a-b)/(b-a)
     Tjm1 = 1.0_dp
@@ -167,20 +286,24 @@ function chcall_v(a,b,coeffs,x)
 end function chcall_v
 
 function chcall_s(a,b,coeffs,x)
+    ! chcall_s:
+    ! Return the value of a Chebyshev polynomial at a value specified by x. 
+    ! This function returns a _single_ value of an interpolant
+    ! INPUTS:
+    ! NAME      TYPE   DESCRIPTION
+    ! a         real   beginning of interpolant domain
+    ! b         real   end of interpolant domain
+    ! coeffs    real   list of Chebyshev coefficients for the interpolant
+    ! x         real   value at which to evaluate interpolant
+    ! OUTPUTS:
+    ! NAME      TYPE   DESCRIPTION
+    ! chcall_s  real   value of interpolant at x
     use cheby, only: chnodes, pi, dp
     implicit none
     integer :: n,j
     real(dp), intent(in) :: a, b, x, coeffs(:)
     real(dp) :: u, Tjm1, Tj, Tjp1
     real(dp) :: chcall_s
-    ! a: beginning of range
-    ! b: end of range
-    ! val: value(s) at which to evaluate function (independent variable)
-    ! coeffs: the list of chebyshev coefficients for the interpolant
-
-    ! return the value(s) of a chebyshev polynomial (defined by coeffs)
-    ! at a value val
-
     j = 0
     n=size(coeffs)
     u = (2.0_dp*x-a-b)/(b-a)
@@ -201,20 +324,25 @@ function chcall_s(a,b,coeffs,x)
 end function chcall_s
 
 function chfit_s(n,fi) result(res)
+    ! chfit_s:
+    ! return the list of Chebyshev coefficients that interpolate a function
+    ! evaluated at the Chebyshev nodes of a given degree
+    ! INPUTS:
+    ! NAME     TYPE     DESCRIPTION
+    ! n        integer  Degree of interpolating polynomial
+    ! fi       real (n) Values of function to interpolate at Chebyshev nodes
+    !                   of order n (i.e. evaluated at the output of 
+    !                   chnodes(n,a,b))
+    ! OUTPUTS:
+    ! NAME     TYPE     DESCRIPTION
+    ! res      real (n) list of Chebyshev coefficients approximating the
+    !                   function used to build fi.
     use cheby, only: chnodes, pi, dp
     implicit none
     integer, intent(in) :: n
     integer :: j,i
     real(dp), intent(in) :: fi(n)
     real(dp) :: res(n), u(n), polyarray(n,n)
-    ! n: Order of approximation
-    ! a: beginning of range
-    ! b: end of range
-    ! fi: n-dimensional array of function evaluated at chebyshev nodes 
-    !     (see above)
-
-    ! return the list of chebyshev coefficients approximating the function
-    ! encoded by the values of the xi
     u = [(cos((i-0.5_dp)*pi/n), i=n,1,-1)]
     if (n>0) polyarray(:,1) = 1.0_dp
     if (n>1) polyarray(:,2) = u
@@ -228,8 +356,21 @@ function chfit_s(n,fi) result(res)
 end function chfit_s
 
 function chderiv_s(coeffs,a, b) result(res)
-    ! Source: "Modern Computing Methods", Goodwin, E. T., ed., 1961, p. 79
-    ! This is done in quad based on advice from the source above
+    ! chderiv_s:
+    ! return the list of Chebyshev coefficients that interpolate a function
+    ! evaluated at the Chebyshev nodes of a given degree
+    ! INPUTS:
+    ! NAME     TYPE     DESCRIPTION
+    ! a        real     beginning of interpolant domain
+    ! b        real     end of interpolant domain
+    ! coeffs   real (:) list of Chebyshev coefficients of interpolant
+    !                   
+    ! OUTPUTS:
+    ! NAME     TYPE                   DESCRIPTION
+    ! res      real (size(coeffs)-1)  list of Chebyshev coefficients 
+    !                                 approximating the derivative of the
+    !                                 interpolant specified by the input
+    !                                 coefficients
     use cheby, only: dp
     use, intrinsic :: iso_fortran_env, only: qp=>real128
     real(dp), intent(in) :: coeffs(:), a, b
