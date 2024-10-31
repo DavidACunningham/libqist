@@ -1,7 +1,6 @@
 module qist
-    use, intrinsic :: ieee_arithmetic, only: IEEE_Value, IEEE_QUIET_NAN
     use globals
-    use tensorops, only:  sttchain, sttchain_invert, vectensquad, &
+    use tensorops, only:  sttchain, vectensquad, &
                           stminvert, sttinvert, vectens3, mattens, &
                           quad
     use denseLight, only: lightSol

@@ -1,47 +1,160 @@
+! Title: tensorops.f90 
+! Description:
+!     Multilinear algebraic operations on tensors with 1, 2, and 3 indices.
+!     Quad and double precision reals are supported.
+!     Pure functions are used where possible to eliminate side-effects
+!     And facilitate compiler optimization.
+!
+!     Since the functions are duplicated for double and quad precision, 
+!     most documentation is in the interface blocks.
+!
+!     Only second-order STTs are supported so STM = matrix,
+!     STT = second-order STT
+!
+! References:
+!     Park, S.H.: Nonlinear trajectory navigation. PhD thesis, 
+!       University of Michigan, Ann Arbor (2007)
+!
+! author: David Cunningham
+! Last edited: See git log
 module tensorops
     use globals
     implicit none
     interface sttinvert
+        ! invert a state transition tensor
+        ! INPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! STM     real (n,n)   STM from ta to tb
+        ! STT     real (n,n,n) STT from ta to tb
+        ! n       integer      dimension of STM
+        ! OUTPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! res     real (n,n,n) ISTT from tb to ta
         module procedure q_sttinvert
         module procedure d_sttinvert
     end interface sttinvert
-    interface sttchain_invert
-        module procedure q_sttchain_invert
-        module procedure d_sttchain_invert
-    end interface sttchain_invert
     interface stminvert
+        ! invert a state transition matrix
+        ! INPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! STM     real (n,n)   STM from ta to tb
+        ! n       integer      dimension of STM
+        ! OUTPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! res     real (n,n)   ISTM from tb to ta
         module procedure q_stminvert
         module procedure d_stminvert
     end interface stminvert
     interface stminv
+        ! Analytic inverse of 8 x 8 matrix
+        ! INPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! m       real (8,8)   a matrix
+        ! OUTPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! res     real (8,8)   m^(-1)
         module procedure q_stminv8
         module procedure d_stminv8
     end interface stminv
     interface sttchain
+        ! construct a chained STT from ta to tb given
+        ! ISTM and ISTT from ta to t0 and 
+        ! STM and STT from t0 to tb
+        ! INPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! ISTM     real (n,n)   ISTM from ta to t0
+        ! ISTT     real (n,n,n) ISTT from ta to t0
+        ! STM      real (n,n)   STM from t0 to tb
+        ! STT      real (n,n,n) STT from t0 to tb
+        ! n        integer      dimension
+        ! OUTPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! stmab   real (n,n)   STM from ta to tb
+        ! sttab   real (n,n,n) STT from ta to tb
         module procedure q_sttchain
         module procedure d_sttchain
     end interface sttchain
     interface vectensquad
+        ! the operation
+        !  res(i) = sum_a(sum_b( t(i,a,b)*v(a)*v(b)))
+        ! INPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! v       real (n)     vector
+        ! t       real (n,n,n) tensor
+        ! n       integer      dimension
+        ! OUTPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! res     real (n)     result vector
         module procedure q_vectensquad
         module procedure d_vectensquad
     end interface vectensquad
     interface mattens
+        ! the operation
+        !  res(i,j,k) = sum_a(m(i,a)*t(a,j,k))
+        ! INPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! m       real (n,n)     vector
+        ! t       real (n,n,n) tensor
+        ! n       integer      dimension
+        ! OUTPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! res     real (n,n,n) result tensor
         module procedure q_mattens
         module procedure d_mattens
     end interface mattens
     interface quad
+        ! the operation
+        !  res(i,j,k) = sum_a(sum_b((t(i,a,b)*m(a,j)*m(b,k))))
+        ! INPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! m       real (n,n)     vector
+        ! t       real (n,n,n) tensor
+        ! n       integer      dimension
+        ! OUTPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! res     real (n,n,n) result tensor
         module procedure q_quad
         module procedure d_quad
     end interface quad
     interface vectens1
+        ! the operation
+        !  res(i,j) = sum_a( t(a,i,j)*v(a))
+        ! INPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! v       real (n)     vector
+        ! t       real (n,n,n) tensor
+        ! n       integer      dimension
+        ! OUTPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! res     real (n,n)   result vector
         module procedure q_vectens1
         module procedure d_vectens1
     end interface vectens1
     interface vectens2
+        ! the operation
+        !  res(i,j) = sum_a( t(i,a,j)*v(a))
+        ! INPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! v       real (n)     vector
+        ! t       real (n,n,n) tensor
+        ! n       integer      dimension
+        ! OUTPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! res     real (n,n)   result vector
         module procedure q_vectens2
         module procedure d_vectens2
     end interface vectens2
     interface vectens3
+        ! the operation
+        !  res(i,j) = sum_a( t(i,j,a)*v(a))
+        ! INPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! v       real (n)     vector
+        ! t       real (n,n,n) tensor
+        ! n       integer      dimension
+        ! OUTPUTS:
+        ! NAME:   TYPE:        DESCRIPTION:
+        ! res     real (n,n)   result vector
         module procedure q_vectens3
         module procedure d_vectens3
     end interface vectens3
@@ -240,51 +353,10 @@ module tensorops
         res = quad(istm,inter,n)
     end function q_sttinvert
         
-    pure subroutine d_sttchain_invert(stm1,stt1,stm2,stt2, stmab, sttab,n)
-        implicit none
-        integer, intent(in) :: n
-        real(8), intent(in) :: stm1(n,n), stm2(n,n), stt1(n,n,n), stt2(n,n,n)
-        real(8)             :: istm1(n,n), istt1(n,n,n)
-        real(8)             :: inter(n,n,n) 
-        real(8), intent(out) :: stmab(n,n), sttab(n,n,n)
-        istm1 = stminvert(stm1,n)
-        istt1 = sttinvert(stm1,stt1,n)
-
-        stmab = mmult(stm2,istm1)
-        inter = reshape(istt1,[n,n,n],order=[2,1,3])
-        sttab = reshape(mattens(stm2,inter,n),[n,n,n],order=[2,1,3])
-        inter = reshape(stt2,[n,n,n],order=[2,1,3])
-        inter = mattens(transpose(istm1),inter,n)
-        inter = reshape(inter,[n,n,n],order=[2,1,3])
-        inter = reshape(inter,[n,n,n],order=[3,2,1])
-        inter = mattens(transpose(istm1),inter,n)
-        sttab = reshape(inter,[n,n,n],order=[3,2,1])
-    end subroutine d_sttchain_invert
-
-    pure subroutine q_sttchain_invert(stm1,stt1,stm2,stt2, stmab, sttab,n)
-        implicit none
-        integer, intent(in) :: n
-        real(wp), intent(in) :: stm1(n,n), stm2(n,n), stt1(n,n,n), stt2(n,n,n)
-        real(wp)             :: istm1(n,n), istt1(n,n,n)
-        real(wp)             :: inter(n,n,n) 
-        real(wp), intent(out) :: stmab(n,n), sttab(n,n,n)
-        istm1 = stminvert(stm1,n)
-        istt1 = sttinvert(stm1,stt1,n)
-
-        stmab = mmult(stm2,istm1)
-        inter = reshape(istt1,[n,n,n],order=[2,1,3])
-        sttab = reshape(mattens(stm2,inter,n),[n,n,n],order=[2,1,3])
-        inter = reshape(stt2,[n,n,n],order=[2,1,3])
-        inter = mattens(transpose(istm1),inter,n)
-        inter = reshape(inter,[n,n,n],order=[2,1,3])
-        inter = reshape(inter,[n,n,n],order=[3,2,1])
-        inter = mattens(transpose(istm1),inter,n)
-        sttab = reshape(inter,[n,n,n],order=[3,2,1])
-    end subroutine q_sttchain_invert
     pure subroutine q_sttchain(istm,istt,stm,stt,stmab,sttab,n) 
         implicit none
         integer, intent(in) :: n
-      real(wp), intent(in)  :: istm(n,n), stm(n,n), istt(n,n,n), stt(n,n,n)
+        real(wp), intent(in)  :: istm(n,n), stm(n,n), istt(n,n,n), stt(n,n,n)
         real(wp), intent(out) :: stmab(n,n), sttab(n,n,n)
 
         stmab = mmult(stm,istm)

@@ -1,3 +1,13 @@
+! Title: genqist.f90 
+! Description:
+!   Module containing functions for creating QIST models and 
+!   data necessary for creating QIST models
+!
+! References:
+!   None
+! 
+! author: David Cunningham
+! Last edited: See git log
 module genqist
     use globals
     use denselight, only: lightsol, qistpack

@@ -1,3 +1,16 @@
+! Title: makemodel.f90 
+! Description:
+!     A module for managing gravitational dynamics based on ephemeris data.
+!     The main purpose is the computation of equations of motion of spacecraft
+!     trajectories and state transition tensors. Additional machinery is
+!     required in order to accomodate trajectory information stored in 
+!     Chebyshev interpolants.
+!
+! References:
+!   None
+! 
+! author: David Cunningham
+! Last edited: See git log
 module makemodel
     use, intrinsic :: iso_fortran_env, only: wp=>real64, dp=>real64, qp=>real128
     use tinysh, only: PinesData, pinesinit, shpines
@@ -9,6 +22,58 @@ module makemodel
     integer :: m=8
 
     type :: dynamicsModel
+        ! dynamicsModel:
+        !   derived type containing dynamics model information
+        !   and the ability to compute the derivative of the state
+        !   along with the Jacobian and Hessian of that state
+        !   for ephemeris gravity as well as spherical harmonics
+        !   gravity for the central body.
+        !
+        ! Attributes:
+        !    bod_db: spice_subset
+        !       The database containing reinterpolated ephemerides
+        !       of the celestial bodies and spacecraft required
+        !       for computing the trajectory derivatives.
+        !    rot: rothist
+        !       The interpolated rotation and rotational derivatives
+        !       needed for computing spherical harmonics accelerations,
+        !       Jacobians, and Hessians
+        !   num_bodies: integer
+        !       The number of bodies (other than the central body)
+        !       gravitationally acting on the reference trajectory
+        !   central_body: integer
+        !       NAIF integer ID code of the central body for integration
+        !   traj_id: integer
+        !       NAIF integer ID code of the reference trajectory
+        !   degord: integer
+        !       The degree and order of the spherical harmonics model
+        !       used for computing the gravity of the central body
+        !   bodylist: integer (num_bodies)
+        !       NAIF integer ID codes of the gravitating bodies
+        !       other than the central body
+        !   shgrav: logical
+        !       Is the central body gravitation using spherical harmonics
+        !       (TRUE) or keplerian (FALSE)
+        !   tgt_on_rails: logical
+        !       Is the reference trajectory precomputed from a SPICE SPK
+        !       (TRUE) or being integrated along with the STM/STT (FALSE)
+        !   regularize: logical
+        !       Is the independent variable sundman regularized relative
+        !       to the central body (TRUE) or not (FALSE)
+        !   central_body_ref_radius: real
+        !       The reference radius of the central body in km
+        !   state: real (8)
+        !       The augmented dynamical state of the reference trajectory:
+        !       state = [x, y, z, xdot, ydot, zdot, t, TOF]
+        !   central_body_mu: real
+        !       The gravitational parameter of the central body in km3/s2
+        !   tof: real
+        !       The time of flight of the trajectory in seconds
+        !   nbody_mus: real (num_bodies)
+        !       The gravitational parameter of the perturbing bodies in km3/s2
+        !   pdat: PinesData
+        !       The derived type for storing the spherical harmonics computation
+        !       data
         type(spice_subset)    :: bod_db
         type(rothist)         :: rot
         integer               :: num_bodies, &
@@ -20,7 +85,6 @@ module makemodel
                                & tgt_on_rails, &
                                & regularize
         real(qp)              :: central_body_ref_radius, &
-                               & central_body_rad(3), &
                                & state(8), &
                                & central_body_mu, &
                                & tof
@@ -143,6 +207,18 @@ module makemodel
         endif
     end subroutine init_dm
     subroutine new_bodies(me, bodylist, mulist)
+        ! new_bodies: method to update list of bodies in use
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! me             dynamicsModel  calling instance
+        ! bodylist       integer (:)    list of integer IDs of the gravitating
+        !                               bodies in the SPICE kernel, other than
+        !                               the central body
+        ! mu_list        real           gravitational parameters of bodies
+        !                               sorted in the same order as bodylist
+        !                               in km3/s2
+        ! OUTPUTS:
+        ! NONE
         class(dynamicsModel), intent(inout) :: me
         integer,              intent(in)    :: bodylist(:)
         real(dp),             intent(in)    :: mulist(:)
@@ -155,6 +231,19 @@ module makemodel
         me%nbody_mus = real(mulist,qp)
     end subroutine new_bodies
     subroutine new_gravstatus(me, shgrav, Cbar, Sbar,rot)
+        ! new_gravstatus: method to update central body gravity model
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! me             dynamicsModel  calling instance
+        ! shgrav         logical        whether to use spherical harmonics
+        ! Cbar           real (double)  nxm array of normalized cosine Stokes 
+        !                               coefficients
+        ! Sbar           real (double)  nxm array of normalized sine Stokes 
+        !                               coefficients
+        ! rot            rothist        transformation from rotating to inertial
+        !                               reference frames
+        ! OUTPUTS:
+        ! NONE
         class(dynamicsModel), intent(inout)        :: me
         type(rothist),        intent(in), optional :: rot
         logical,              intent(in)           :: shgrav
@@ -707,6 +796,16 @@ module makemodel
         res = real(traj_state,qp)
     end function trajstate
     function outer_2vec(veca, vecb) result(res)
+        ! outer_2vec: convenience function to take the outer product
+        !             of two vectors
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! veca           real (n)       first vector to compute outer product
+        ! vecb           real (m)       second vector to compute outer product
+        !                               
+        ! OUTPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! res            real (n,m)     outer product of veca and vecb
         real(qp), intent(in) :: veca(:), vecb(:)
         real(qp)             :: res(size(veca),size(vecb))
         integer j, n,m
@@ -716,6 +815,19 @@ module makemodel
         end do
     end function outer_2vec
     function outer_3vec(veca, vecb, vecc) result(res)
+        ! outer_3vec: convenience function to take the outer product
+        !             of three vectors that appears in some of the gravity
+        !             Hessians. The output is equivalent to:
+        !             res(i,j,k) = veca(i)*vecb(j)*vecc(k)
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! veca           real (n)       first vector to compute outer product
+        ! vecb           real (m)       second vector to compute outer product
+        ! vecc           real (l)       third vector to compute outer product
+        !                               
+        ! OUTPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! res            real (n,m,l)   outer product of veca, vecb, and vecc
         real(qp), intent(in) :: veca(:), vecb(:), vecc(:)
         real(qp)             :: res(size(veca),size(vecb),size(vecc))
         integer i,j, k, n, m, l
@@ -729,6 +841,20 @@ module makemodel
         end do
     end function outer_3vec
     function outer_kron(vec, ind) result(res)
+        ! outer_kron: convenience function to take the three index kronecker 
+        !             delta appearing in some gravitational Hessians. 
+        !             The output changes based on the value of ind:
+        !             ind = 1 => res(i,j,k) = vec(i)*delta(j,k)
+        !             ind = 2 => res(i,j,k) = vec(j)*delta(i,k)
+        !             ind = 3 => res(i,j,k) = vec(k)*delta(i,j)
+        ! INPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! vec            real (n)       vector for computing outer product
+        ! ind            integer        index not to appear in the delta
+        !                               
+        ! OUTPUTS:
+        ! NAME           TYPE           DESCRIPTION
+        ! res            real (n,n,n)   three index kronecker delta
         integer,  intent(in) :: ind
         real(qp), intent(in) :: vec(:)
         real(qp)             :: res(size(vec),size(vec),size(vec))
