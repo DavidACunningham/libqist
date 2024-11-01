@@ -1,8 +1,7 @@
 .SUFFIXES:
-HOME := /home/david/
+SPICE := /home/david/libf/spicelib.a
 FC := gfortran
 PFC := f2py
-UTILLIBS := $(HOME)libf/
 SRCDIR := ./src/
 OBJDIR := ./build/
 TESTOBJDIR := ./test/build/
@@ -12,7 +11,6 @@ MODDIR := ./mod/
 EXEDIR := ./exe/
 TESTDIR := ./test/
 ANCDIR := ./anc/
-SPICE := $(UTILLIBS)spicelib.a
 EXT_SUFFIX := $(shell python3-config --extension-suffix)
 FOREXT := f90
 
@@ -127,6 +125,7 @@ genkernel: make_new_kernel
 gencheby: make_cheby_kernel
 pq: pyqist$(EXT_SUFFIX)
 pqtest: pyqist.a
+qist: qist.a
 modfiles: $(T_ANCHORS) $(I_ANCHORS)
 
 .PHONY: clean
@@ -145,7 +144,6 @@ make_resample: $(GQ_OBJECTS)
 make_rot: $(GQ_OBJECTS)
 	$(FC) $(FFLAGS)  $(EXEDIR)$@.f90 $^ $(SPICE) -o $@
 	-mv -v $@ $(EXEDIR)
-
 make_cheby_kernel: $(GQ_OBJECTS)
 	$(FC) $(FFLAGS)  $(EXEDIR)$@.f90 $^ $(SPICE) -o $@
 	-mv -v $@ $(EXEDIR)
@@ -157,14 +155,14 @@ make_qist_existing_kernel: $(GQ_OBJECTS)
 	-mv -v $@ $(EXEDIR)
 $(TESTDIR)unit_test_run: $(T_OBJECTS)
 	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
-
+qist.a: $(Q_OBJECTS)
+	$(FC) $(FFLAGS) -shared $^ -o $@
+	-cp -v $@ $(LIBDIR)
 %.a : $(SRCDIR)%.f90 $(I_OBJECTS)
-	$(FC) $(MFLAGS) $(SPICE) $^ -c -o $@
-
+	$(FC) $(MFLAGS) $(SPICE) $^ -o $@
 %$(EXT_SUFFIX) : $(SRCDIR)%.f90 $(I_OBJECTS)
 	$(PFC) -m $* --f90flags='$(PFLAGS)' $(PFFLAGS) -c $^ 
 	-cp -v $@ $(LIBDIR)
-
 $(ANCDIR)%.anc: $(SRCDIR)%.f90
 	$(MAKEMOD.F08) $<
 	@touch $@
@@ -177,4 +175,3 @@ $(TESTANCDIR)%.anc: $(TESTDIR)%.f90
 $(TESTOBJDIR)%.o : $(TESTANCDIR)%.anc 
 	$(FC) $(FFLAGS) -c -o $(TESTOBJDIR)$*.o $(TESTDIR)$*.f90
 	@touch $@
-

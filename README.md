@@ -1,0 +1,95 @@
+# QIST
+> version 0.1
+> Quadratic Interpolated State Transition: A library for fast propagation of
+> second-order relative motion around arbitrary SPICE kernels.
+
+Current and future space mission planning can require relative motion in regimes 
+that are highly non-Keplerian and potentially non-linear.
+QIST is an attempt to build a generalized relative motion framework for a broad class
+of gravitational dynamics. 
+
+QIST allows:
+* Numerical integration of STMs and STTs around arbitrary SPICE SPK trajectories from a beginning simulation time t0 to an end simulation time tf with accelerations including:
+	* Ephemeris gravitational dynamics from other SPICE bodies
+	* Nonsingular spherical harmonics gravitation of the central body (Pines formulation)
+* Fast propagation of trajectories between any two points ta and tb such that t0 <= ta <= tb <= tf relative to the reference trajectory with quadratic accuracy
+* Propagation of relative covariance between ta and tb through direct access to the STM and STT.
+
+
+## Building from source
+
+OS X & Linux:
+
+Download the source and unzip it into a directory I'll refer to as $LIBQIST.
+First, in the $LIBQIST/fort directory, edit the second line of the file ``Makefile''
+to point to your local SPICE build's shared library file, usually called ``spicelib.a''.
+This is the only external dependency of QIST.
+If you don't have SPICE, you can download and build it from the JPL NAIF website at 
+(<https://naif.jpl.nasa.gov/naif/toolkit.html>).
+QIST has been tested with the Fortran version of SPICE.
+
+Next, build the module files:
+```sh
+user@system:$LIBQIST/fort$ make modfiles
+```
+### Building the relative motion runtime
+To propagate relative motion models, you need to build a version of the QIST
+reltavime motion propagation runtime.
+
+If you want to build the Python interface using f2py, run:
+```sh
+user@system:$LIBQIST/fort$ make -j pq
+```
+The 'j' argument is optional but recommended, enabling multi core compilation.
+
+If you want to build the Matlab interface, run:
+```sh
+user@system:$LIBQIST/fort$ make -j mqist
+
+If you want to build the native Fortran shared library, run:
+```sh
+user@system:$LIBQIST/fort$ make -j qist
+```
+
+### Model generation setup
+
+If you'll be generating your own QIST models, you need to build the model
+generation facilities. To do this, run:
+```sh
+user@system:$LIBQIST/fort$ make -j make_resample
+user@system:$LIBQIST/fort$ make -j make_rot
+user@system:$LIBQIST/fort$ make -j genqist
+```
+
+### Test build
+
+To build unit tests, run:
+```sh
+user@system:$LIBQIST/fort$ make -j test
+```
+
+## Usage 
+
+After building, see the examples subdirectory for minimal usage examples.
+
+### Overview
+To run a QIST model, you need:
+* The appropriate (i.e. Python, Fortran or Matlab) QIST binary built from the instructions above
+* The model, usually stored as a .qist file
+* A calling program
+Optional but highly recommended, the QIST configuration parameters should be stored in a configuration namelist.
+
+To create a QIST model, you need:
+* The appropriate qist generation executables built from the instructions above
+* SPICE
+* A set of SPICE Kernels containing all the data needed for your trajectories
+* a configuration namelist. An example of this configuration namelist is in the examples folder. It is recommended to generate these namelists automatically, e.g. with Python, to minimize the introduction of errors. An example namelist generation script has been included in the $LIBQIST root folder.
+
+## Release History
+* 0.1
+    * Initial beta release
+
+## Meta
+
+Please contact David Cunningham for questions about usage, bug reports, and distribution information.
+David Cunningham – david.cunningham@utexas.edu
