@@ -1,4 +1,17 @@
+! Title: mqist.f90 
+! Description:
+!    A thin wrapper for QIST functions
+!    to allow a pre-generated QIST library
+!    to be called by matlab using the loadlib function.
+!    needs to be kept in sync with mqist.h.
+!
+! References:
+!   None
+! 
+! author: David Cunningham
+! Last edited: See git log
 subroutine m_init_n(namefile_c)
+    ! Initialize a QIST library from a compatible namefile
     use q_inter
     use, intrinsic :: iso_c_binding
     implicit none
@@ -22,7 +35,7 @@ end subroutine m_init_n
 subroutine m_state(tau,state_o)
     use q_inter
     implicit none
-    !! Return a regularized state at time tau
+    !! Return a state at time tau
     integer, parameter :: n=8
     real(8),     intent(in) :: tau
     !! The value of tau at which to get the state
@@ -34,7 +47,7 @@ end subroutine m_state
 subroutine m_stm(tau,stm_o)
     use q_inter
     implicit none
-    !! Return a regularized stm at time tau
+    !! Return an stm at time tau
     integer, parameter :: n=8
     real(8),     intent(in) :: tau
     !! The value of tau at which to get the state
@@ -46,19 +59,19 @@ end subroutine m_stm
 subroutine m_stt(tau,stt_o)
     use q_inter
     implicit none
-    !! Return a regularized stm at time tau
+    !! Return an stt at time tau
     integer, parameter :: n=8
     real(8),     intent(in) :: tau
-    !! The value of tau at which to get the state
+    !! The value of tau at which to get the stt
     real(8), intent(out), dimension(n,n,n) :: stt_o
-    !! The returned stm
+    !! The returned stt
     stt_o = stt(tau)
 end subroutine m_stt
 
 subroutine m_stm_i(tau,stm_i_o)
     use q_inter
     implicit none
-    !! Return a regularized stm at time tau
+    !! Return an inverse stm at time tau
     integer, parameter :: n=8
     real(8),     intent(in) :: tau
     !! The value of tau at which to get the state
@@ -70,12 +83,12 @@ end subroutine m_stm_i
 subroutine m_stt_i(tau,stt_i_o)
     use q_inter
     implicit none
-    !! Return a regularized stm at time tau
+    !! Return an inverse stt at time tau
     integer, parameter :: n=8
     real(8),     intent(in) :: tau
     !! The value of tau at which to get the state
     real(8), intent(out), dimension(n,n,n) :: stt_i_o
-    !! The returned stm
+    !! The returned stt
     stt_i_o = stt_i(tau)
 end subroutine m_stt_i
 
@@ -84,9 +97,7 @@ subroutine m_prop_once(ta, tb, xa, order, xb)
     use q_inter
     implicit none
     !! Propagates the relative state xa at time ta
-    !! to time tb. Uses the second-order update
-    !! time-to-tau to adjust tau for the relative
-    !! trajectory.
+    !! to time tb.
     integer :: o 
     real(8), intent(in)  :: ta, tb, xa(6)
     integer, intent(in)  :: order

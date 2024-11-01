@@ -1,4 +1,6 @@
 ! pinesmodule.f90 - Pines spherical harmonics evaluation 
+!  Written by Sean McArdle, condensed and adapted from the larger shLib
+!  by David Cunningham.
 !
 ! references:
 ! Fantino, E., and Casotto, S. "Methods of harmonics synthesis for global geopotential models

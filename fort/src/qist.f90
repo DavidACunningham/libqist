@@ -1,3 +1,22 @@
+! Title: qist.f90 
+! Description:
+!   contains the itraj object, which propagates 
+!   relative motion trajectories and constructs
+!   stms/stts relative to a reference trajectory
+!   from stored interpolants.
+!   This is the propagation runtime for the QIST
+!   system.
+!
+! References:
+!   D. Cunningham and R. P. Russell, “An Interpolated Second-Order Relative 
+!       Motion Model for Gateway,” The Journal of the Astronautical Sciences, 
+!       Vol. 70, Aug. 2023, p. 26, doi:10.1007/s40295-023-00393-9.
+!   D. Cunningham and R. P. Russell, “Relative Motion Solutions Around an 
+!       Arbitrary SPICE Kernel Trajectory,” AAS/AIAA Astrodynamics Specialist
+!       Conference, Aug. 2024, Paper no. AAS 24-457.
+! 
+! author: David Cunningham
+! Last edited: See git log
 module qist
     use globals
     use tensorops, only:  sttchain, vectensquad, &
@@ -34,6 +53,8 @@ module qist
     contains
     ! Initializer
     subroutine init_nml(self, namefile)
+        ! Initialize itraj via ITRAJ_CONFIG 
+        ! namelist (preferred)
         character(len=*), intent(in) :: namefile
         real(dp)                     :: t0, tf
         character(len=1000)          :: qist_filename
@@ -66,6 +87,7 @@ module qist
         call self%init(t0,tf,qist_filename,kvtau_filename)
     end subroutine init_nml
     subroutine init_var(self, t0, tf, trajfile, kvtaufile)
+        ! Initialize QIST via variables
         character(len=*), intent(in) :: trajfile, kvtaufile
         real(dp),         intent(in) :: t0, tf
         integer                      :: stat, num
@@ -154,6 +176,7 @@ module qist
         res = dum(1)
     end function state
     function stm(self,t) result(res)
+        ! Return an STM at time t
         class(Itraj), intent(inout) :: self
         real(dp),     intent(in) :: t
         !! The value of t at which to get the state
@@ -215,7 +238,7 @@ module qist
         res(8,8)=1._dp
     end function stm
     function stm_i(self,t) result(res)
-        !! Return an stm at time t
+        !! Return an inverse stm at time t
         class(Itraj), intent(inout) :: self
         real(dp),     intent(in) :: t
         real(dp), dimension(n,n) :: res
@@ -223,6 +246,7 @@ module qist
         res = stminvert(self%stm(t), n)
     end function stm_i
     function stt(self,t) result(res)
+        ! Return an STT at time t
         class(Itraj), intent(inout) :: self
         real(dp),     intent(in) :: t
         !! The value of t at which to get the state
@@ -650,8 +674,8 @@ module qist
         end select 
     end function prop_once
     function prop_many(self,ta, tb, xa, order) result(res)
-        !! Propagates the relative state xa at ta
-        !! to tb
+        !! Propagates the relative states on the columns of xa
+        !! at ta to tb
         class(Itraj), intent(inout) :: self
         real(dp),     intent(in) :: ta, tb, xa(:,:) ! n rows, : columns
         integer, intent(in), optional :: order

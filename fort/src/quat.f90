@@ -1,3 +1,19 @@
+! Title: cheby.f90 
+! Description:
+!     implements two types: 
+!           ``quaternion'': a quaternion type with algebraic multiplications defined
+!           ``rothist'' : A type for storing continuous interpolated rotations
+!                         using Chebyshev interpolants on the quaternion
+!                         elements and appropriate renormalizations to compute 
+!                         the derivatives of the quaternions and make sure they
+!                         stay in T*SO(3).
+!     Only double precision is currently implemented.
+!
+! References:
+!   None
+! 
+! author: David Cunningham
+! Last edited: See git log
 module quat
     use, intrinsic :: iso_fortran_env, only: dp => real64, qp => real128
     use cheby, only: vectorcheb, chnodes
@@ -7,6 +23,11 @@ module quat
     
 
     type :: quaternion
+        ! A type implementing quaternion algebra
+        ! And operations to convert the underlying unit quaternion
+        ! to and from DCM and axis angle rotations
+        ! The only attribute is the four-vector q which 
+        ! stores the elements of the quaternion.
         real(dp) :: q(4)
 
         contains
@@ -18,6 +39,36 @@ module quat
         procedure :: renorm => quat_renorm
     end type quaternion
     type  rothist
+        ! A type implementing the interpolation of rotations
+        ! and the computation of time derivatives of those 
+        ! rotations
+        !
+        ! Attributes:
+        !  els: vectorcheb
+        !   An array of four Chebyshev interpolants, interpolating
+        !   the time history of the elements of the quaternion.
+        !  elsdot: vectorcheb
+        !   An array of four Chebyshev interpolants, interpolating
+        !   the time history of the time derivative of the elements
+        !   of the quaternion, computed in R^4, not constrained to be in T*SO(3)
+        !  elsddot: vectorcheb
+        !   An array of four Chebyshev interpolants, interpolating
+        !   the time history of the second time derivative of the elements
+        !   of the quaternion, computed in R^4, not constrained to be in T*SO(3)
+        !  qstat: quaternion
+        !   the static part of the rotation, i.e. we break the rotation down into two
+        !   parts: J2000 -> BF(t_0) -> BF(t_f)
+        !   so qstat only captures the first rotation. This is done since most celestial
+        !   bodies are simple spinners.
+        !  degree: integer
+        !   the degree of the polynomial interpolation of els
+        !  t0: real
+        !   initial time
+        !  tf: real
+        !   final time
+        !  fit: function handle
+        !   see fit_func signature. The function that takes in times and returns a quaternion
+        !   for the rotation BF(t_0) -> BF(t_f)
         type(vectorcheb)             :: els, elsdot, elsddot
         type(quaternion)             :: qstat
         integer                      :: degree
@@ -42,6 +93,13 @@ module quat
     abstract interface 
         function fit_func(me, ta, tb) result(res)
            ! Function wrapping the interpolant target
+           ! Inputs:
+           ! me: The calling instance
+           ! ta: real- The initial time for the rotation
+           ! tb: real- The final time for the rotation
+           ! Outputs:
+           ! res: real (4) the rotation quaternion from
+           !      ta to tb
             import :: wp, rothist
             implicit none
             class(rothist), intent(inout) :: me
@@ -50,6 +108,13 @@ module quat
         end function fit_func
     end interface
     interface operator ( * )
+        ! Binary operator overloading to enable
+        ! quaternion multiplications
+        ! by scalars and other quaternions.
+        ! Quaternion composition is not a separate
+        ! operator, so multiplication of one object
+        ! of quaternion type by another object of quaternion
+        ! type automatically performs quaternion composition.
         module procedure qmul
         module procedure smul1
         module procedure smul2
@@ -57,22 +122,34 @@ module quat
         module procedure imul2
     end interface
     interface operator ( + )
+        ! Binary operator overloading
+        ! to enable seamless quaternion addition
         module procedure qadd
     end interface
     interface operator ( / )
+        ! Binary operator overloading
+        ! to enable quaternion division by a scalar
         module procedure sdiv
     end interface
     interface operator ( - )
+        ! Unary/binary operator overloading
+        ! to enable subtracting and computing
+        ! additive inverses of quaternion objects
         module procedure qsub
         module procedure qainv
     end interface
     interface operator ( .T. )
+        ! Unary operator to enable transpose
+        ! of quaternions--more properly termed adjoint but
+        ! .A. didn't seem as intuitive.
         module procedure qconj
     end interface
 
 
     contains
         subroutine rotwrite(me,unit_num)
+            ! Write the calling rotation interpolation history
+            ! to disk at unit unit_num
             class(rothist), intent(inout) :: me
             integer,        intent(in)    :: unit_num
             write(unit_num) me%t0
@@ -82,6 +159,9 @@ module quat
             call me%els%write(unit_num)
         end subroutine rotwrite
         subroutine rotread(me,unit_num)
+            ! Read a rotation interpolation history 
+            ! from disk at unit unit_num into the calling
+            ! instance. Requires ``STREAM'' access.
             class(rothist), intent(inout) :: me
             integer,        intent(in)    :: unit_num
             read(unit_num) me%t0
@@ -93,6 +173,17 @@ module quat
             me%elsddot = me%elsdot%deriv()
         end subroutine rotread
         subroutine init_rot_q(me, fit, t0, tf, order, qstat)
+            ! Initializer for rotation history from a quaternion
+            ! INPUTS:
+            ! NAME:         TYPE:             DESCRIPTION:
+            ! me            rothist           calling istance (STATE WILL CHANGE)
+            ! fit           function pointer  function that generates rotation 
+            !                                 quaternions
+            ! t0            real              initial time for interpolant
+            ! tf            real              final time for interpolant
+            ! order         integer           degree of interpolating polynomial
+            ! qstat         real (4)          4-d array containing unit quaternion
+            !                                 of static part of rotation
             class(rothist),     intent(inout) :: me
             procedure(fit_func)               :: fit
             real(wp),           intent(in)    :: t0,tf, qstat(4)
@@ -129,6 +220,17 @@ module quat
                     end function fitwrap
         end subroutine
         subroutine init_rot_dcm(me, fit, t0, tf, order, dcmstat)
+            ! Initializer for rotation history from a direction cosine matrix
+            ! INPUTS:
+            ! NAME:         TYPE:             DESCRIPTION:
+            ! me            rothist           calling istance (STATE WILL CHANGE)
+            ! fit           function pointer  function that generates rotation 
+            !                                 quaternions
+            ! t0            real              initial time for interpolant
+            ! tf            real              final time for interpolant
+            ! order         integer           degree of interpolating polynomial
+            ! qstat         real (3,3)        array containing DCM for
+            !                                 static part of rotation
             class(rothist),     intent(inout) :: me
             procedure(fit_func)               :: fit
             real(wp),           intent(in)    :: t0,tf, dcmstat(3,3)
@@ -165,6 +267,8 @@ module quat
                     end function fitwrap
         end subroutine
         function getdcm(me, t) result(res)
+            ! Return the DCM representation
+            ! of the rotation at time t
             class(rothist), intent(inout) :: me
             type(quaternion)              :: qtot, qdyn
             real(wp),       intent(in)    :: t
@@ -177,6 +281,8 @@ module quat
             res = transpose(qtot%asdcm())
         end function
         function getrotquat(me, t) result(res)
+            ! Return the quaternion representation
+            ! of the rotation at time t
             class(rothist), intent(inout) :: me
             type(quaternion)              :: qtot, qdyn
             real(wp),       intent(in)    :: t
@@ -189,6 +295,8 @@ module quat
             res = qtot%q
         end function
         function getdcmdot(me, t) result(res)
+            ! Return the matrix representation
+            ! of the time derivative of the rotation at time t
             class(rothist), intent(inout) :: me
             real(wp)                      :: q(4), qdot(4)
             real(wp),       intent(in)    :: t
@@ -210,6 +318,8 @@ module quat
             end associate
         end function
         function getdcmddot(me, t) result(res)
+            ! Return the matrix representation
+            ! of the second time derivative of the rotation at time t
             class(rothist), intent(inout) :: me
             real(wp)                      :: q(4), qdot(4), qddot(4)
             real(wp),       intent(in)    :: t
@@ -246,6 +356,8 @@ module quat
             end associate
         end function
         function getrotquatdot(me, t) result(res)
+            ! Return the four-vector representation
+            ! of the time derivative of the rotation at time t
             class(rothist), intent(inout) :: me
             type(quaternion)              :: q, qdot, dummy
             real(wp),       intent(in)    :: t
@@ -266,6 +378,8 @@ module quat
             res = qhatdot
         end function
         function getrotquatddot(me, t) result(res)
+            ! Return the four-vector representation
+            ! of the second time derivative of the rotation at time t
             class(rothist), intent(inout) :: me
             type(quaternion)              :: q, qdot, qddot, dummy
             real(wp),       intent(in)    :: t
@@ -294,6 +408,8 @@ module quat
             res = qddothat
         end function
         pure subroutine quat_renorm(me)
+            ! Renormalize the quaternion. Modifies
+            ! the state of the calling instance.
             class(quaternion), intent(inout) :: me
             real(dp)                   :: q(4)
             real(dp)                   :: q_raw(4), norm
@@ -303,6 +419,7 @@ module quat
             me%q = q
         end subroutine
         subroutine renorm(me, q)
+            ! Renormalize the quaternion stored as elements in q. 
             class(rothist), intent(in) :: me
             real(dp),    intent(inout) :: q(4)
             real(dp)                   :: q_raw(4), norm
@@ -311,6 +428,7 @@ module quat
             q = q_raw/norm
         end subroutine
         pure function norm(q) result(res)
+            ! Return the norm of the calling instance
             class(quaternion), intent(in) :: q
             real(wp) :: res
             res = sqrt(sum(q%q*q%q))
@@ -398,6 +516,7 @@ module quat
             end associate
         end function qconj
         pure function asdcm(q) result (res)
+            ! Return the DCM representation of the calling instance
             class(quaternion), intent(in) :: q
             real(wp) :: sq(0:3), q12, q30, q13, q20, q23, q10
             real(wp) :: res(3,3)
@@ -418,6 +537,8 @@ module quat
                       & -sq(1) - sq(2) + sq(3) + sq(0)]
         end function asdcm
         pure subroutine fromdcm(q,dcm) 
+            ! Store a quaternion representation of dcm
+            ! in the calling instance
             class(quaternion), intent(inout) :: q
             real(wp), intent(in) :: dcm(3,3)
             integer i
@@ -428,6 +549,8 @@ module quat
             call q%renorm()
         end subroutine fromdcm
         pure subroutine axang(q,ax, ang)
+            ! Store the quaternion representation
+            ! of (ax,ang) in the calling instance
             class(quaternion), intent(inout) :: q
             real(wp), intent(in) :: ax(3), ang
             q%q(1) = cos(ang/2)
@@ -437,16 +560,20 @@ module quat
             q%q = q%q/q%norm()
         end subroutine axang
         pure function ax(q) result (res)
+            ! Return the rotation axis of the calling instance
             class(quaternion), intent(in) :: q
             real(wp) :: res(3)
             res = q%q(2:4)/sqrt(sum(q%q(2:4)**2))
         end function ax
         pure function ang(q) result (res)
+            ! Return the rotation angle of the calling instance
             class(quaternion), intent(in) :: q
             real(wp) :: res
             res = 2._wp*atan2(sqrt(sum(q%q(2:4)**2)),q%q(1))
         end function ang
         pure function rotate_vec(q,v) result(res)
+            ! Perform a vector rotation through the quaternion
+            ! Stored in the calling instance
             class(quaternion), intent(in) :: q
             real(wp),          intent(in) :: v(3)
             real(wp)                      :: res(3), norm

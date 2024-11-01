@@ -1,8 +1,25 @@
+! Title: subspice.f90 
+! Description:
+!     Resample a SPICE SPK kernel into Chebyshev polynomials
+!     for easy computation of derivatives and potentially
+!     faster access.
+!
+! References:
+!     None
+! 
+! author: David Cunningham
+! Last edited: See git log
 module subspice
     use, intrinsic :: iso_fortran_env, only: dp => real64
     use cheby
     implicit none
     type spice_subset
+        ! The type that stores the chebyshev coefficients 
+        ! of the position, velocity, and acceleration
+        ! of bodies resampled from an SPK.
+        ! Functions as a database--uses Fortran's "FINDLOC"
+        ! intrinsic to locate the coefficients of the 
+        ! requested body indexed by NAIF ID.
         integer               :: nbods, ndeg, central_body
         integer, allocatable  :: bodlist(:)
         real(dp)              :: a, b

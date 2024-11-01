@@ -1,10 +1,22 @@
+! Title: pyqist.f90 
+! Description:
+!    A thin wrapper for QIST functions
+!    to allow a pre-generated QIST library
+!    to be called by a python and compiled by 
+!    f2py.
+!
+! References:
+!   None
+! 
+! author: David Cunningham
+! Last edited: See git log
 module pq
     use q_inter
     implicit none
     contains
     !! Initializers
-    !! Initializers
     subroutine pw_init_v(t0, tf, trajfile,kvtaufile)
+        ! Initialize from filenames--namefile initializer is preferred
         character(len=*), intent(in) :: trajfile, kvtaufile
         real(8),            intent(in) ::t0, tf
         !! The initial and final simulation independent variable (tau)
@@ -12,13 +24,13 @@ module pq
         call init_v(t0, tf, trajfile, kvtaufile)
     end subroutine pw_init_v
     subroutine pw_init_n(namefile)
+        ! Initialize from namefile
         character(len=*), intent(in) :: namefile
-        !! The initial and final simulation independent variable (tau)
         !! The function _returns_ an instance of the type. 
         call init_n(namefile)
     end subroutine pw_init_n
      function pw_state(tau) result(res)
-        !! Return a regularized state at time tau
+        !! Return a state at time tau
         real(8),     intent(in) :: tau
         !! The value of tau at which to get the state
         real(8)            :: res
@@ -26,48 +38,46 @@ module pq
         res = state(tau)
     end function pw_state
      function pw_stm(tau) result(res)
-        !! Return a regularized stm at time tau
+        !! Return a stm at time tau
         integer, parameter :: n=8
         real(8),     intent(in) :: tau
-        !! The value of tau at which to get the state
+        !! The value of tau at which to get the stm
         real(8), dimension(n,n) :: res
         !! The returned stm
         res = stm(tau)
     end function pw_stm
      function pw_stt(tau) result(res)
-        !! Return a regularized stm at time tau
+        !! Return a stt at time tau
         integer, parameter :: n=8
         real(8),     intent(in) :: tau
-        !! The value of tau at which to get the state
+        !! The value of tau at which to get the stt
         real(8), dimension(n,n,n) :: res
-        !! The returned stm
+        !! The returned stt
         res = stt(tau)
     end function pw_stt
      function pw_stm_i(tau) result(res)
-        !! Return a regularized stm at time tau
+        !! Return an inverse stm at time tau
         integer, parameter :: n=8
         real(8),     intent(in) :: tau
-        !! The value of tau at which to get the state
+        !! The value of tau at which to get the stm
         real(8), dimension(n,n) :: res
-        !! The returned stm
+        !! The returned inverse stm
         res = stm_i(tau)
     end function pw_stm_i
      function pw_stt_i(tau) result(res)
-        !! Return a regularized stm at time tau
+        !! Return an inverse stt at time tau
         integer, parameter :: n=8
         real(8),     intent(in) :: tau
-        !! The value of tau at which to get the state
+        !! The value of tau at which to get the stt
         real(8), dimension(n,n,n) :: res
-        !! The returned stm
+        !! The returned stt
         res = stt_i(tau)
     end function pw_stt_i
 
     !! physical time propagation
     function pw_prop_once(ta, tb, xa, order) result(res)
         !! Propagates the relative state xa at time ta
-        !! to time tb. Uses the second-order update
-        !! time-to-tau to adjust tau for the relative
-        !! trajectory.
+        !! to time tb.
         integer :: o 
         real(8),     intent(in) :: ta, tb, xa(8)
         integer, intent(in), optional :: order
@@ -81,9 +91,7 @@ module pq
 
     function pw_prop_many(ta, tb, xa, order) result(res)
         !! Propagates the relative state xa at time ta
-        !! to time tb. Uses the second-order update
-        !! time-to-tau to adjust tau for the relative
-        !! trajectory.
+        !! to time tb.
         integer :: o
         real(8),     intent(in) :: ta, tb, xa(:,:)
         integer, intent(in), optional :: order

@@ -3,7 +3,6 @@ module test_tensorops
     use tensorops, only: mattens, &
                          vectensquad, &
                          sttchain, &
-                         sttchain_invert, &
                          stminvert, &
                          sttinvert, &
                          vectens1, &

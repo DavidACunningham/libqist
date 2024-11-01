@@ -9,6 +9,7 @@ TESTOBJDIR := ./test/build/
 TESTANCDIR := ./test/anc/
 LIBDIR := ./lib/
 MODDIR := ./mod/
+EXEDIR := ./exe/
 TESTDIR := ./test/
 ANCDIR := ./anc/
 SPICE := $(UTILLIBS)spicelib.a
@@ -139,21 +140,21 @@ clean:
 	-test -d $(TESTANCDIR) && rm --verbose $(TESTANCDIR)*
 
 make_resample: $(GQ_OBJECTS)
-	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
-	-mv -v $@ ./exe/
+	$(FC) $(FFLAGS)  $(EXEDIR)$@.f90 $^ $(SPICE) -o $@
+	-mv -v $@ $(EXEDIR)
 make_rot: $(GQ_OBJECTS)
-	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
-	-mv -v $@ ./exe/
+	$(FC) $(FFLAGS)  $(EXEDIR)$@.f90 $^ $(SPICE) -o $@
+	-mv -v $@ $(EXEDIR)
 
 make_cheby_kernel: $(GQ_OBJECTS)
-	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
-	-mv -v $@ ./exe/
+	$(FC) $(FFLAGS)  $(EXEDIR)$@.f90 $^ $(SPICE) -o $@
+	-mv -v $@ $(EXEDIR)
 make_new_kernel: $(GQ_OBJECTS)
-	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
-	-mv -v $@ ./exe/
+	$(FC) $(FFLAGS)  $(EXEDIR)$@.f90 $^ $(SPICE) -o $@
+	-mv -v $@ $(EXEDIR)
 make_qist_existing_kernel: $(GQ_OBJECTS)
-	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
-	-mv -v $@ ./exe/
+	$(FC) $(FFLAGS)  $(EXEDIR)$@.f90 $^ $(SPICE) -o $@
+	-mv -v $@ $(EXEDIR)
 $(TESTDIR)unit_test_run: $(T_OBJECTS)
 	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
 

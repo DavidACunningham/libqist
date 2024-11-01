@@ -1,3 +1,18 @@
+! Title: q_inter.f90 
+! Description:
+!    This is an intermediate file to 
+!    remove references to derived types
+!    from the pyqist and mqist files.
+!    At time of writing, f2py is not natively
+!    compatible with Fortran derived types so
+!    they must be hidden from the f2py compiler in some way.
+!    Since it is a bit of glue, this file is minimally commented.
+!
+! References:
+!   None
+! 
+! author: David Cunningham
+! Last edited: See git log
 module q_inter
     use qist, only: Itraj
     use globals, only: wp

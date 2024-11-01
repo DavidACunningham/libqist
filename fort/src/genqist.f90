@@ -19,6 +19,9 @@ module genqist
     use quat, only: rothist, quaternion
     implicit none
     type configdata
+        ! A data type, containing only an initializer,
+        ! That contains config data necessary for generating a QIST
+        ! model in one place. Made to be read in from a namelist file.
         character(len=1000)   :: config_filename="", &
                                  metakernel_filename_with_trajectory="", &
                                  metakernel_filename_no_trajectory="", &
@@ -57,6 +60,14 @@ module genqist
             procedure :: init =>namelist_init
     end type configdata
     type gqist
+        ! Data type containing the dynamics model,
+        ! initial state, integration parameters,
+        ! and storage parameters of a qist generator.
+        ! You can call the various methods of this
+        ! type to generate a QIST model and write it
+        ! to disk. Afterwards, it can be accessed by 
+        ! only the QIST ``itraj'' library at runtime
+        ! to generate relative motion trajectories.
         type(dynamicsmodel)   :: dynmod
         real(qp), allocatable :: initstate(:)
         real(qp)              :: rtol, atol, t0, tf
@@ -249,6 +260,9 @@ module genqist
         me%Sbar                                  = Sbar
     end subroutine namelist_init
     subroutine make_spice_subset(namefile, traj_exist)
+        ! Supply a namefile and whether you want to include
+        ! the reference trajectory in the spice subset
+        ! and write a spice subset to the file specified in the namefile.
         type(configdata)              :: cd
         character(len=*), intent(in)  :: namefile
         logical, intent(in), optional :: traj_exist
@@ -302,6 +316,8 @@ module genqist
         close(num)
     end subroutine make_spice_subset
     subroutine make_rotation(namefile)
+        ! Supply a namefile 
+        ! and write a rotation history to the file specified in the namefile.
         type(configdata)             :: cd
         character(len=*), intent(in) :: namefile
         character(len=1)             :: yn
@@ -369,6 +385,9 @@ module genqist
         end function
     end subroutine make_rotation
     subroutine generate_kernel_cheby(namefile)
+        ! Supply a namefile and write a type 3 (chebyshev) SPICE kernel
+        ! containing a reference trajectory to disk as specified in
+        ! the namefile
         integer, parameter           :: degree=25
         type(configdata)             :: cd
         type(gqist)                  :: gq
@@ -527,6 +546,9 @@ module genqist
         end function rec_coeffs
     end subroutine generate_kernel_cheby
     subroutine generate_kernel(namefile)
+        ! Supply a namefile and write a type 12 (lagrange inerpolant)
+        ! SPK containing a reference trajectory to disk as specified 
+        ! in the namefile
         type(configdata)             :: cd
         type(gqist)                  :: gq
         type(odesolution)            :: base_sol !, qistsol
@@ -644,6 +666,9 @@ module genqist
         end function stateonly_eoms
     end subroutine generate_kernel
     subroutine gq_namelist_init(me,namefile,traj_exist)
+        ! Initialize a genqist type from namelist. traj_exist
+        ! tells the object whether you'll be using this type
+        ! to generate a reference trajectory kernel or a QIST model
         type(configdata)                :: cd
         character(len=*), intent(in)    :: namefile
         class(gqist),     intent(inout) :: me
@@ -729,6 +754,8 @@ module genqist
         me%atol = cd%atol_qist
     end subroutine gq_namelist_init
     subroutine make_qist_model(namefile)
+        ! Make a QIST model using the configuration
+        ! specifications supplied in the name file
         character(len=*), intent(in)  :: namefile
         type(gqist)                   :: qist_i
         type(odesolution)             :: qist_sol, kvtau
@@ -782,7 +809,7 @@ module genqist
     subroutine var_init(me,t0, tf, subspicefile, traj_id, central_body, bodylist, &
                   & central_body_mu, central_body_ref_radius, mu_list, &
                   & shgrav, rails, rot, Cbar, Sbar,reg,kvtau_filename)
-        ! init_dm: method to initialize dynamicsModel object
+        ! init_dm: method to initialize gqist object
         ! INPUTS:
         ! NAME            TYPE           DESCRIPTION
         ! t0              real           lowest possible time in seconds past 
@@ -864,6 +891,9 @@ module genqist
                                     bodylist, mulist, &
                                     shgrav, Cbars, Sbars,&
                                     spicepoints, testpoints, testtimes)
+        ! Compute multiple reference trajectories with varying
+        ! force models to be able to check how they perform
+        ! against a reference kernel
         integer,      parameter     :: npoints=500
         class(gqist), intent(inout) :: me_qist
         integer,      intent(in)    :: bodylist(:)
@@ -972,12 +1002,17 @@ module genqist
             end function myint_eoms
         end function integrate
     subroutine packsol(me,solfile,light) 
+        ! Pack the odesolution in a file and return it as a 
+        ! lightSol object
         class(gqist),   intent(inout)  :: me
         character(len=*), intent(in)   :: solfile
         type(lightSol),    intent(out) :: light
         call light%convert_from_file_and_pack(solfile,qistpack)
     end subroutine packsol
     subroutine time_regularized_integrate(thisqist,kvtau,kfinal)
+        ! Integrate the independent variable as a function of time
+        ! only to enable calling of the sundman regularized
+        ! integrated STM/STT
         class(gqist),      intent(inout)    :: thisqist
         type(odesolution), intent(out)      :: kvtau
         real(qp),          intent(out)      :: kfinal
