@@ -71,7 +71,9 @@ user@system:$LIBQIST/fort$ make -j test
 
 ## Usage 
 
-see the ``$LIBQIST/doc`` folder for documentation.
+see the ``$LIBQIST/doc`` folder for documentation, including a User's Guide.
+
+Currently, the user's guide can also be accessed in a live version on Google Docs [here](https://docs.google.com/document/d/1CWJEghDJ7qMbSs2IA_GUeV96SGAyMXTjxKXaUPOHEKM/edit?usp=sharing): 
 
 After building, see the examples subdirectory for minimal usage examples.
 
