@@ -35,7 +35,7 @@ user@system:$LIBQIST/fort$ make modfiles
 ```
 ### Building the relative motion runtime
 To propagate relative motion models, you need to build a version of the QIST
-reltavime motion propagation runtime.
+relative motion propagation runtime.
 
 If you want to build the Python interface using f2py, run:
 ```sh
@@ -92,7 +92,7 @@ To create a QIST model, you need:
 * 0.1
     * Initial beta release
 
-## Meta
+## Support and Contact Info
 
 Please contact David Cunningham for questions about usage, bug reports, and distribution information.
 

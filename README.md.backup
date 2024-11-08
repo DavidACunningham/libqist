@@ -86,13 +86,13 @@ To create a QIST model, you need:
 * The appropriate qist generation executables built from the instructions above
 * SPICE
 * A set of SPICE kernels containing all the data needed for your trajectories
-* a configuration namelist. An example of this configuration namelist is in the examples folder. It is recommended to generate these namelists automatically, e.g. with Python, to minimize the introduction of errors. An example namelist generation script has been included in the ``$LIBQIST/ex`` folder.
+* a configuration namelist. An example of this configuration namelist is in the ``$LIBQIST/examples`` folder. It is recommended to generate these namelists automatically, e.g. with Python, to minimize the introduction of errors. An example namelist generation script has been included in the ``$LIBQIST/examples`` folder.
 
 ## Release History
 * 0.1
     * Initial beta release
 
-## Meta
+## Support and Contact Info
 
 Please contact David Cunningham for questions about usage, bug reports, and distribution information.
 
