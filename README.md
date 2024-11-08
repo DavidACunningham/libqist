@@ -1,5 +1,6 @@
 # QIST
-> version 0.1
+> Version 0.1 (beta)
+>
 > Quadratic Interpolated State Transition: A library for fast propagation of
 > second-order relative motion around arbitrary SPICE kernels.
 
@@ -45,7 +46,7 @@ The 'j' argument is optional but recommended, enabling multi core compilation.
 If you want to build the Matlab interface, run:
 ```sh
 user@system:$LIBQIST/fort$ make -j mqist
-
+```
 If you want to build the native Fortran shared library, run:
 ```sh
 user@system:$LIBQIST/fort$ make -j qist
@@ -70,6 +71,8 @@ user@system:$LIBQIST/fort$ make -j test
 
 ## Usage 
 
+see the $LIBQIST/doc folder for documentation.
+
 After building, see the examples subdirectory for minimal usage examples.
 
 ### Overview
@@ -82,7 +85,7 @@ Optional but highly recommended, the QIST configuration parameters should be sto
 To create a QIST model, you need:
 * The appropriate qist generation executables built from the instructions above
 * SPICE
-* A set of SPICE Kernels containing all the data needed for your trajectories
+* A set of SPICE kernels containing all the data needed for your trajectories
 * a configuration namelist. An example of this configuration namelist is in the examples folder. It is recommended to generate these namelists automatically, e.g. with Python, to minimize the introduction of errors. An example namelist generation script has been included in the $LIBQIST root folder.
 
 ## Release History
@@ -92,4 +95,5 @@ To create a QIST model, you need:
 ## Meta
 
 Please contact David Cunningham for questions about usage, bug reports, and distribution information.
+
 David Cunningham – david.cunningham@utexas.edu
