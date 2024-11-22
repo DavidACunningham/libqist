@@ -1,0 +1,53 @@
+&ITRAJ_CONFIG
+ qist_filename   = QISTFILE
+ kvtau_filename = REGFILE
+ t0              =  QIST_T0_TDB   ! QIST_T0_UTC
+ tf              =  QIST_TF_TDB   ! QIST_TF_UTC
+/
+&QIST_CONFIGURATION
+ ! Master config parameters
+	 qist_filename                       =  QISTFILE
+	 t0_qist                             =  QIST_T0_TDB   ! QIST_T0_UTC
+	 tf_qist                             =  QIST_TF_TDB   ! QIST_TF_UTC
+	 t0_resamp                           =  RESAMP_T0_TDB   ! RESAMP_T0_UTC
+	 tf_resamp                           =  RESAMP_TF_TDB   ! RESAMP_TF_UTC
+	 traj_id                             =  TRAJ_ID
+	 central_body_id                     =  CENTRAL_BODY_ID
+	 central_body_mu                     =  CENTRAL_BODY_MU
+	 n_bodies                            =  NUM_BODIES                   ! number of PERTURBING bodies
+	 body_list(1)				         =  BODY_LIST
+	 mu_list(1)				             =  MU_LIST
+	 spherical_harmonics_degree          =  SH_DEGREE                    ! Set to zero to turn off SH
+	 rtol_qist                           =  RTOL_QIST
+	 atol_qist                           =  ATOL_QIST
+	 regularize                          =  REGULARIZE                      ! whether to do sundman regularization
+	 kvtau_filename                      = REGFILE    ! Only needed if regularizing, otherwise comment out
+
+ ! SPICE resampling configuration
+	 metakernel_filename_with_trajectory = MK_WITH_TRAJECTORY
+	 metakernel_filename_no_trajectory   = MK_NO_TRAJECTORY
+	 resample_filename_with_trajectory   = RESAMP_WITH_TRAJECTORY
+	 resample_filename_no_trajectory     = RESAMP_NO_TRAJECTORY
+	 resamp_fit_deg						 = RESAMP_DEG
+
+ ! Rotation interpolation configuration
+	 rotation_filename                   = ROT_FILE
+	 inertial_frame_string			     = INERTIAL_FRAME
+	 rotating_frame_string               = ROTATING_FRAME
+	 rot_fit_deg                         = ROT_DEG
+
+ ! Kernel generation configuration parameters
+	 output_kernel_filename              = KERNEL_FILE
+	 rtol_kernel                         = RTOL_KERNEL
+	 atol_kernel                         = ATOL_KERNEL
+	 nnodes_kernel                       = KERNEL_NODES
+	 x0                                  = INIT_STATE
+
+ ! Spherical harmonics gravity parameters
+	 central_body_ref_radius             =  CENTRAL_BODY_REF_RADIUS
+	 cbar(0,0)                           =  1.0000000000000000D+00 
+	 
+	 cbar(1,0)                           =  CBAR
+	 
+	 sbar(1,0)                           =  SBAR
+/
