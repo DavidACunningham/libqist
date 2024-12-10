@@ -102,7 +102,21 @@ module pq
         res = prop(ta,tb,xa, o)
     end function pw_prop_many
 
-     subroutine pw_stts_ab(taua, taub, stm, stt)
+    function pw_prop_back(tb, ta, xb, order) result(res)
+        !! Propagates the relative state xb at time tb
+        !! to time ta.
+        integer :: o 
+        real(8),     intent(in) :: ta, tb, xb(8)
+        integer, intent(in), optional :: order
+        !! xa is the initial relative state 
+        !! should be dimension 8
+        real(8)                 :: res(8)
+        o = 2
+        if (present(order)) o=order
+        res = prop_back(tb,ta,xb,o)
+    end function pw_prop_back
+
+    subroutine pw_stts_ab(taua, taub, stm, stt)
         !! Return the STM and STT from taua to taub
         integer, parameter :: n=8
         real(8),     intent(in)  :: taua, taub

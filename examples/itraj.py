@@ -20,6 +20,10 @@ class Itraj(object):
         r = xa.ndim
         if order is not None : ordr=order
         return func[r](ta,tb,xa, ordr)
+    def prop_back(self,tb,ta,xb,order=None):
+        ordr= 2
+        if order is not None : ordr=order
+        return pq.pw_prop_back(tb,ta,xb,ordr)
     def sttsAToB(self,ta,tb):
         scratchm, scratcht = pq.pw_stts_ab(ta,tb)
         stm = scratchm

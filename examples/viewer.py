@@ -42,5 +42,5 @@ fig2 = plt.figure()
 ax2 = fig2.add_subplot(111,projection='3d')
 ax2.plot(*dxbs.T[:3])
 ax2.set_aspect('equal')
-
+breakpoint()
 plt.show()

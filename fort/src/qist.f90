@@ -40,6 +40,7 @@ module qist
             procedure            :: stm_i 
             procedure            :: stt
             procedure            :: stt_i 
+            procedure            :: prop_back
             generic,   public    :: prop => prop_once, prop_many
             procedure, private   :: prop_once
             procedure, private   :: prop_many
@@ -649,6 +650,32 @@ module qist
         !! with one binary search
         res = sttinvert(self%stm(t),self%stt(t), n)
     end function stt_i
+    function prop_back(self,tb, ta, xb, order) result(res)
+        !! Propagates the relative state xb at tb
+        !! in reverse time to ta
+        class(Itraj), intent(inout) :: self
+        !! xb is the relative state at time b
+        !! should be dimension 8
+        real(dp),     intent(in) :: ta, tb, xb(n)
+        integer, intent(in), optional :: order
+        integer :: ord
+        real(dp), dimension(n)   :: res
+        real(dp) :: istmba(n,n), isttba(n,n,n), stmab(n,n), sttab(n,n,n)
+        ord = 2
+        if (present(order)) ord=order
+        istmba = stminvert(stmab,n)
+        select case (ord)
+        case (1)
+            stmab = matmul(self%stm(tb),self%stm_i(ta))
+            res(:n) = matmul(stmab,xb)
+        case default
+            call sttchain(self%stm_i(ta),self%stt_i(ta), &
+                           & self%stm(tb), self%stt(tb), &
+                           & stmab, sttab, n)
+            isttba = sttinvert(stmab,sttab,n)
+            res(:n) = matmul(istmba,xb) + 0.5_dp*vectensquad(xb,isttba,n)
+        end select 
+    end function
     function prop_once(self,ta, tb, xa, order) result(res)
         !! Propagates the relative state xa at ta
         !! to tb

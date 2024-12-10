@@ -54,6 +54,16 @@
       real(kind=8) pw_prop_manyf2pywrap(8,size(xa, 2))
       pw_prop_manyf2pywrap = pw_prop_many(ta, tb, xa, order)
       end subroutine f2pywrap_pq_pw_prop_many
+      subroutine f2pywrap_pq_pw_prop_back (pw_prop_backf2pywrap, tb, ta,&
+     & xb, order)
+      use pq, only : pw_prop_back
+      real(kind=8) tb
+      real(kind=8) ta
+      integer order
+      real(kind=8) xb(8)
+      real(kind=8) pw_prop_backf2pywrap(8)
+      pw_prop_backf2pywrap = pw_prop_back(tb, ta, xb, order)
+      end subroutine f2pywrap_pq_pw_prop_back
       subroutine f2pywrap_pq_pw_zmap (pw_zmapf2pywrap, tau, order)
       use pq, only : pw_zmap
       real(kind=8) tau
@@ -107,6 +117,14 @@
       real(kind=8) xa(f2py_xa_d0,f2py_xa_d1)
       real(kind=8) pw_prop_manyf2pywrap(8,size(xa, 2))
       end subroutine f2pywrap_pq_pw_prop_many 
+      subroutine f2pywrap_pq_pw_prop_back (pw_prop_backf2pywrap, tb, ta,&
+     & xb, order)
+      real(kind=8) tb
+      real(kind=8) ta
+      integer order
+      real(kind=8) xb(8)
+      real(kind=8) pw_prop_backf2pywrap(8)
+      end subroutine f2pywrap_pq_pw_prop_back 
       subroutine f2pywrap_pq_pw_zmap (pw_zmapf2pywrap, tau, order)
       real(kind=8) tau
       integer order
@@ -116,8 +134,9 @@
       external f2pysetupfunc
       call f2pysetupfunc(pw_init_v,pw_init_n,f2pywrap_pq_pw_state,f2pywr&
      &ap_pq_pw_stm,f2pywrap_pq_pw_stt,f2pywrap_pq_pw_stm_i,f2pywrap_pq_p&
-     &w_stt_i,f2pywrap_pq_pw_prop_once,f2pywrap_pq_pw_prop_many,pw_stts_&
-     &ab,pw_stt_update,pw_tensor_change_of_basis,f2pywrap_pq_pw_zmap)
+     &w_stt_i,f2pywrap_pq_pw_prop_once,f2pywrap_pq_pw_prop_many,f2pywrap&
+     &_pq_pw_prop_back,pw_stts_ab,pw_stt_update,pw_tensor_change_of_basi&
+     &s,f2pywrap_pq_pw_zmap)
       end subroutine f2pyinitpq
 
 

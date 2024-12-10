@@ -75,7 +75,7 @@ module q_inter
         real(dp), dimension(n,n,n) :: res
         res = it%stt_i(t)
     end function stt_i
-     function prop_once(ta, tb, xa,order) result(res)
+    function prop_once(ta, tb, xa,order) result(res)
         !! Propagates the relative state xa at ta
         !! to tb
         real(dp),     intent(in) :: ta, tb, xa(8)
@@ -103,8 +103,20 @@ module q_inter
         if (present(order)) o = order
         res = it%prop(ta,tb,xapad,o)
     end function prop_many
+    function prop_back(tb, ta, xb,order) result(res)
+        !! Propagates the relative state xa at ta
+        !! to tb
+        real(dp),     intent(in) :: ta, tb, xb(8)
+        integer, intent(in), optional :: order
+        integer o
+        !! xa is the initial relative state 
+        !! should be dimension 8
+        real(dp), dimension(n)   :: res
+        o=2
+        if (present(order)) o = order
+        res = it%prop_back(tb,ta,xb,order)
+    end function prop_back
 
-    !! physical time propagation
 
     subroutine stts_ab(ta, tb, stm, stt)
         !! Return the STM and STT from ta to tb
