@@ -1,5 +1,5 @@
 &FD_CONFIG
-    metakernel_filepath ="../../../kernels/mk_test_withorbit.tf"
+    metakernel_filepath ="/home/david/wrk/nstgro/qist/kernels/mk_test_withorbit.tf"
     qist_config_file = "./test_config_namelists.nml"
 	x0(1) =  8.059849800040121D+02, ! procedurally generated 
 	x0(2) =  1.732107143792893D+03, ! rp = 1.1*r_moon, e = 0.3

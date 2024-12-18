@@ -1,12 +1,12 @@
 &QIST_CONFIGURATION
  ! Characters
- metakernel_filename_with_trajectory= "../../../kernels/mk_test_withorbit.tf"
- metakernel_filename_no_trajectory="../../../kernels/mk_test.tf"
+ metakernel_filename_with_trajectory= "/home/david/wrk/nstgro/qist/kernels/mk_test_withorbit.tf"
+ metakernel_filename_no_trajectory="/home/david/wrk/nstgro/qist/kernels/mk_test.tf"
  resample_filename_with_trajectory="./test_resample_withtraj.subspice"
  resample_filename_no_trajectory="./test_resample.subspice"
  rotation_filename="./test_rot.rot"
  ! kvtau_filename="./kvtau_test.odesolution"
- output_kernel_filename="../../../kernels/test_orbit.bsp"
+ output_kernel_filename="/home/david/wrk/nstgro/qist/kernels/test_orbit.bsp"
  qist_filename= "./test_qist.qist"
  inertial_frame_string= "J2000"
  rotating_frame_string= "MOON_PA"

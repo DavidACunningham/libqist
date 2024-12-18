@@ -663,15 +663,16 @@ module qist
         real(dp) :: istmba(n,n), isttba(n,n,n), stmab(n,n), sttab(n,n,n)
         ord = 2
         if (present(order)) ord=order
-        istmba = stminvert(stmab,n)
         select case (ord)
         case (1)
             stmab = matmul(self%stm(tb),self%stm_i(ta))
+            istmba = stminvert(stmab,n)
             res(:n) = matmul(stmab,xb)
         case default
             call sttchain(self%stm_i(ta),self%stt_i(ta), &
                            & self%stm(tb), self%stt(tb), &
                            & stmab, sttab, n)
+            istmba = stminvert(stmab,n)
             isttba = sttinvert(stmab,sttab,n)
             res(:n) = matmul(istmba,xb) + 0.5_dp*vectensquad(xb,isttba,n)
         end select 
@@ -679,8 +680,9 @@ module qist
     function prop_once(self,ta, tb, xa, order) result(res)
         !! Propagates the relative state xa at ta
         !! to tb
-        class(Itraj), intent(inout) :: self
-        real(dp),     intent(in) :: ta, tb, xa(n)
+        class(Itraj), intent(inout)   :: self
+        real(dp),     intent(in)      :: ta, tb, xa(n)
+        real(dp)                      ::  x0(n)
         integer, intent(in), optional :: order
         integer :: ord
         !! xa is the initial relative state 
@@ -697,7 +699,9 @@ module qist
             call sttchain(self%stm_i(ta),self%stt_i(ta), &
                            & self%stm(tb), self%stt(tb), &
                            & stmab, sttab, n)
-            res(:n) = matmul(stmab,xa) + 0.5_dp*vectensquad(xa,sttab,n)
+            x0 = matmul(self%stm_i(ta),xa) + 0.5_dp*vectensquad(xa,self%stt_i(ta),n)
+            res(:n) = matmul(self%stm(tb),x0) + 0.5_dp*vectensquad(x0,self%stt(tb),n)
+            ! res(:n) = matmul(stmab,xa) + 0.5_dp*vectensquad(xa,sttab,n)
         end select 
     end function prop_once
     function prop_many(self,ta, tb, xa, order) result(res)

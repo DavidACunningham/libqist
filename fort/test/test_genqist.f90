@@ -56,7 +56,7 @@ module test_genqist
              testvec(3) = rot%degree.eq.400
              testpass = all(testvec)
              test_time = (rot%tf -rot%t0)/2._dp + rot%t0
-             call furnsh("../../../kernels/mk_test.tf")
+             call furnsh("/home/david/wrk/nstgro/qist/kernels/mk_test.tf")
              call pxfrm2("J2000", "MOON_PA", rot%t0, test_time, spice_dcm)
              test_dcm = rot%call(test_time)
              spice_dcm = transpose(spice_dcm)
@@ -114,7 +114,7 @@ module test_genqist
                  status="old", access="stream", newunit=num)
              call testspice%read(num)
              close(num)
-            call furnsh("../../../kernels/mk_test_withorbit.tf")
+            call furnsh("/home/david/wrk/nstgro/qist/kernels/mk_test_withorbit.tf")
             test_trajstate(:3) = testspice%call(time,-999,"p")
             test_trajstate(4:) = testspice%call(time,-999,"v")
             test_earthstate(:3) = testspice%call(time,399,"p")
