@@ -25,7 +25,7 @@ program main
     call rot_hist_test(testpass)
     call quat_ops_test(testpass)
     call sh_test(testpass)
-    call test_spice_subset("/home/david/wrk/nstgro/qist/kernels/mk_test.tf",testpass)
+    call test_spice_subset("../../kernels/mk_test.tf",testpass)
     call run_frk_tests(testpass)
     call run_frk_tests_q(testpass)
     call test_make_spice_subset(testpass)

@@ -137,6 +137,11 @@ clean:
 	-test -d $(OBJDIR) && rm --verbose $(OBJDIR)*
 	-test -d $(TESTOBJDIR) && rm --verbose $(TESTOBJDIR)*
 	-test -d $(TESTANCDIR) && rm --verbose $(TESTANCDIR)*
+	-test -d $(TESTDIR) && rm --verbose $(TESTDIR)*.subspice
+	-test -d $(TESTDIR) && rm --verbose $(TESTDIR)*.odesolution
+	-test -d $(TESTDIR) && rm --verbose $(TESTDIR)*.qist
+	-test -d $(TESTDIR) && rm --verbose $(TESTDIR)*.rot
+	-test -d $(TESTDIR) && rm --verbose $(TESTDIR)unit_test_run
 
 make_resample: $(GQ_OBJECTS)
 	$(FC) $(FFLAGS)  $(EXEDIR)$@.f90 $^ $(SPICE) -o $@
