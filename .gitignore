@@ -1,1 +1,6 @@
 *.bsp
+*.png
+*.rot
+*.odesolution
+*.subspice
+curve_deimos*.nml
