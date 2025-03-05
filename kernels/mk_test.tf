@@ -33,7 +33,6 @@ KPL/FK
 	 KERNELS_TO_LOAD = ( '$K/de440.bsp'
 						 '$K/naif0012.tls'
 						 '$K/pck00011.tpc'
-						 '$LK/twobod_ker.bsp'
 						 '$K/moon_pa_de440_200625.bpc'
 						 '$K/moon_de440_220930.tf'
 					   )	 
