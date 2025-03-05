@@ -60,6 +60,8 @@ generation facilities. To do this, run:
 user@system:$LIBQIST/fort$ make -j make_resample
 user@system:$LIBQIST/fort$ make -j make_rot
 user@system:$LIBQIST/fort$ make -j genqist
+user@system:$LIBQIST/fort$ make -j make_qist_existing_kernel
+user@system:$LIBQIST/fort$ make -j make_new_kernel
 ```
 
 ### Test build
@@ -68,6 +70,21 @@ To build unit tests, run:
 ```sh
 user@system:$LIBQIST/fort$ make -j test
 ```
+
+To build unit tests, run:
+```sh
+user@system:$LIBQIST/fort$ make -j test
+```
+Before running the unit tests:
+ * the user must edit the files ``$LIBQIST/kernels/mk_test.tf`` and ``$LIBQIST/kernels/mk_test_withorbit.tf`` to reflect the SPICE setup on the user’s machine.
+ * NOTE: The ``.bsp`` file ``test_orbit.bsp`` is generated as part of the unit test process, and should not be available on the user system before running unit tests.
+To run unit tests, change to the ``$LIBQIST/fort/test`` directory and run:
+```sh
+user@system:$LIBQIST/fort/test$ unit_test_run
+```
+
+Any output with the word “FAIL” means the tests have failed.
+
 
 ## Usage 
 
