@@ -12,7 +12,6 @@ KPL/FK
 
 			Planetary Ephemeris SPK:      de440.bsp
 			Planetary Constants Kernel:   pck00011.tpc
-			Mass Parameters Kernel:       de-403-masses.tpc
 			Moon rotating frame bpc:	  moon_pa_de440_200625.bpc
 		    Moon rotating frame tf:		  moon_de440_220930.tf
 
