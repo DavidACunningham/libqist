@@ -13,6 +13,7 @@ TESTDIR := ./test/
 ANCDIR := ./anc/
 EXT_SUFFIX := $(shell python3-config --extension-suffix)
 FOREXT := f90
+THIS_FILE :=$(lastword $(MAKEFILE_LIST))
 
 define source-to-extension
   $(strip \
@@ -118,14 +119,30 @@ MFLAGS := -O3 -mcmodel=large \
 MAKEMOD.F08 = $(FC) $(FFLAGS) -fsyntax-only -c 
 COMPILE.F08 = $(FC) $(FFLAGS)  -c 
 
-mat: mqist.a
-test: $(TESTDIR)unit_test_run 
-genqist: make_qist_existing_kernel
-genkernel: make_new_kernel
+
+
+test: 
+	@echo $@
+	@$(MAKE) -f $(THIS_FILE) modfiles
+	@$(MAKE) -j -f $(THIS_FILE) $(TESTDIR)unit_test_run
+genqist: 
+	@echo $@
+	@$(MAKE) -f $(THIS_FILE) modfiles
+	@$(MAKE) -j -f $(THIS_FILE) make_new_kernel
+	@$(MAKE) -j -f $(THIS_FILE) make_qist_existing_kernel
+matlab_wrapper: 
+	@echo $@
+	@$(MAKE) -f $(THIS_FILE) modfiles
+	@$(MAKE) -j -f $(THIS_FILE) mqist.a
+python_wrapper: 
+	@echo $@
+	@$(MAKE) -f $(THIS_FILE) modfiles
+	@$(MAKE) -j -f $(THIS_FILE) pyqist$(EXT_SUFFIX)
+native_qist:
+	@echo $@
+	@$(MAKE) -f $(THIS_FILE) modfiles
+	@$(MAKE) -j -f $(THIS_FILE) qist.a
 gencheby: make_cheby_kernel
-pq: pyqist$(EXT_SUFFIX)
-pqtest: pyqist.a
-qist: qist.a
 modfiles: $(T_ANCHORS) $(I_ANCHORS)
 
 .PHONY: clean
