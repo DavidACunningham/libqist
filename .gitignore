@@ -1,9 +1,15 @@
 # File format instructions
 *.bsp
+*.qist
+*.o
+*.o.d
+*.anc
+*.mod
 *.png
 *.rot
 *.odesolution
 *.subspice
+*.resamp
 # Executables
 make_cheby_kernel
 make_new_kernel
