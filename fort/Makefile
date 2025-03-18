@@ -121,7 +121,7 @@ COMPILE.F08 = $(FC) $(FFLAGS)  -c
 
 
 
-test: 
+test_build: 
 	@echo $@
 	@$(MAKE) -f $(THIS_FILE) modfiles
 	@$(MAKE) -j -f $(THIS_FILE) $(TESTDIR)unit_test_run
@@ -149,11 +149,12 @@ modfiles: $(T_ANCHORS) $(I_ANCHORS)
 clean:
 	@echo " Cleaning";
 	-rm --verbose $(SRCDIR)*.o *.pyf *.anc *$(EXT_SUFFIX)
-	-test -d $(MODDIR) && rm --verbose $(MODDIR)*
-	-test -d $(ANCDIR) && rm --verbose $(ANCDIR)*
-	-test -d $(OBJDIR) && rm --verbose $(OBJDIR)*
-	-test -d $(TESTOBJDIR) && rm --verbose $(TESTOBJDIR)*
-	-test -d $(TESTANCDIR) && rm --verbose $(TESTANCDIR)*
+	-test -d $(MODDIR) && rm --verbose $(MODDIR)*.mod
+	-test -d $(ANCDIR) && rm --verbose $(ANCDIR)*.anc
+	-test -d $(OBJDIR) && rm --verbose $(OBJDIR)*.o
+	-test -d $(TESTOBJDIR) && rm --verbose $(TESTOBJDIR)*.o
+	-test -d $(TESTANCDIR) && rm --verbose $(TESTANCDIR)*.anc
+	-test -d $(TESTANCDIR) && rm --verbose $(TESTANCDIR)*.mod
 	-test -d $(TESTDIR) && rm --verbose $(TESTDIR)*.subspice
 	-test -d $(TESTDIR) && rm --verbose $(TESTDIR)*.odesolution
 	-test -d $(TESTDIR) && rm --verbose $(TESTDIR)*.qist
