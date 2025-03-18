@@ -12,7 +12,6 @@ KPL/TF
 
 			Planetary Ephemeris SPK:      de440.bsp
 			Mars System Kernel:			  mar097.bsp
-			Planetary Constants Kernel:   pck00011.tpc
 			Deimos orbiter trajectory:    example_binary_kernel.bsp
 
 			Leapseconds kernel (for
@@ -29,7 +28,6 @@ KPL/TF
 						 '$K/mar097.bsp'
 						 '$K/example_binary_kernel.bsp'
 						 '$K/naif0012.tls'
-						 '$K/pck00011.tpc'
 						 '$K/mdrot.tf'
 					   )	 
 

@@ -11,15 +11,13 @@ KPL/FK
 		 Kernels to load are:
 
 			Planetary Ephemeris SPK:      de440.bsp
-			Planetary Constants Kernel:   pck00011.tpc
 			Moon rotating frame bpc:	  moon_pa_de440_200625.bpc
 		    Moon rotating frame tf:		  moon_de440_220930.tf
+			Earth-Moon Rotating Frame: emrot.tf
 
 			Leapseconds kernel (for
 			time conversion):          naif0012.tls
 		
-			Earth-Moon Rotating Frame: emrot.tf
-			Spacecraft Kernel:		perturbed_ker.bsp
 
 	 \begindata
 	 
@@ -31,8 +29,9 @@ KPL/FK
 
 	 KERNELS_TO_LOAD = ( '$K/de440.bsp'
 						 '$K/naif0012.tls'
-						 '$K/pck00011.tpc'
 						 '$K/moon_pa_de440_200625.bpc'
+						 '$K/moon_de440_220930.tf'
+						 '$LK/emrot.tf'
 						 '$K/moon_de440_220930.tf'
 					   )	 
 

@@ -12,7 +12,6 @@ KPL/TF
 
 			Planetary Ephemeris SPK:      de440.bsp
 			Mars System Kernel:			  mar097.bsp
-			Planetary Constants Kernel:   pck00011.tpc
 
 			Leapseconds kernel (for
 			time conversion):             naif0012.tls
@@ -27,7 +26,6 @@ KPL/TF
 	 KERNELS_TO_LOAD = ( '$K/de440.bsp'
 						 '$K/mar097.bsp'
 						 '$K/naif0012.tls'
-						 '$K/pck00011.tpc'
 						 '$K/mdrot.tf'
 					   )	 
 

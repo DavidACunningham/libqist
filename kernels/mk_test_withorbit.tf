@@ -11,7 +11,6 @@ KPL/MK
 		 Kernels to load are:
 
 			Planetary Ephemeris SPK:      de440.bsp
-		    Earth rotating frame bpc:	  earth_200101_990825_predict.bpc
 			Moon rotating frame bpc:	  moon_pa_de440_200625.bpc
 		    Moon rotating frame tf:		  moon_de440_220930.tf
 			Earth-Moon Rotating Frame:    emrot.tf
