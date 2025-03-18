@@ -1,5 +1,6 @@
 # File format instructions
 *.bsp
+*.bpc
 *.qist
 *.o
 *.o.d
