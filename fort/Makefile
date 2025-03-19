@@ -1,5 +1,6 @@
 .SUFFIXES:
 SPICE := /home/david/libf/spicelib.a
+VENV := /home/david/wrk/scipy-env/bin/activate
 FC := gfortran
 PFC := f2py
 SRCDIR := ./src/
@@ -148,8 +149,11 @@ modfiles: $(T_ANCHORS) $(I_ANCHORS)
 .PHONY: clean
 clean:
 	@echo " Cleaning";
-	-rm --verbose $(SRCDIR)*.o *.pyf *.anc *$(EXT_SUFFIX)
 	-test -d $(MODDIR) && rm --verbose $(MODDIR)*.mod
+	-test -d $(LIBDIR) && rm --verbose $(LIBDIR)*.so
+	-test -d $(LIBDIR) && rm --verbose $(LIBDIR)*.lib
+	-test -d $(LIBDIR) && rm --verbose $(LIBDIR)*.dylib
+	-test -d $(LIBDIR) && rm --verbose $(LIBDIR)*.a
 	-test -d $(ANCDIR) && rm --verbose $(ANCDIR)*.anc
 	-test -d $(OBJDIR) && rm --verbose $(OBJDIR)*.o
 	-test -d $(TESTOBJDIR) && rm --verbose $(TESTOBJDIR)*.o
@@ -180,12 +184,12 @@ $(TESTDIR)unit_test_run: $(T_OBJECTS)
 	$(FC) $(FFLAGS)  $@.f90 $^ $(SPICE) -o $@
 qist.a: $(Q_OBJECTS)
 	$(FC) $(FFLAGS) -shared $^ -o $@
-	-cp -v $@ $(LIBDIR)
+	-mv -v $@ $(LIBDIR)
 %.a : $(SRCDIR)%.f90 $(I_OBJECTS)
 	$(FC) $(MFLAGS) $(SPICE) $^ -o $@
 %$(EXT_SUFFIX) : $(SRCDIR)%.f90 $(I_OBJECTS)
-	$(PFC) -m $* --f90flags='$(PFLAGS)' $(PFFLAGS) -c $^ 
-	-cp -v $@ $(LIBDIR)
+	. $(VENV) && $(PFC) -m $* --f90flags='$(PFLAGS)' $(PFFLAGS) -c $^ 
+	-mv -v $@ $(LIBDIR)
 $(ANCDIR)%.anc: $(SRCDIR)%.f90
 	$(MAKEMOD.F08) $<
 	@touch $@
