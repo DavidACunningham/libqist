@@ -13,7 +13,6 @@ KPL/MK
 			Planetary Ephemeris SPK:      de440.bsp
 			Moon rotating frame bpc:	  moon_pa_de440_200625.bpc
 		    Moon rotating frame tf:		  moon_de440_220930.tf
-			Earth-Moon Rotating Frame:    emrot.tf
 			Test lunar orbit:			  test_orbit.bsp
 
 			Leapseconds kernel (for
@@ -32,7 +31,6 @@ KPL/MK
 						 '$K/naif0012.tls'
 						 '$K/moon_pa_de440_200625.bpc'
 						 '$K/moon_de440_220930.tf'
-						 '$LK/emrot.tf'
 						 '$LK/test_orbit.bsp'
 						 )
 
