@@ -1057,8 +1057,9 @@ module frkmin
     end subroutine
     subroutine doublesize(self)
         class(ExtensibleRealArray), intent(inout) :: self
-        real(WP)                                  :: dummyArray(self%vecdim,self%allocatedSize)
+        real(WP), allocatable                     :: dummyArray(:,:)
 
+        allocate(dummyArray(self%vecdim,self%allocatedSize))
         dummyArray = self%dataArray
         deallocate(self%dataArray)
         allocate(self%dataArray(self%vecdim,2*self%allocatedSize))
