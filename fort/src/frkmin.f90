@@ -1536,13 +1536,14 @@ module frkmin
     end function
     function solve_ivp(fun, t_span, y0, &
                        t_eval_in, dense_output, &
-                       rtol, atol, istep) result(endsol)
+                       rtol, atol, istep, max_num_steps) result(endsol)
         procedure(eomsig)                      :: fun
         real(WP),         intent(in)           :: t_span(2), &
                                                 & y0(:)
         real(WP),         intent(in), optional :: t_eval_in(:)
         real(WP),         intent(in), optional :: rtol, atol, istep
         logical,          intent(in), optional :: dense_output
+        integer,          intent(in), optional :: max_num_steps
         character(20)                          :: message
         logical                                :: dovar, loud
         real(WP)                               :: t0, tf, &
@@ -1551,15 +1552,17 @@ module frkmin
                                                 & y(size(y0)), &
                                                 & rtolact, atolact
         integer                                :: t_eval_i, &
-                                                & solverstat
+                                                & solverstat, &
+                                                & steps_taken, &
+                                                & max_num_steps_act
         type(ExtensibleRealArray)              :: ts, ys, ti
         real(WP),                  allocatable :: t_eval(:), &
                                                 & ts_final(:), &
                                                 & ys_final(:,:)
-        type(RungeKutta)                           :: solver
+        type(RungeKutta)                       :: solver
         type(DOP853DenseOutput)                :: sol
         type(ExtensibleDOArray)       :: interpolants
-        type(DOP853DenseOutput),        allocatable  :: interpolants_final(:)
+        type(DOP853DenseOutput),  allocatable  :: interpolants_final(:)
         type(Odesolution)                      :: endsol
         if (present(dense_output)) then
             dovar=dense_output
@@ -1580,6 +1583,13 @@ module frkmin
         endif
 
         t0 = t_span(1); tf = t_span(2)
+
+        if (present(max_num_steps)) then
+            max_num_steps_act = max_num_steps
+        else
+            max_num_steps_act = 10000
+        endif
+        steps_taken = 0
 
         if (present(t_eval_in)) then
             if (tf > t0) then
@@ -1617,6 +1627,7 @@ module frkmin
         solverstat = -50
         do while (solverstat.eq.-50)
             message = solver%step()
+            steps_taken = steps_taken + 1
 
             if (trim(solver%statmsg) == 'finished') then
                 solverstat = 0
@@ -1651,6 +1662,12 @@ module frkmin
 
             if (present(t_eval_in).and.dovar) then 
                 call ti%append([t])
+            end if
+            if (steps_taken.ge.max_num_steps_act) then
+                print *, "QIST ERROR: ", &
+                    & max_num_steps_act, "integration steps exceeded.", &
+                    & " integration halting."
+                stop
             end if
         end do
 
