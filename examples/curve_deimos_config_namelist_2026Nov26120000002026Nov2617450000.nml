@@ -1,12 +1,12 @@
 &ITRAJ_CONFIG
- qist_filename   = "/home/david/wrk/nstgro/libqist/examples/datadir/curve_deimos2026Nov26120000002026Nov2617450000.qist"
- kvtau_filename = "/home/david/wrk/nstgro/libqist/examples/datadir/curve_deimos2026Nov26120000002026Nov2617450000_kvtau.odesolution"
+ qist_filename   = "./datadir/curve_deimos2026Nov26120000002026Nov2617450000.qist"
+ kvtau_filename = "./datadir/curve_deimos2026Nov26120000002026Nov2617450000_kvtau.odesolution"
  t0              =  8.489664691829673E+08   ! 2026 Nov 26 12:00:00.00
  tf              =  8.489871691829727E+08   ! 2026 Nov 26 17:45:00.00
 /
 &QIST_CONFIGURATION
  ! Master config parameters
-	 qist_filename                       =  "/home/david/wrk/nstgro/libqist/examples/datadir/curve_deimos2026Nov26120000002026Nov2617450000.qist"
+	 qist_filename                       =  "./datadir/curve_deimos2026Nov26120000002026Nov2617450000.qist"
 	 t0_qist                             =  8.489664691829673E+08   ! 2026 Nov 26 12:00:00.00
 	 tf_qist                             =  8.489871691829727E+08   ! 2026 Nov 26 17:45:00.00
 	 t0_resamp                           =  8.489664691829673E+08   ! 2026 Nov 26 12:00:00.00
@@ -27,23 +27,23 @@
 	 rtol_qist                           =  1.000000000000000E-12
 	 atol_qist                           =  9.999999999999999E-21
 	 regularize                          =  .true.                      ! whether to do sundman regularization
-	 kvtau_filename                      = "/home/david/wrk/nstgro/libqist/examples/datadir/curve_deimos2026Nov26120000002026Nov2617450000_kvtau.odesolution"    ! Only needed if regularizing, otherwise comment out
+	 kvtau_filename                      = "./datadir/curve_deimos2026Nov26120000002026Nov2617450000_kvtau.odesolution"    ! Only needed if regularizing, otherwise comment out
 
  ! SPICE resampling configuration
-	 metakernel_filename_with_trajectory = "/home/david/wrk/nstgro/libqist/kernels/mk_example_with_traj.tf"
-	 metakernel_filename_no_trajectory   = "/home/david/wrk/nstgro/libqist/kernels/mk_example.tf"
-	 resample_filename_with_trajectory   = "/home/david/wrk/nstgro/libqist/examples/datadir/example_resample_with_traj_2026Nov26120000002026Nov2617450000.resamp"
-	 resample_filename_no_trajectory     = "/home/david/wrk/nstgro/libqist/examples/datadir/example_resample_no_traj_2026Nov26120000002026Nov2617450000.resamp"
+	 metakernel_filename_with_trajectory = "../kernels/mk_example_with_traj.tf"
+	 metakernel_filename_no_trajectory   = "../kernels/mk_example.tf"
+	 resample_filename_with_trajectory   = "./datadir/example_resample_with_traj_2026Nov26120000002026Nov2617450000.resamp"
+	 resample_filename_no_trajectory     = "./datadir/example_resample_no_traj_2026Nov26120000002026Nov2617450000.resamp"
 	 resamp_fit_deg						 = 200
 
  ! Rotation interpolation configuration
-	 rotation_filename                   = "/home/david/wrk/nstgro/libqist/examples/datadir/curve_deimosMDROTBAR_2026Nov26120000002026Nov2617450000.rot"
+	 rotation_filename                   = "./datadir/curve_deimosMDROTBAR_2026Nov26120000002026Nov2617450000.rot"
 	 inertial_frame_string			     = "J2000"
 	 rotating_frame_string               = "MDROTBAR"
 	 rot_fit_deg                         = 200
 
  ! Kernel generation configuration parameters
-	 output_kernel_filename              = "/home/david/wrk/nstgro/libqist/kernels/example_binary_kernel.bsp"
+	 output_kernel_filename              = "../kernels/example_binary_kernel.bsp"
 	 rtol_kernel                         = 1.000000000000000E-16
 	 atol_kernel                         = 9.999999999999999E-21
 	 nnodes_kernel                       = 400

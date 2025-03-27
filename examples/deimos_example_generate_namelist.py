@@ -33,10 +33,10 @@ kernel_nodes = 400
 
 trajectory_name = "curve_deimos"
 trajectory_naif_id = -31415
-absolute_qist_path = "/home/david/wrk/nstgro/libqist/" # Change this to your path
-kernel_path = "kernels/"
+absolute_qist_path = "" # Change this to your path
+kernel_path = "../kernels/"
 datadir = "datadir/"
-relative_data_path = "examples/"
+relative_data_path = "./"
 central_body_naif_id = 402
 central_body_mu = 9.85000000E-05
 central_body_reference_radius = 6.200000E+00
