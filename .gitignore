@@ -21,4 +21,3 @@ unit_test_run
 # Libraries
 *.a
 *.so
-curve_deimos*.nml
