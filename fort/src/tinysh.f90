@@ -161,7 +161,7 @@ module tinysh
         type(PinesData),intent(inout) :: pdat
 
         if (.not.pdat%pinesallocated) then
-            print *, "WARNING: pines working memory not allocated, exiting (deallocatepines)"
+            print *, "No SH deallocation performed"
             return
         end if
 

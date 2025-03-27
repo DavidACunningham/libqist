@@ -72,16 +72,18 @@ module qist
         kvtau_filename = ""
         inquire(file=trim(adjustl(namefile)), iostat=stat)
         if (stat .ne. 0) then 
-            print *, "ERROR: Bad ITRAJ config namelist filename"
-            print *, "error code ", stat
+            print *, "QIST ERROR: bad ITRAJ config namelist filename: ", &
+                     & trim(adjustl(namefile))
+            print *, "    Fortran I/O status code ", stat
             stop
         end if
         open(file=namefile, status="old", &
              iostat=stat,newunit=num)
         read(unit=num, nml=ITRAJ_CONFIG, iostat=stat)
         if (stat .ne. 0) then 
-            print *, "ERROR: bad ITRAJ config namelist format"
-            print *, "error code ", stat
+            print *, "QIST ERROR: bad ITRAJ config namelist format: ", &
+                     & trim(adjustl(namefile))
+            print *, "    Fortran I/O status code ", stat
             stop
         end if
         close(num)
@@ -100,8 +102,9 @@ module qist
         self%regularized      = .false.
         inquire(file=trim(adjustl(trajfile)), iostat=stat)
         if (stat.ne.0) then
-            print *, "ERROR: Trajectory file not found."
-            print *, "error code ", stat
+            print *, "QIST ERROR: QIST model file not found: ", &
+                    & trim(adjustl(trajfile))
+            print *, "    Fortran I/O status code ", stat
             stop
         end if
         open(newunit=num, file=trim(adjustl(trajfile)), &
@@ -112,8 +115,9 @@ module qist
             self%regularized = .true.
             inquire(file=trim(adjustl(kvtaufile)), iostat=stat)
             if (stat.ne.0) then
-                print *, "ERROR: Trajectory file not found."
-                print *, "error code ", stat
+                print *, "QIST ERROR: QIST model file not found: ", &
+                    & trim(adjustl(kvtaufile))
+                print *, "    Fortran I/O status code ", stat
                 stop
             end if
             open(newunit=num, file=trim(adjustl(kvtaufile)), &

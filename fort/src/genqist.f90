@@ -203,14 +203,16 @@ module genqist
         ! Read in namelist
         inquire(file=namefile, iostat=stat, exist=dasein)
         if (stat .ne. 0 .or. .not.dasein) then 
-            print *, "ERROR: Bad QIST confiugration filename"
+            print *, "QIST ERROR: Bad QIST confiugration filename: ", &
+                & namefile
             stop
         end if
         open(file=namefile, status="old", &
              iostat=stat,newunit=num)
         read(unit=num, nml=QIST_CONFIGURATION, iostat=stat)
         if (stat .ne. 0) then 
-            print *, "ERROR: bad QIST configuration namelist format"
+            print *, "QIST ERROR: Bad QIST configuration namelist format in ", &
+                & namefile
             stop
         end if
         close(num)
@@ -270,7 +272,7 @@ module genqist
         character(len=1000)           :: resample_filepath, metakernel_filepath
         integer                       :: n_bodies
         type(spice_subset)            :: subspice
-        integer                       :: stat, num
+        integer                       :: num, stat
         call cd%init(namefile)
         if (present(traj_exist)) then
             te = traj_exist
@@ -309,10 +311,6 @@ module genqist
         open(file=adjustl(trim(resample_filepath)),newunit=num,access="stream",&
              status="replace",iostat=stat)
         call subspice%write(num)
-        if (stat .ne. 0) then 
-            print *, "ERROR: resample file not written"
-            stop
-        end if
         close(num)
     end subroutine make_spice_subset
     subroutine make_rotation(namefile)
@@ -324,7 +322,7 @@ module genqist
         character(len=1000)          :: kernelfile_read
         real(dp), dimension(3,3)     :: rotmat_comp
         type(rothist)                :: rot
-        integer num
+        integer num, stat
         logical dasein
         call cd%init(namefile)
         if (cd%metakernel_filename_no_trajectory=="") then
@@ -340,7 +338,7 @@ module genqist
                    )
         inquire(file=trim(adjustl(cd%rotation_filename)), exist=dasein)
         if (dasein) then 
-            print *, "WARNING: "
+            print *, "QIST WARNING: "
             print *, trim(adjustl(cd%rotation_filename)), " already exists"
             print *, "Continuing will overwrite. Continue?"
             yn = "X"
@@ -425,7 +423,7 @@ module genqist
         allocate(record_starts(records), record_ends(records))
         inquire(file=trim(adjustl(output_kernel_filename)), exist=dasein)
         if (dasein) then 
-            print *, "WARNING: "
+            print *, "QIST WARNING: "
             print *, trim(adjustl(output_kernel_filename)), " already exists"
             print *, "Continuing will overwrite. Continue?"
             yn = "X"
@@ -579,7 +577,7 @@ module genqist
         nnodes = cd%nnodes_kernel
         inquire(file=trim(adjustl(output_kernel_filename)), exist=dasein)
         if (dasein) then 
-            print *, "WARNING: "
+            print *, "QIST WARNING: "
             print *, trim(adjustl(output_kernel_filename)), " already exists"
             print *, "Continuing will overwrite. Continue?"
             yn = "X"
@@ -705,11 +703,17 @@ module genqist
             rotfile = cd%rotation_filename
             inquire(file=trim(adjustl(rotfile)), iostat=stat, exist=dasein)
             if (stat .ne. 0 .or. .not.dasein) then 
-                print *, "ERROR: Bad body frame filename"
+                print *, "QIST ERROR: Bad body frame filename: ", &
+                    & trim(adjustl(rotfile))
                 stop
             end if
             open(file=rotfile, status="old", &
                  iostat=stat, access="stream", newunit=num)
+            if (stat .ne. 0) then 
+                print *, "QIST ERROR: Unable to read body frame file: ", &
+                    & trim(adjustl(rotfile))
+                stop
+            end if
                 call rot%read(num)
             close(num)
             shgrav = .true.
@@ -750,7 +754,7 @@ module genqist
                      )
         me%filepath_var = cd%qist_filename
         me%dynmod%tof = tof
-        me%rtol = cd%rtol_qist
+        
         me%atol = cd%atol_qist
     end subroutine gq_namelist_init
     subroutine make_qist_model(namefile)
@@ -788,7 +792,7 @@ module genqist
         print *, "Writing QIST solution. . ."
         open(newunit=num, file="temp_qist_sol.odesolution", iostat=stat, &
              access="stream", status="replace")
-        call qist_sol%write(num,dp)
+            call qist_sol%write(num,dp)
         close(num)
         print *, "DONE"
         print *, "Packing solution and writing out. . ."
@@ -797,7 +801,7 @@ module genqist
         print *, "Writing QIST model to file ", trim(adjustl(qist_i%filepath_var)), ". . ."
         open(newunit=num, file=trim(adjustl(qist_i%filepath_var)), iostat=stat, &
              access='stream', status='replace')
-        call packedsol%write(num)
+            call packedsol%write(num)
         print *, "DONE"
         close(num)
         print *, "Cleaning up temp file. . ."
@@ -868,10 +872,27 @@ module genqist
         character(len=*),  intent(in)                        :: subspicefile
         character(len=*),  intent(in),              optional :: kvtau_filename
 
-        open(file=trim(adjustl(subspicefile)),unit=73, &
-           & access="stream", status="old")
-        call subspice%read(73)
-        close(73)
+        integer stat, num
+        logical dasein
+        inquire(file=subspicefile, iostat=stat, exist=dasein)
+        if (stat .ne. 0 .or. .not.dasein) then 
+            print *, "QIST ERROR: Bad SPICE resample filename: ", &
+                & trim(adjustl(subspicefile))
+            stop
+        end if
+        open( &
+             & file=trim(adjustl(subspicefile)), &
+             & newunit=num, &
+             & access="stream", &
+             & status="old", &
+             & iostat=stat &
+            )
+            if (stat.ne.0) then
+                print *, "QIST ERROR: Unable to read resampled SPICE file", &
+                   & " contained in: ", trim(adjustl(subspicefile))
+            end if
+            call subspice%read(num)
+        close(num)
         if (shgrav.and.present(rot).and.present(Cbar).and.present(Sbar)) then
         call me%dynmod%init(subspice, traj_id, central_body, bodylist, &
                           & central_body_mu, central_body_ref_radius,  &

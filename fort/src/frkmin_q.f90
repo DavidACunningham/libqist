@@ -464,7 +464,7 @@ module frkmin_q
      & [INTERPOLATOR_POWER-3,N_STAGES_EXTENDED],order=[2,1])
     real(WP), parameter :: SAFETY = 0.9_WP, &
                            MIN_FACTOR = 0.2_WP, &  ! Minimum allowed decrease in a step size.
-                           MAX_FACTOR = 10._WP  ! Maximum allowed increase in a step size.
+                           MAX_FACTOR = 10_WP  ! Maximum allowed increase in a step size.
     character(len=15)  :: MESSAGES(0:1) = ["Solver success.", &
                                            "Solver failure."]
     type :: RungeKutta
@@ -1060,6 +1060,7 @@ module frkmin_q
         real(WP), allocatable                     :: dummyArray(:,:)
 
         allocate(dummyArray(self%vecdim,self%allocatedSize))
+        dummyArray= self%dataArray
         deallocate(self%dataArray)
         allocate(self%dataArray(self%vecdim,2*self%allocatedSize))
         self%dataArray = 0._wp
