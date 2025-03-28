@@ -1117,13 +1117,22 @@ module frkmin_q
                                            & f_new(size(f)), &
                                            & K(0:,0:)
         real(WP)                          :: dy(size(y))
+        real(WP),           allocatable   :: K_temp(:,:), A_temp(:)
         integer s
-        
+
         dy = 0._wp
         K = 0._wp
         K(0,:) = f
         do s=1,solver%N_STAGES-1
-            dy = matmul(transpose(K(:s,:)), A(s,:s)) * h
+            ! The following block is for ifx compatibility
+            if (allocated(K_temp)) deallocate(K_temp, A_temp)
+            allocate(K_temp(0:s, 0:size(K,2)-1), &
+                   & A_temp(0:s))
+            K_temp = K(:s,:)
+            A_temp = A(s,:s)
+            ! end ifx compatibility block
+            ! dy = matmul(transpose(K(:s,:)), A(s,:s)) * h
+            dy = matmul(transpose(K_temp), A_temp) * h
             K(s,:) = solver%fn(t + C(s) * h, y + dy)
         end do
         y_new = y + h * matmul(transpose(K(:N_STAGES-1,:)), B)
@@ -1329,6 +1338,7 @@ module frkmin_q
         real(WP)                     :: K(0:size(self%K_extended,1)-1,0:size(self%K_extended,2)-1), h, &
                                       & dy(self%n), F(0:INTERPOLATOR_POWER-1, 0:self%n-1), &
                                       & f_old(self%n), delta_y(self%n)
+        real(WP), allocatable        :: K_temp(:,:), A_temp(:)
         integer s, iter2, i, j
         K = 0._WP
         testmat = self%K
@@ -1336,7 +1346,14 @@ module frkmin_q
         h = self%h_previous
         iter2 = 0
         do s= self%n_stages+1, self%N_STAGES_EXTENDED-1
-            dy = matmul(transpose(K(:s,:)),self%A_EXTRA(iter2,:s))*h
+            ! This block for ifx compatibility
+            if (allocated(K_temp)) deallocate(K_temp, A_temp)
+            allocate(K_temp(0:s,size(K,2)), &
+                   & A_temp(0:s))
+            K_temp = K(:s,:)
+            A_temp = self%A_EXTRA(iter2,:s)
+            ! end ifx compatibility block
+            dy = matmul(transpose(K_temp),A_temp)*h
             K(s,:) = self%fn(self%t_old + self%C_EXTRA(iter2) * h, self%y_old + dy)
             iter2 = iter2 + 1
         end do

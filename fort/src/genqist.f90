@@ -322,13 +322,13 @@ module genqist
         character(len=1000)          :: kernelfile_read
         real(dp), dimension(3,3)     :: rotmat_comp
         type(rothist)                :: rot
-        integer num, stat
-        logical dasein
+        integer                      :: num, stat
+        logical                      :: dasein
         call cd%init(namefile)
         if (cd%metakernel_filename_no_trajectory=="") then
-            kernelfile_read = cd%metakernel_filename_with_trajectory
+             kernelfile_read = cd%metakernel_filename_with_trajectory
         else
-            kernelfile_read = cd%metakernel_filename_no_trajectory
+             kernelfile_read = cd%metakernel_filename_no_trajectory
         end if
         call furnsh(trim(adjustl(kernelfile_read)))
         call pxform(cd%inertial_frame_string, &

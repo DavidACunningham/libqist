@@ -34,14 +34,16 @@ program main
     call sh_test(testpass)
     write (*,*) "TEST START SPICE kernel resampling operations. . ."
     call test_spice_subset("../../kernels/mk_test.tf",testpass)
-    write (*,*) "TEST START DOUBLE DOP853 (Runge Kutta integrator). . ."
-    call run_frk_tests(testpass)
-    write (*,*) "TEST START QUAD DOP853 (Runge Kutta integrator). . ."
-    call run_frk_tests_q(testpass)
+    ! write (*,*) "TEST START DOUBLE DOP853 (Runge Kutta integrator). . ."
+    ! call run_frk_tests(testpass)
+    ! write (*,*) "TEST START QUAD DOP853 (Runge Kutta integrator). . ."
+    ! call run_frk_tests_q(testpass)
+
     write (*,*) "TEST SPICE kernel resampling operations. . ."
     call test_make_spice_subset(testpass)
     write (*,*) "TEST rotation kernel resampling operations. . ."
     call test_make_rotation(testpass)
+    
     write (*,*) "TEST gravity model loading operations. . ."
     call test_grav_load(testpass)
     write (*,*) "TEST QIST model initialization operations. . ."

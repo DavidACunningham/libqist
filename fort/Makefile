@@ -165,13 +165,16 @@ modfiles: $(T_ANCHORS) $(I_ANCHORS)
 clean:
 	@echo " Cleaning";
 	-test -d $(MODDIR) && rm --verbose $(MODDIR)*.mod
+	-test -d $(SRCDIR) && rm --verbose $(SRCDIR)*.mod
 	-test -d $(LIBDIR) && rm --verbose $(LIBDIR)*.so
 	-test -d $(LIBDIR) && rm --verbose $(LIBDIR)*.lib
 	-test -d $(LIBDIR) && rm --verbose $(LIBDIR)*.dylib
 	-test -d $(LIBDIR) && rm --verbose $(LIBDIR)*.a
 	-test -d $(ANCDIR) && rm --verbose $(ANCDIR)*.anc
 	-test -d $(OBJDIR) && rm --verbose $(OBJDIR)*.o
+	-test -d $(OBJDIR) && rm --verbose $(OBJDIR)*.optrpt
 	-test -d $(TESTOBJDIR) && rm --verbose $(TESTOBJDIR)*.o
+	-test -d $(TESTOBJDIR) && rm --verbose $(TESTOBJDIR)*.optrpt
 	-test -d $(TESTANCDIR) && rm --verbose $(TESTANCDIR)*.anc
 	-test -d $(TESTANCDIR) && rm --verbose $(TESTANCDIR)*.mod
 	-test -d $(TESTDIR) && rm --verbose $(TESTDIR)*.subspice
