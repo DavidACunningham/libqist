@@ -11,6 +11,7 @@
 *.odesolution
 *.subspice
 *.resamp
+*.optrpt
 # Executables
 make_cheby_kernel
 make_new_kernel

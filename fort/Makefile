@@ -1,7 +1,10 @@
 .SUFFIXES:
-SPICE := /home/david/libf/spicelib.a
+GSPICE := /home/david/libf/spicelib.a
+ISPICE := /home/david/libf/src/toolkit/lib/spicelib.a
 VENV := /home/david/wrk/scipy-env/bin/activate
-FC := gfortran
+IFORT:= ifx
+GFORT:= gfortran
+FC := $(GFORT)
 PFC := f2py
 SRCDIR := ./src/
 OBJDIR := ./build/
@@ -87,37 +90,49 @@ ifneq ($(MODDIR),)
 	FFLAGS+= -J$(MODDIR)
 endif
 
+ifeq ($(FC), $(GFORT))
+SPICE := $(GSPICE)
+
+COMMON_FLAGS := -O0 -g \
+				-fPIC \
+				-ffree-line-length-none \
+				-fcheck=bounds
+
 PFFLAGS := -lgomp \
 		   --build-dir $(MODDIR)
-PFLAGS := -O3 -mcmodel=large \
-	      -Wl,--no-relax\
-		  -fPIC\
-		  -ffast-math \
-		  -march=native \
-		  -ffree-line-length-none\
-		  -fcheck=bounds
+
+PFLAGS := $(COMMON_FLAGS)
 		  
-FFLAGS := -O3  -mcmodel=large \
-	      -Wl,--no-relax\
-		  -fPIC\
-		  -ffast-math \
-		  -march=native \
-		  -ffree-line-length-none\
-		  -fcheck=bounds\
+FFLAGS := $(COMMON_FLAGS) \
 		  -J$(MODDIR)
-MFLAGS := -O3 -mcmodel=large \
-	      -Wl,--no-relax\
-		  -fPIC\
-		  -ffast-math \
-		  -march=native \
-		  -ffree-line-length-none\
-		  -fcheck=bounds\
-		  -fno-underscoring\
+MFLAGS := $(COMMON_FLAGS) \
+		  -fno-underscoring \
 		  -shared\
 		  -J$(MODDIR)
 
-			 
 MAKEMOD.F08 = $(FC) $(FFLAGS) -fsyntax-only -c 
+else ifeq ($(FC), $(IFORT))
+SPICE := $(ISPICE)
+
+COMMON_FLAGS := -O0 \
+				-fPIC \
+				-qopt-report \
+				-check bounds
+
+PFFLAGS := -lgomp \
+		   --build-dir $(MODDIR)
+
+PFLAGS := $(COMMON_FLAGS)
+		  
+FFLAGS := $(COMMON_FLAGS) \
+		  -module $(MODDIR)
+MFLAGS := $(COMMON_FLAGS) \
+		  -shared \
+		  -module $(MODDIR)
+
+MAKEMOD.F08 = $(FC) $(FFLAGS) -syntax-only -c 
+endif
+			 
 COMPILE.F08 = $(FC) $(FFLAGS)  -c 
 
 
