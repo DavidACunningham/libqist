@@ -158,6 +158,7 @@ module genqist
                                       regularize
 
         ! set defaults
+        print *, "Reading configuration values from namelist file ", namefile
         allocate(Cbar(0:100,0:100), Sbar(0:100,0:100))
 
         ! character defaults
@@ -246,6 +247,8 @@ module genqist
         me%kvtau_filename                        = kvtau_filename
 
         ! reals
+        me%Cbar                                  = Cbar
+        me%Sbar                                  = Sbar
         me%t0_resamp                             = t0_resamp
         me%tf_resamp                             = tf_resamp
         me%t0_qist                               = t0_qist
@@ -258,8 +261,9 @@ module genqist
         me%atol_qist                             = atol_qist
         me%central_body_ref_radius               = central_body_ref_radius
         me%central_body_mu                       = central_body_mu
-        me%Cbar                                  = Cbar
-        me%Sbar                                  = Sbar
+        print *, "Print t0_resamp from within configdata init (value appears on next line):"
+        print *, me%t0_resamp
+        print *, "Config file loaded."
     end subroutine namelist_init
     subroutine make_spice_subset(namefile, traj_exist)
         ! Supply a namefile and whether you want to include
@@ -325,6 +329,8 @@ module genqist
         integer                      :: num, stat
         logical                      :: dasein
         call cd%init(namefile)
+        print *, "Print t0_resamp from within make_rotation (value appears on next line):"
+        print *, cd%t0_resamp
         if (cd%metakernel_filename_no_trajectory=="") then
              kernelfile_read = cd%metakernel_filename_with_trajectory
         else
