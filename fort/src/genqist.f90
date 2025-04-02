@@ -219,6 +219,8 @@ module genqist
         close(num)
 
         ! STORE IN DATA TYPE
+        if (allocated(me%cbar)) deallocate(me%cbar)
+        if (allocated(me%sbar)) deallocate(me%sbar)
         allocate(me%cbar(0:100,0:100), me%sbar(0:100,0:100))
         ! integers
         me%central_body_id                       = central_body_id
@@ -247,8 +249,6 @@ module genqist
         me%kvtau_filename                        = kvtau_filename
 
         ! reals
-        me%Cbar                                  = Cbar
-        me%Sbar                                  = Sbar
         me%t0_resamp                             = t0_resamp
         me%tf_resamp                             = tf_resamp
         me%t0_qist                               = t0_qist
@@ -261,8 +261,8 @@ module genqist
         me%atol_qist                             = atol_qist
         me%central_body_ref_radius               = central_body_ref_radius
         me%central_body_mu                       = central_body_mu
-        print *, "Print t0_resamp from within configdata init (value appears on next line):"
-        print *, me%t0_resamp
+        me%Cbar                                  = Cbar
+        me%Sbar                                  = Sbar
         print *, "Config file loaded."
     end subroutine namelist_init
     subroutine make_spice_subset(namefile, traj_exist)
@@ -324,13 +324,13 @@ module genqist
         character(len=*), intent(in) :: namefile
         character(len=1)             :: yn
         character(len=1000)          :: kernelfile_read
+        character(len=15)            :: frame_string
         real(dp), dimension(3,3)     :: rotmat_comp
         type(rothist)                :: rot
         integer                      :: num, stat
         logical                      :: dasein
         call cd%init(namefile)
-        print *, "Print t0_resamp from within make_rotation (value appears on next line):"
-        print *, cd%t0_resamp
+        frame_string = cd%rotating_frame_string
         if (cd%metakernel_filename_no_trajectory=="") then
              kernelfile_read = cd%metakernel_filename_with_trajectory
         else
@@ -378,8 +378,8 @@ module genqist
             real(dp), intent(in)          :: ta, tb
             real(dp)                      :: res(4), mat(3,3)
             type(quaternion)              :: qclass
-            call pxfrm2(trim(adjustl(cd%rotating_frame_string)), &
-                      & trim(adjustl(cd%rotating_frame_string)), &
+            call pxfrm2(trim(adjustl(frame_string)), &
+                      & trim(adjustl(frame_string)), &
                       & ta, &
                       & tb, &
                       & mat &
@@ -1043,6 +1043,7 @@ module genqist
         class(gqist),      intent(inout)    :: thisqist
         type(odesolution), intent(out)      :: kvtau
         real(qp),          intent(out)      :: kfinal
+        real(qp)                            :: tof, thist0
 
         ! dtau = c*r**alpha d k
         kvtau = solve_ivp(time_eom,&
@@ -1052,14 +1053,16 @@ module genqist
                       & rtol=1.e-16_qp, &
                       & atol=1.e-20_qp, istep=0.5_qp)
         kfinal = kvtau%ys(1,size(kvtau%ts))
+        
+        tof = (thisqist%tf-thisqist%t0)
+        thist0 = thisqist%t0
         contains
             function time_eom(me, x, y) result(res)
                 class(RungeKutta), intent(inout) :: me
                 real(qp),          intent(in)    :: x, y(:)
                 real(qp)                         :: res(size(y))
-                real(qp)                         :: state(6), r,tau, t, kprime, tof
-                tof = (thisqist%tf-thisqist%t0)
-                t = x*tof + thisqist%t0 ! physical time
+                real(qp)                         :: state(6), r,tau, t, kprime
+                t = x*tof + thist0 ! physical time
                 tau = x
                 state = thisqist%dynmod%trajstate(t)
                 r = sqrt(sum(state(:3)**2))

@@ -93,7 +93,7 @@ endif
 ifeq ($(FC), $(GFORT))
 SPICE := $(GSPICE)
 
-COMMON_FLAGS := -O0 -g \
+COMMON_FLAGS := -O2 -g \
 				-fPIC \
 				-ffree-line-length-none \
 				-fcheck=bounds

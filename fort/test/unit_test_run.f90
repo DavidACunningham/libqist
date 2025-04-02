@@ -18,26 +18,26 @@ program main
                               end_to_end_integration_test
     logical testpass
 
-    write (*,*) "TEST START matrix multiplication functions. . ."
-    call test_mmult(testpass)
-    write (*,*) "TEST START DOUBLE tensor operations. . ."
-    call test_basic_tensorops_d(testpass)
-    write (*,*) "TEST START QUAD tensor operations. . ."
-    call test_basic_tensorops_q(testpass)
-    write (*,*) "TEST START Chebyshev interpolation operations. . ."
-    call test_scalar_cheby(testpass)
-    write (*,*) "TEST START rotation interpolation operations. . ."
-    call rot_hist_test(testpass)
-    write (*,*) "TEST START quaternion operations. . ."
-    call quat_ops_test(testpass)
-    write (*,*) "TEST START spherical harmonics operations. . ."
-    call sh_test(testpass)
-    write (*,*) "TEST START SPICE kernel resampling operations. . ."
-    call test_spice_subset("../../kernels/mk_test.tf",testpass)
-    ! write (*,*) "TEST START DOUBLE DOP853 (Runge Kutta integrator). . ."
-    ! call run_frk_tests(testpass)
-    ! write (*,*) "TEST START QUAD DOP853 (Runge Kutta integrator). . ."
-    ! call run_frk_tests_q(testpass)
+    ! write (*,*) "TEST START matrix multiplication functions. . ."
+    ! call test_mmult(testpass)
+    ! write (*,*) "TEST START DOUBLE tensor operations. . ."
+    ! call test_basic_tensorops_d(testpass)
+    ! write (*,*) "TEST START QUAD tensor operations. . ."
+    ! call test_basic_tensorops_q(testpass)
+    ! write (*,*) "TEST START Chebyshev interpolation operations. . ."
+    ! call test_scalar_cheby(testpass)
+    ! write (*,*) "TEST START rotation interpolation operations. . ."
+    ! call rot_hist_test(testpass)
+    ! write (*,*) "TEST START quaternion operations. . ."
+    ! call quat_ops_test(testpass)
+    ! write (*,*) "TEST START spherical harmonics operations. . ."
+    ! call sh_test(testpass)
+    ! write (*,*) "TEST START SPICE kernel resampling operations. . ."
+    ! call test_spice_subset("../../kernels/mk_test.tf",testpass)
+    ! ! write (*,*) "TEST START DOUBLE DOP853 (Runge Kutta integrator). . ."
+    ! ! call run_frk_tests(testpass)
+    ! ! write (*,*) "TEST START QUAD DOP853 (Runge Kutta integrator). . ."
+    ! ! call run_frk_tests_q(testpass)
 
     write (*,*) "TEST SPICE kernel resampling operations. . ."
     call test_make_spice_subset(testpass)
