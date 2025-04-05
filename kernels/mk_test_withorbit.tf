@@ -21,14 +21,14 @@ KPL/MK
 
 	 \begindata
 	 
-	 PATH_VALUES = ('/home/david/wrk/nstgro/kernels'
-				    '/home/david/wrk/nstgro/qist/kernels')
+	 PATH_VALUES = ('C:\Users\David\libqist\kernels'
+				    'C:\Users\David\libqist\kernels')
 
 	 PATH_SYMBOLS = ('K'
 					 'LK')
 
 	 KERNELS_TO_LOAD = ( '$K/de440.bsp'
-						 '$K/naif0012.tls'
+						 '$K/naif0012.tls.pc'
 						 '$K/moon_pa_de440_200625.bpc'
 						 '$K/moon_de440_220930.tf'
 						 '$LK/test_orbit.bsp'
