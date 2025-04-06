@@ -1,4 +1,4 @@
-        !COMPILER-GENERATED INTERFACE MODULE: Sat Apr  5 16:10:14 2025
+        !COMPILER-GENERATED INTERFACE MODULE: Sat Apr  5 19:44:27 2025
         ! This source file is for reference only and may not completely
         ! represent the generated interface used by the compiler.
         MODULE CHNODES__genmod

@@ -57,11 +57,14 @@ SET FFLAGS_MOD= /syntax-only^
                 /module:%MODDIR%^
                 /c
 
-SET FFLAGS=^
-           /check:bounds^
-           /module:%MODDIR%^
-           /c^
-           /MP
+SET FFLAGS=  /MP^
+	     /heap-arrays0^
+	     /warn:interfaces^
+	     /O2^
+	     /module:%MODDIR%^
+             /nodebug^
+	     /check:bounds^
+             /c
 REM
 REM   Set the LD environment variable to define the linker we will use
 REM   to link.
