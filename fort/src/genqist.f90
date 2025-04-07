@@ -7,7 +7,7 @@
 !   None
 ! 
 ! author: David Cunningham
-! Last edited: See git log
+! Last edited: See git log  
 module genqist
     use globals
     use denselight, only: lightsol, qistpack
@@ -80,7 +80,8 @@ module genqist
         procedure :: pack => packsol
         procedure, private :: gq_namelist_init
         procedure, private :: var_init
-    end type gqist
+        end type gqist
+        type(gqist) :: gqglobal
 
     contains
     subroutine namelist_init(me, namefile)
@@ -565,7 +566,8 @@ module genqist
         real(qp)                     :: init_state(6), energy
         real(qp), allocatable        :: kernel_times(:), &
                                         ediff(:)
-        real(dp)                     :: x0(6)
+        real(dp)                     :: x0(6), &
+                                      & cbmu
         real(dp), allocatable        :: x(:,:), &
                                         kernel_times_double(:)
         logical dasein
@@ -601,6 +603,7 @@ module genqist
             end if
         end if
         call gq%init(qist_config_file)
+        cbmu = gq%dynmod%central_body_mu
         ! Make sure nonphysical integration stuff is turned off
         gq%dynmod%regularize = .false.
         tof = 1._qp
@@ -608,6 +611,7 @@ module genqist
         gq%dynmod%tgt_on_rails = .false.
         init_state = real(x0,qp)
         gq%dynmod%state = [init_state, t0, 1._qp]
+        gqglobal = gq
         print *, "Integrating kernel trajectory"
         base_sol = solve_ivp(stateonly_eoms,&
                            & [t0, tf], &
@@ -654,7 +658,7 @@ module genqist
         function en(x) result(res)
             real(qp), intent(in) :: x(6)
             real(qp)             :: res
-            res = sum(x(4:6)**2)/2._qp - gq%dynmod%central_body_mu/sqrt(sum(x(:3)**2))
+            res = sum(x(4:6)**2)/2._qp - cbmu/sqrt(sum(x(:3)**2))
         end function en
         function stateonly_eoms(me, x, y) result(res)
             class(RungeKutta), intent(inout) :: me
@@ -662,10 +666,8 @@ module genqist
             real(qp)                         :: res(size(y))
             real(qp)                         :: jac(8,8), hes(8,8,8), &
                                                 acc(8)
-            gq%dynmod%tgt_on_rails = .false.
-            gq%dynmod%tof = 1._qp
-            gq%dynmod%state = [y, x, 1._qp]
-            call gq%dynmod%get_derivs(x, acc, jac, hes)
+            gqglobal%dynmod%state = [y, x, 1._qp]
+            call gqglobal%dynmod%get_derivs(x, acc, jac, hes)
             res = acc(:6)
         end function stateonly_eoms
     end subroutine generate_kernel

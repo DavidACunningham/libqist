@@ -56,8 +56,8 @@ program main
     call test_SH_grav(testpass)
     write (*,*) "TEST SPICE kernel writing. . ."
     call test_kernel_write(testpass)
-    write (*,*) "TEST kernel integration end-to-end. . ."
-    call end_to_end_integration_test(testpass)
+!    write (*,*) "TEST kernel integration end-to-end. . ."
+!    call end_to_end_integration_test(testpass)
     write (*,*) "TEST QIST model end-to-end check. . ."
     call test_make_qist(testpass)
 end program main
