@@ -1,6 +1,6 @@
 @ECHO OFF 
 
-SET SPICE="C:\Users\tester\Downloads\toolkit\toolkit\lib\spicelib.lib"
+SET SPICE="C:\Users\David\toolkit\lib\spicelib.lib"
 
 SET PRODUCT=unit_test_run
 
@@ -69,13 +69,13 @@ SET FFLAGS_MOD= /syntax-only^
                 /module:%MODDIR%^
                 /c
 
-SET FFLAGS=^
-           /check:bounds^
-           /module:%MODDIR%^
-           /heap-arrays:10240^
-           /Od^
-           /debug:full^
-           /traceback
+SET FFLAGS=  /debug:full^
+	     /MP^
+	     /heap-arrays0^
+	     /warn:interfaces^
+	     /fp:strict^
+	     /module:%MODDIR%^
+	     /check:bounds
 
 %FC% %FFLAGS_MOD% %SOURCES%
 %FC% %FFLAGS% /c %SOURCES%

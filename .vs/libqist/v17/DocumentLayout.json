@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\David\\libqist\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{C76E55FE-F99E-B6C1-A804-DC72F5399377}|unit_test_all\\unit_test_all.vfproj|c:\\users\\david\\libqist\\fort\\src\\genqist.f90||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{C76E55FE-F99E-B6C1-A804-DC72F5399377}|unit_test_all\\unit_test_all.vfproj|solutionrelative:fort\\src\\genqist.f90||{8B382828-6202-11D1-8870-0000F87579D2}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "genqist.f90",
+              "DocumentMoniker": "C:\\Users\\David\\libqist\\fort\\src\\genqist.f90",
+              "RelativeDocumentMoniker": "fort\\src\\genqist.f90",
+              "ToolTip": "C:\\Users\\David\\libqist\\fort\\src\\genqist.f90",
+              "RelativeToolTip": "fort\\src\\genqist.f90",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAKsAAAAwAAAAAAAAAA==",
+              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACMSURBVDhPxZJBDsQgCEU/sytHM57Cg/UUpEfDpbPSgjVtmc28lZKfJwSptYYOEY2zRVXPkIG3DWQFtdZlEAAO3ucSkparIOfsQgAgIjGBiLggTAdJi6t/3O0FB\u002B9DxswUFsyEBUmLGyMs6DAzISKYX\u002B68FnTmNYcFM/8XLH/iEyIytnAR2OAdS8EvfAEh4EkdDLYrMwAAAABJRU5ErkJgggAAAAAAAAAAAA==",
+              "WhenOpened": "2025-04-05T23:22:53.331Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

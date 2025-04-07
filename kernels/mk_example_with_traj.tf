@@ -20,7 +20,7 @@ KPL/TF
 
 	 \begindata
 	 
-	 PATH_VALUES = ('/home/david/wrk/nstgro/libqist/kernels')
+	 PATH_VALUES = ('C:\Users\David\libqist\kernels')
 
 	 PATH_SYMBOLS = ('K')
 

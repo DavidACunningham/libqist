@@ -158,7 +158,7 @@ module genqist
                                       regularize
 
         ! set defaults
-        print *, "Reading configuration values from namelist file ", namefile
+        print *, "Reading configuration values from namelist file ", trim(adjustl(namefile))
         allocate(Cbar(0:100,0:100), Sbar(0:100,0:100))
 
         ! character defaults
