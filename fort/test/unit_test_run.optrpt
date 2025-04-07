@@ -1,0 +1,32 @@
+Begin optimization report for: MAIN__
+=================================================================
+
+Register allocation report for: MAIN__
+FUNCTION BEGIN
+ 13 reloads 8 spills 
+
+Hardware registers used
+ Reserved : 3 [ rip rsp ssp  ]
+ Available : 30 [ rbx r9 r10 r11 r12 r13 r14 r15 zmm0 zmm1 zmm2 zmm3 zmm4 zmm5 zmm6 zmm7 zmm8 zmm9 zmm10 zmm11 zmm12 zmm13 zmm14 zmm15 k0_k1 k2_k3 k4_k5 k6_k7 tmm4_tmm5 tmm6_tmm7  ]
+ Callee Saved : 0 [  ]
+ Assigned : 7 [ eflags rax rcx rdi rdx rsi r8  ]
+
+Routine stack 
+ Variables : 217 Bytes
+   Read Count : 13
+   Write Count : 36
+ Spills : 53 Bytes
+   Read Count : 13
+   Write Count : 8
+
+FUNCTION END
+---- Begin Inlining Report ----
+Option Values:
+  inline-threshold: 225
+  inlinehint-threshold: 325
+  inlinecold-threshold: 45
+  inlineoptsize-threshold: 15
+
+COMPILE FUNC: MAIN__
+
+---- End Inlining Report ------
