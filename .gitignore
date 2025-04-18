@@ -18,7 +18,7 @@ make_new_kernel
 make_qist_existing_kernel
 make_resample
 make_rot
-unit_test_run
+#unit_test_run
 # Libraries
 *.a
 *.so
