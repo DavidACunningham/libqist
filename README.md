@@ -3,6 +3,8 @@
 >
 > Quadratic Interpolated State Transition: A library for fast propagation of
 > second-order relative motion around arbitrary SPICE kernels.
+> Authors: David Cunningham and Ryan P. Russell.
+> Copyright 2025.
 
 Current and future space mission planning can require relative motion in regimes 
 that are highly non-Keplerian and potentially non-linear.
@@ -154,3 +156,7 @@ To create a QIST model, you need:
 Please contact David Cunningham for questions about usage, bug reports, and distribution information.
 
 David Cunningham – david.cunningham@utexas.edu
+
+## LICENSING
+Copyright 2025. This work is openly licensed via Creative Commons BY-NC 4.0 [https://creativecommons.org/licenses/by-nc/4.0/](https://creativecommons.org/licenses/by-nc/4.0/).
+For a commercial license for $1000USD, please follow the instructions at: [https://discoveries.utexas.edu/EULA/v1.0.](https://discoveries.utexas.edu/EULA/v1.0.).
