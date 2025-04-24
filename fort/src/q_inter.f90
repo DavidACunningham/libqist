@@ -95,13 +95,11 @@ module q_inter
         integer, intent(in), optional :: order
         integer o
         !! xa is the initial relative state 
-        !! should be dimension 7
-        real(dp), dimension(8,size(xa,2))   :: res, xapad
-        xapad(:6,:) = xa
-        xapad(7,:) = 0._8
+        !! should be dimension 8
+        real(dp), dimension(8,size(xa,2))   :: res
         o=2
         if (present(order)) o = order
-        res = it%prop(ta,tb,xapad,o)
+        res = it%prop(ta,tb,xa,o)
     end function prop_many
     function prop_back(tb, ta, xb,order) result(res)
         !! Propagates the relative state xa at ta

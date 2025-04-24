@@ -20,7 +20,7 @@ def makesphere(ax,x0=0,y0=0,z0=0,r=1.,color=None):
     ax.plot_surface(x, y, z, color=color)
 mu_d = 0.0000985
 t0_utc = "2026 Nov 26 12:00:00.00"
-tf_utc = "2026 Nov 26 17:45:00.00"
+tf_utc = "2026 Nov 27 00:00:00.00"
 spy.furnsh('../kernels/mk_example_with_traj.tf')
 
 t0 = spy.utc2et(t0_utc)
@@ -28,7 +28,7 @@ tf = spy.utc2et(tf_utc)
 
 times = np.linspace(t0,tf,1000)
 
-states = np.array([spy.spkgeo(-31415, tt, "MDROTBAR", 402)[0] for tt in times])
+states = np.array([spy.spkgeo(-31415, tt, "J2000", 402)[0] for tt in times])
 
 if __name__=="__main__":
     args = sys.argv
@@ -39,7 +39,7 @@ if __name__=="__main__":
     makesphere(ax)
     ax.set_aspect('equal')
 
-    it = Itraj("./curve_deimos_config_namelist_2026Nov26120000002026Nov2617450000.nml")
+    it = Itraj("./curve_deimos_config_namelist_2026Nov26120000002026Nov2700000000.nml")
     dx0 = np.array([0, 0.1, 0., 0.1*np.sqrt(mu_d/10**3)/2, 0., 0.])
     dxbs = np.array([it.prop(t0, tt, np.r_[dx0,0.,0]) for tt in times])
     ax.set_xlabel("X (km)")

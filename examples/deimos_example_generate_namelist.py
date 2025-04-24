@@ -22,7 +22,7 @@ def get_shdegree(c,s):
 
 itime = time()
 t0_utc = "2026 Nov 26 12:00:00.00"
-tf_utc = "2026 Nov 26 17:45:00.00"
+tf_utc = "2026 Nov 27 00:00:00.00"
 rtol_qist = 1.e-12
 atol_qist = 1.e-20
 
@@ -41,10 +41,10 @@ central_body_naif_id = 402
 central_body_mu = 9.85000000E-05
 central_body_reference_radius = 6.200000E+00
 
-regularize = True
+regularize = False
 resample_interpolation_degree = 200
 rotation_interpolation_degree = 200
-rotating_frame = "MDROTBAR"
+rotating_frame = "IAU_DEIMOS"
 inertial_frame = "J2000"
 
 perturbing_body_naif_ids =  [
