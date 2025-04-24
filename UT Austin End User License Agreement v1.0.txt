@@ -1,0 +1,40 @@
+UT Austin End User License Agreement v1.0 (EULA)
+
+By emailing the below USER INFORMATION along with the EULA TERMS, you agree to the following:
+
+USER INFORMATION
+1. Full individual name or name of organization ("End User").
+2. Contact information for invoicing.
+3. Name of software package.
+Please email USER INFORMATION and EULA TERMS to: licensing@discoveries.utexas.edu.
+
+EULA TERMS
+In exchange for $1000USD (EULA Fee), The University of Texas at Austin ("Licensor") grants, for all purposes, non-exclusive rights to use and modify the software ("Licensed Software") attached to the notice listed along with access to the Licensed Software. This grant will be effective upon receipt and confirmation by Licensor of the USER INFORMATION, EULA TERMS, and EULA Fee.
+
+Licensor does not grant title to or ownership of any portion of Licensed Software.
+
+LICENSED SOFTWARE IS NOT DESIGNED, INTENDED, OR AUTHORIZED FOR USE IN ANY TYPE OF SYSTEM OR APPLICATION IN WHICH THE FAILURE OF THE SYSTEM OR APPLICATION COULD CREATE A SITUATION WHERE PERSONAL INJURY OR DEATH MAY OCCUR.
+
+THE LICENSED SOFTWARE AND DOCUMENTATION ARE PROVIDED “AS IS.” LICENSOR MAKES NO WARRANTIES OR REPRESENTATIONS RELATING TO THE LICENSED SOFTWARE, EXPRESS, OR IMPLIED, STATUTORY OR OTHERWISE, AND EXPRESSLY EXCLUDES THE WARRANTY OF NON-INFRINGEMENT OF THIRD PARTY RIGHTS, FITNESS FOR A PARTICULAR PURPOSE OR MERCHANTABILITY. LICENSOR DOES NOT WARRANT THAT THE LICENSED SOFTWARE WILL SATISFY LICENSEE’S REQUIREMENTS, THAT THE LICENSED SOFTWARE ARE WITHOUT DEFECT OR ERROR OR THAT OPERATION OF THE LICENSED SOFTWARE WILL BE UNINTERRUPTED.
+
+LICENSOR SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES, OR DAMAGES FOR LOSS OF PROFITS, REVENUE, DATA, OR USE, INCURRED BY LICENSEE OR ANY THIRD PARTY, WHETHER IN AN ACTION IN CONTRACT OR TORT (INCLUDING NEGLIGENCE), OR ANY OTHER LEGAL THEORY, EVEN IF LICENSOR HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. 
+
+End User shall indemnify and hold harmless System, Licensor, their Regents, officers, agents and employees from and against any claims, demands, or causes of action whatsoever relating to the Agreement, including without limitation those arising on account of End User's use of the Licensed Software or otherwise caused by, or arising out of, or resulting from, the exercise or practice of the license granted hereunder by End User.
+
+End User may use the name “The University of Texas at Austin” only in connection with factually based materials related to its use of the Licensed Software. End User may not use the name of System or Licensor in connection with any name, brand, or trademark related to any products or services.
+
+The Agreement shall be construed in accordance with and all disputes hereunder shall be governed by the laws of the State of Texas as applied to transactions taking place wholly within Texas between Texas residents. 
+
+The Texas state courts of Travis County, Texas (or, if there is exclusive federal jurisdiction, the United States District Court for the Western District of Texas) shall have exclusive jurisdiction and venue over any dispute arising out of the EULA, and End User hereby consents to the jurisdiction of such courts.
+
+Nothing contained in the EULA shall be construed as creating any agency, partnership, or other form of joint enterprise between Licensor and End User. The relationship between Licensor and End User shall at all times be that of independent contractors. Neither Licensor nor End User shall have authority to contract for or bind the other in any manner whatsoever. The EULA confers no rights except those expressly granted herein.
+
+The EULA is the complete, entire, final and exclusive statement of the terms and conditions of the agreement between Licensor and End User. The EULA may not be modified by End User.
+
+US Government End Users. The Licensed Software is a "commercial item," as that term is defined in 48 C.F.R. 2.101, consisting of "commercial computer software" and "commercial computer software documentation," as such terms are used in 48 C.F.R. 12.212 (Sept. 1995) and 48 C.F.R. 227.7202 (June 1995). Consistent with 48 C.F.R. 12.212, 48 C.F.R. 27.405(b)(2) (June 1998) and 48 C.F.R. 227.7202, all U.S. Government End Users acquire the Licensed Software with only those rights as set forth herein.
+
+With respect to applications of Licensed Software, End User will comply with all applicable federal, state, and local laws and regulations, including, without limitation, all export laws and regulations.
+
+The University of Texas at Austin is a component institution of The University of Texas System ("System"), an agency of the State of Texas.
+
+END OF EULA
