@@ -16,6 +16,7 @@ module test_genqist
     implicit none
     real(dp), parameter :: dtol = 1.e-12_dp
     real(qp), parameter :: qtol = 1.e-22_qp
+    type(gqist) :: gqglobal
 
     contains
         subroutine test_make_spice_subset(testpass)
@@ -175,6 +176,7 @@ module test_genqist
             gq%dynmod%state = init_state
             gq%dynmod%regularize = .false.
             print *, "Integrating base case"
+            gqglobal = gq
             base_sol = solve_ivp(fd_eoms,&
                                & [0._qp, 1._qp], &
                                & [init_state, &
@@ -252,9 +254,8 @@ module test_genqist
                                                         stt(8,8,8), sttdot(8,8,8), &
                                                         acc(8)
 
-                    gq%dynmod%tgt_on_rails = .false.
-                    gq%dynmod%state = y(:8)
-                    call gq%dynmod%get_derivs(y(7), acc, jac, hes)
+                    gqglobal%dynmod%state = y(:8)
+                    call gqglobal%dynmod%get_derivs(y(7), acc, jac, hes)
                     res(:8) = acc
                     stm = reshape(y(9:8+8**2),[8,8])
                     stt = reshape(y(9+8**2:), [8,8,8])

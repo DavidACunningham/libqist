@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioUserFile ProjectCreator="Intel Fortran" Keyword="Console Application" Version="11.0" ProjectIdGuid="{7EB8E88A-1615-1F49-D010-8AA009A9D37F}">
+	<Configurations>
+		<Configuration Name="Debug|Win32">
+		</Configuration>
+		<Configuration Name="Debug|x64" CommandArguments="$(SolutionDir)fort\test\test_config_namelists.nml" WorkingDirectory="$(SolutionDir)fort\test">
+		</Configuration>
+		<Configuration Name="Release|Win32">
+		</Configuration>
+		<Configuration Name="Release|x64" CommandArguments="$(SolutionDir)fort\test\test_config_namelists.nml" WorkingDirectory="$(SolutionDir)fort\test">
+		</Configuration>
+	</Configurations></VisualStudioUserFile>
