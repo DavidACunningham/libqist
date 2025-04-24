@@ -159,4 +159,5 @@ David Cunningham – david.cunningham@utexas.edu
 
 ## LICENSING
 Copyright 2025. This work is openly licensed via Creative Commons BY-NC 4.0 [https://creativecommons.org/licenses/by-nc/4.0/](https://creativecommons.org/licenses/by-nc/4.0/).
+
 For a commercial license for $1000USD, please follow the instructions at: [https://discoveries.utexas.edu/EULA/v1.0.](https://discoveries.utexas.edu/EULA/v1.0.).
