@@ -15,6 +15,7 @@ KPL/TF
 
 			Leapseconds kernel (for
 			time conversion):             naif0012.tls
+			Deimos Rotating Frame Data:   pck00011_n0066.tpc
 			Mars-Deimos Rotating Frame:   mdrot.tf
 
 	 \begindata
@@ -26,6 +27,7 @@ KPL/TF
 	 KERNELS_TO_LOAD = ( '$K/de440.bsp'
 						 '$K/mar097.bsp'
 						 '$K/naif0012.tls'
+						 '$K/pck00011_n0066.tpc'
 						 '$K/mdrot.tf'
 					   )	 
 

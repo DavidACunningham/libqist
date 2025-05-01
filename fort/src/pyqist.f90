@@ -82,7 +82,7 @@ module pq
         real(8),     intent(in) :: ta, tb, xa(8)
         integer, intent(in), optional :: order
         !! xa is the initial relative state 
-        !! should be dimension 6
+        !! should be dimension 8
         real(8)                 :: res(8)
         o = 2
         if (present(order)) o=order
@@ -96,7 +96,7 @@ module pq
         real(8),     intent(in) :: ta, tb, xa(:,:)
         integer, intent(in), optional :: order
         !! xa is the initial relative state 
-        !! should be dimension 6,:
+        !! should be dimension 8,:
         real(8)                 :: res(8,size(xa,2))
         if (present(order)) o=order
         res = prop(ta,tb,xa, o)

@@ -1,7 +1,7 @@
 .SUFFIXES:
 GSPICE := /home/david/libf/spicelib.a
 ISPICE := /home/david/libf/src/toolkit/lib/spicelib.a
-VENV := /home/david/wrk/scipy-env/bin/activate
+VENV := /home/david/.venv/bin/activate
 IFORT:= ifx
 GFORT:= gfortran
 FC := $(IFORT)
@@ -100,8 +100,19 @@ COMMON_FLAGS := -O2 -g \
 
 PFFLAGS := -lgomp \
 		   --build-dir $(MODDIR)
+<<<<<<< HEAD
 
 PFLAGS := $(COMMON_FLAGS)
+=======
+PFLAGS := -O3 -mcmodel=large \
+	      -Wl,--no-relax\
+		  -fPIC\
+		  -fopenmp \
+		  -ffast-math \
+		  -march=native \
+		  -ffree-line-length-none\
+		  -fcheck=bounds
+>>>>>>> main
 		  
 FFLAGS := $(COMMON_FLAGS) \
 		  -J$(MODDIR)
@@ -205,6 +216,7 @@ qist.a: $(Q_OBJECTS)
 	-mv -v $@ $(LIBDIR)
 %.a : $(SRCDIR)%.f90 $(I_OBJECTS)
 	$(FC) $(MFLAGS) $(SPICE) $^ -o $@
+	-mv -v $@ $(LIBDIR)
 %$(EXT_SUFFIX) : $(SRCDIR)%.f90 $(I_OBJECTS)
 	. $(VENV) && $(PFC) -m $* --f90flags='$(PFLAGS)' $(PFFLAGS) -c $^ 
 	-mv -v $@ $(LIBDIR)
