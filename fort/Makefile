@@ -1,6 +1,6 @@
 .SUFFIXES:
 SPICE := /home/david/libf/spicelib.a
-VENV := /home/david/wrk/scipy-env/bin/activate
+VENV := /home/david/.venv/bin/activate
 FC := gfortran
 PFC := f2py
 SRCDIR := ./src/
@@ -92,6 +92,7 @@ PFFLAGS := -lgomp \
 PFLAGS := -O3 -mcmodel=large \
 	      -Wl,--no-relax\
 		  -fPIC\
+		  -fopenmp \
 		  -ffast-math \
 		  -march=native \
 		  -ffree-line-length-none\
@@ -187,6 +188,7 @@ qist.a: $(Q_OBJECTS)
 	-mv -v $@ $(LIBDIR)
 %.a : $(SRCDIR)%.f90 $(I_OBJECTS)
 	$(FC) $(MFLAGS) $(SPICE) $^ -o $@
+	-mv -v $@ $(LIBDIR)
 %$(EXT_SUFFIX) : $(SRCDIR)%.f90 $(I_OBJECTS)
 	. $(VENV) && $(PFC) -m $* --f90flags='$(PFLAGS)' $(PFFLAGS) -c $^ 
 	-mv -v $@ $(LIBDIR)
