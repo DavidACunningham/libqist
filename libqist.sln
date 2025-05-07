@@ -5,30 +5,6 @@ VisualStudioVersion = 17.13.35919.96
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
-	ProjectSection(SolutionItems) = preProject
-		fort\src\cheby.f90 = fort\src\cheby.f90
-		fort\src\denselight.f90 = fort\src\denselight.f90
-		fort\src\frkmin.f90 = fort\src\frkmin.f90
-		fort\src\frkmin_q.f90 = fort\src\frkmin_q.f90
-		fort\src\genqist.f90 = fort\src\genqist.f90
-		fort\src\globals.f90 = fort\src\globals.f90
-		fort\src\makemodel.f90 = fort\src\makemodel.f90
-		fort\src\mqist.f90 = fort\src\mqist.f90
-		fort\src\pyqist.f90 = fort\src\pyqist.f90
-		fort\src\qist.f90 = fort\src\qist.f90
-		fort\src\quat.f90 = fort\src\quat.f90
-		fort\src\q_inter.f90 = fort\src\q_inter.f90
-		fort\src\subspice.f90 = fort\src\subspice.f90
-		fort\src\tensorops.f90 = fort\src\tensorops.f90
-		fort\src\tinysh.f90 = fort\src\tinysh.f90
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "header", "header", "{84647056-CB90-4DBC-9E69-35D1950277F6}"
-	ProjectSection(SolutionItems) = preProject
-		fort\src\mqist.h = fort\src\mqist.h
-	EndProjectSection
-EndProject
 Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "qist", "qist\qist.vfproj", "{C765B75C-63DF-7AF3-7E49-32E742015DAE}"
 EndProject
 Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "genqist", "genqist\genqist.vfproj", "{A3DC21ED-16AD-F326-D555-F47E4EE27A7C}"
@@ -52,10 +28,33 @@ Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "generate_qist_model", "gene
 		{A3DC21ED-16AD-F326-D555-F47E4EE27A7C} = {A3DC21ED-16AD-F326-D555-F47E4EE27A7C}
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "metakernels", "metakernels", "{AB27DE81-2507-4E8D-ADCE-C9E0F08E9A00}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test metakernels", "test metakernels", "{AB27DE81-2507-4E8D-ADCE-C9E0F08E9A00}"
 	ProjectSection(SolutionItems) = preProject
 		kernels\mk_test.tf = kernels\mk_test.tf
 		kernels\mk_test_withorbit.tf = kernels\mk_test_withorbit.tf
+	EndProjectSection
+EndProject
+Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "generate_kernel", "generate_kernel\generate_kernel.vfproj", "{F8595595-4A13-6040-4F44-D6AFB8C6734F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A3DC21ED-16AD-F326-D555-F47E4EE27A7C} = {A3DC21ED-16AD-F326-D555-F47E4EE27A7C}
+		{C765B75C-63DF-7AF3-7E49-32E742015DAE} = {C765B75C-63DF-7AF3-7E49-32E742015DAE}
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "example metakernels", "example metakernels", "{DFE6D3C9-DFA5-49E6-8467-F47C868AF664}"
+	ProjectSection(SolutionItems) = preProject
+		kernels\mk_example.tf = kernels\mk_example.tf
+		kernels\mk_example_with_traj.tf = kernels\mk_example_with_traj.tf
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "namelists", "namelists", "{9C75A604-CD17-4B1B-B4AC-FEAD62E0CE96}"
+	ProjectSection(SolutionItems) = preProject
+		examples\curve_deimos_config_namelist_2026Nov26120000002026Nov2617450000.nml = examples\curve_deimos_config_namelist_2026Nov26120000002026Nov2617450000.nml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "batch_files", "batch_files", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+	ProjectSection(SolutionItems) = preProject
+		kernels\convert_newlines.bat = kernels\convert_newlines.bat
+		examples\generate_qist_model_commands_win.bat = examples\generate_qist_model_commands_win.bat
 	EndProjectSection
 EndProject
 Global
@@ -106,14 +105,23 @@ Global
 		{7EB8E88A-1615-1F49-D010-8AA009A9D37F}.Release|x64.Build.0 = Release|x64
 		{7EB8E88A-1615-1F49-D010-8AA009A9D37F}.Release|x86.ActiveCfg = Release|Win32
 		{7EB8E88A-1615-1F49-D010-8AA009A9D37F}.Release|x86.Build.0 = Release|Win32
+		{F8595595-4A13-6040-4F44-D6AFB8C6734F}.Debug|x64.ActiveCfg = Debug|x64
+		{F8595595-4A13-6040-4F44-D6AFB8C6734F}.Debug|x64.Build.0 = Debug|x64
+		{F8595595-4A13-6040-4F44-D6AFB8C6734F}.Debug|x86.ActiveCfg = Debug|Win32
+		{F8595595-4A13-6040-4F44-D6AFB8C6734F}.Debug|x86.Build.0 = Debug|Win32
+		{F8595595-4A13-6040-4F44-D6AFB8C6734F}.Release|x64.ActiveCfg = Release|x64
+		{F8595595-4A13-6040-4F44-D6AFB8C6734F}.Release|x64.Build.0 = Release|x64
+		{F8595595-4A13-6040-4F44-D6AFB8C6734F}.Release|x86.ActiveCfg = Release|Win32
+		{F8595595-4A13-6040-4F44-D6AFB8C6734F}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{02EA681E-C7D8-13C7-8484-4AC65E1B71E8} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
-		{84647056-CB90-4DBC-9E69-35D1950277F6} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
 		{AB27DE81-2507-4E8D-ADCE-C9E0F08E9A00} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
+		{DFE6D3C9-DFA5-49E6-8467-F47C868AF664} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
+		{9C75A604-CD17-4B1B-B4AC-FEAD62E0CE96} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
+		{02EA681E-C7D8-13C7-8484-4AC65E1B71E8} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A2A8B321-6C25-417B-9875-74E4DBDDF982}

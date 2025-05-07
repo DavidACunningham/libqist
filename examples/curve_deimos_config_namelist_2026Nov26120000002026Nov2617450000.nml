@@ -26,7 +26,7 @@
 	 spherical_harmonics_degree          =  3                    ! Set to zero to turn off SH
 	 rtol_qist                           =  1.000000000000000E-12
 	 atol_qist                           =  9.999999999999999E-21
-	 regularize                          =  .true.                      ! whether to do sundman regularization
+	 regularize                          =  .false.                      ! whether to do sundman regularization
 	 kvtau_filename                      = "./datadir/curve_deimos2026Nov26120000002026Nov2617450000_kvtau.odesolution"    ! Only needed if regularizing, otherwise comment out
 
  ! SPICE resampling configuration
