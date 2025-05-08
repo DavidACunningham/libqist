@@ -3,6 +3,10 @@
   "WorkspaceRootPath": "C:\\Users\\tester\\Downloads\\libqist\\libqist\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{0427CE57-E78E-5D88-E6A4-A3411B155458}|mqist\\mqist.vfproj|c:\\users\\tester\\downloads\\libqist\\libqist\\fort\\lib\\mqist.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{0427CE57-E78E-5D88-E6A4-A3411B155458}|mqist\\mqist.vfproj|solutionrelative:fort\\lib\\mqist.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{0427CE57-E78E-5D88-E6A4-A3411B155458}|mqist\\mqist.vfproj|c:\\users\\tester\\downloads\\libqist\\libqist\\fort\\src\\mqist.f90||{8B382828-6202-11D1-8870-0000F87579D2}",
       "RelativeMoniker": "D:0:0:{0427CE57-E78E-5D88-E6A4-A3411B155458}|mqist\\mqist.vfproj|solutionrelative:fort\\src\\mqist.f90||{8B382828-6202-11D1-8870-0000F87579D2}"
     }
@@ -19,6 +23,19 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "mqist.h",
+              "DocumentMoniker": "C:\\Users\\tester\\Downloads\\libqist\\libqist\\fort\\lib\\mqist.h",
+              "RelativeDocumentMoniker": "fort\\lib\\mqist.h",
+              "ToolTip": "C:\\Users\\tester\\Downloads\\libqist\\libqist\\fort\\lib\\mqist.h",
+              "RelativeToolTip": "fort\\lib\\mqist.h",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-05-08T21:57:37.538Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
               "Title": "mqist.f90",
               "DocumentMoniker": "C:\\Users\\tester\\Downloads\\libqist\\libqist\\fort\\src\\mqist.f90",
               "RelativeDocumentMoniker": "fort\\src\\mqist.f90",
