@@ -12,6 +12,7 @@
 ! Last edited: See git log
 subroutine m_init_n(namefile_c)
     ! Initialize a QIST library from a compatible namefile
+    !DEC$ ATTRIBUTES DLLEXPORT :: m_init_n
     use q_inter
     use, intrinsic :: iso_c_binding
     implicit none
@@ -33,6 +34,7 @@ subroutine m_init_n(namefile_c)
 end subroutine m_init_n
 
 subroutine m_state(tau,state_o)
+    !DEC$ ATTRIBUTES DLLEXPORT :: m_state
     use q_inter
     implicit none
     !! Return a state at time tau
@@ -45,6 +47,7 @@ subroutine m_state(tau,state_o)
 end subroutine m_state
 
 subroutine m_stm(tau,stm_o)
+    !DEC$ ATTRIBUTES DLLEXPORT :: m_stm
     use q_inter
     implicit none
     !! Return an stm at time tau
@@ -57,6 +60,7 @@ subroutine m_stm(tau,stm_o)
 end subroutine m_stm
 
 subroutine m_stt(tau,stt_o)
+    !DEC$ ATTRIBUTES DLLEXPORT :: m_stt
     use q_inter
     implicit none
     !! Return an stt at time tau
@@ -69,6 +73,7 @@ subroutine m_stt(tau,stt_o)
 end subroutine m_stt
 
 subroutine m_stm_i(tau,stm_i_o)
+    !DEC$ ATTRIBUTES DLLEXPORT :: m_stm_i
     use q_inter
     implicit none
     !! Return an inverse stm at time tau
@@ -81,6 +86,7 @@ subroutine m_stm_i(tau,stm_i_o)
 end subroutine m_stm_i
 
 subroutine m_stt_i(tau,stt_i_o)
+    !DEC$ ATTRIBUTES DLLEXPORT :: m_stt_i
     use q_inter
     implicit none
     !! Return an inverse stt at time tau
@@ -94,6 +100,7 @@ end subroutine m_stt_i
 
 !! physical time propagation
 subroutine m_prop_once(ta, tb, xa, order, xb)
+    !DEC$ ATTRIBUTES DLLEXPORT :: m_prop_once
     use q_inter
     implicit none
     !! Propagates the relative state xa at time ta
@@ -109,6 +116,7 @@ subroutine m_prop_once(ta, tb, xa, order, xb)
 end subroutine m_prop_once
 
 subroutine m_stts_ab(taua, taub, stm_o, stt_o)
+    !DEC$ ATTRIBUTES DLLEXPORT :: m_stts_ab
     use q_inter
     implicit none
     !! Return the STM and STT from taua to taub

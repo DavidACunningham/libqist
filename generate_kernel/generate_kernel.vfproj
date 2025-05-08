@@ -46,7 +46,7 @@
 			<Tool Name="VFCustomBuildTool"/>
 			<Tool Name="VFPreLinkEventTool"/>
 			<Tool Name="VFPreBuildEventTool"/>
-			<Tool Name="VFPostBuildEventTool"/>
+			<Tool Name="VFPostBuildEventTool" CommandLine="xcopy $(PlatformName)\$(ConfigurationName)\$(ProjectName).exe $(SolutionDir)\fort\exe /Y"/>
 			<Tool Name="VFManifestTool" SuppressStartupBanner="true"/>
 		</Configuration>
 	</Configurations>
