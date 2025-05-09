@@ -43,7 +43,7 @@
 			<Tool Name="VFCustomBuildTool"/>
 			<Tool Name="VFPreLinkEventTool"/>
 			<Tool Name="VFPreBuildEventTool"/>
-			<Tool Name="VFPostBuildEventTool"/>
+			<Tool Name="VFPostBuildEventTool" CommandLine="xcopy $(PlatformName)\$(ConfigurationName)\$(ProjectName).lib $(SolutionDir)\fort\lib /Y"/>
 		</Configuration>
 	</Configurations>
 	<Files>

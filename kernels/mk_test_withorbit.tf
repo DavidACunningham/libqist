@@ -21,8 +21,8 @@ KPL/MK
 
 	 \begindata
 	 
-	 PATH_VALUES = ('C:\Users\David\libqist\kernels'
-				    'C:\Users\David\libqist\kernels')
+	 PATH_VALUES = ('C:\Users\tester\Downloads\libqist\libqist\kernels'
+				    'C:\Users\tester\Downloads\libqist\libqist\kernels')
 
 	 PATH_SYMBOLS = ('K'
 					 'LK')

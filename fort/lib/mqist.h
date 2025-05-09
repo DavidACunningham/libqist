@@ -5,6 +5,7 @@
 // david.cunningham@utexas.edu
 // Last revision: see git log
 
+<<<<<<< HEAD
 void m_init_n(char* namefile_c);
 
 void m_state(double* tau, double* state_o);

@@ -17,7 +17,7 @@
 		</Configuration>
 		<Configuration Name="Debug|x64" UseCompiler="ifxCompiler" ConfigurationType="typeStaticLibrary">
 			<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" HeapArrays="0" AdditionalIncludeDirectories="$(SolutionDir)qist\x64\Debug" WarnInterfaces="true" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebug"/>
-			<Tool Name="VFLibrarianTool" AdditionalLibraryDirectories="$(SolutionDir)..\toolkit\lib;$(SolutionDir)qist\x64\Debug" AdditionalDependencies="spicelib.lib qist.lib"/>
+			<Tool Name="VFLibrarianTool" AdditionalLibraryDirectories="$(SolutionDir)..\..\toolkit\lib;$(SolutionDir)qist\x64\Debug" AdditionalDependencies="spicelib.lib qist.lib"/>
 			<Tool Name="VFResourceCompilerTool"/>
 			<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 			<Tool Name="VFCustomBuildTool"/>
@@ -37,13 +37,13 @@
 		</Configuration>
 		<Configuration Name="Release|x64" UseCompiler="ifxCompiler" ConfigurationType="typeStaticLibrary">
 			<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" HeapArrays="0" AdditionalIncludeDirectories="$(SolutionDir)qist\x64\Release" RuntimeLibrary="rtMultiThreadedDebug"/>
-			<Tool Name="VFLibrarianTool" AdditionalLibraryDirectories="$(SolutionDir)..\toolkit\lib;$(SolutionDir)qist\x64\Release" AdditionalDependencies="spicelib.lib qist.lib"/>
+			<Tool Name="VFLibrarianTool" AdditionalLibraryDirectories="$(SolutionDir)..\..\toolkit\lib;$(SolutionDir)qist\x64\Release" AdditionalDependencies="spicelib.lib qist.lib"/>
 			<Tool Name="VFResourceCompilerTool"/>
 			<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 			<Tool Name="VFCustomBuildTool"/>
 			<Tool Name="VFPreLinkEventTool"/>
 			<Tool Name="VFPreBuildEventTool"/>
-			<Tool Name="VFPostBuildEventTool"/>
+			<Tool Name="VFPostBuildEventTool" CommandLine="xcopy $(PlatformName)\$(ConfigurationName)\$(ProjectName).lib $(SolutionDir)\fort\lib /Y"/>
 		</Configuration>
 	</Configurations>
 	<Files>

@@ -20,15 +20,14 @@ KPL/TF
 
 	 \begindata
 	 
-	 PATH_VALUES = ('C:\Users\David\libqist\kernels')
+	 PATH_VALUES = ('C:\Users\tester\Downloads\libqist\libqist\kernels')
 
 	 PATH_SYMBOLS = ('K')
 
 	 KERNELS_TO_LOAD = ( '$K/de440.bsp'
-						 '$K/mar097.bsp'
-						 '$K/naif0012.tls'
-						 '$K/pck00011_n0066.tpc'
-						 '$K/mdrot.tf'
+                       '$K/mar097.bsp'
+                       '$K/naif0012.tls.pc'
+                       '$K/mdrot.tf'
 					   )	 
 
 	 \begintext
