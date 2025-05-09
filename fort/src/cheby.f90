@@ -299,6 +299,7 @@ function chcall_s(a,b,coeffs,x)
     ! NAME      TYPE   DESCRIPTION
     ! chcall_s  real   value of interpolant at x
     use cheby, only: chnodes, pi, dp
+    use globals, only: writeLog
     implicit none
     integer :: n,j
     real(dp), intent(in) :: a, b, x, coeffs(:)
@@ -311,9 +312,8 @@ function chcall_s(a,b,coeffs,x)
     Tj = u
     chcall_s = Tjm1*coeffs(1)
     if (size(coeffs).lt.j) then
-        print *, j
-        print * , size(coeffs)
-        error stop
+        call writeLog(char(j))
+        call writeLog(char(size(coeffs)))
     end if
     do j=2,n
         Tjp1 = 2.0_dp*u*Tj - Tjm1

@@ -4,7 +4,7 @@ ISPICE := /home/david/libf/src/toolkit/lib/spicelib.a
 VENV := /home/david/.venv/bin/activate
 IFORT:= ifx
 GFORT:= gfortran
-FC := $(IFORT)
+FC := $(GFORT)
 PFC := f2py
 SRCDIR := ./src/
 OBJDIR := ./build/
@@ -97,13 +97,8 @@ COMMON_FLAGS := -O2 -g \
 				-fPIC \
 				-ffree-line-length-none \
 				-fcheck=bounds
-
 PFFLAGS := -lgomp \
 		   --build-dir $(MODDIR)
-<<<<<<< HEAD
-
-PFLAGS := $(COMMON_FLAGS)
-=======
 PFLAGS := -O3 -mcmodel=large \
 	      -Wl,--no-relax\
 		  -fPIC\
@@ -112,8 +107,6 @@ PFLAGS := -O3 -mcmodel=large \
 		  -march=native \
 		  -ffree-line-length-none\
 		  -fcheck=bounds
->>>>>>> main
-		  
 FFLAGS := $(COMMON_FLAGS) \
 		  -J$(MODDIR)
 MFLAGS := $(COMMON_FLAGS) \

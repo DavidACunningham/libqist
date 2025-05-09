@@ -6,6 +6,7 @@
 ! author: David Cunningham
 ! Last edited: See git log
 module denseLight
+    use globals, only: writeLog
     use frkmin, only: ODESolution, DOP853DenseOutput
     use, intrinsic :: iso_fortran_env, only: wp=>real64
     implicit none
@@ -206,8 +207,7 @@ module denseLight
         type(ODESolution), intent(in) :: ODESol
         integer i
         if (.not.ODESol%dense) then
-            print *, "Cannot convert sparse ODESolution to lightSol"
-            error stop
+            call writelog("Cannot convert sparse ODESolution to lightSol")
         end if
         self%n_segments = size(ODESol%interpolants)
         self%ndim = ODESol%interpolants(1)%n

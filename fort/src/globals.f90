@@ -42,6 +42,38 @@ module globals
         module procedure mmult_matvec_vecfirst_d
     end interface 
     contains
+    subroutine writeLog(message)
+        character(len=1000), intent(in) :: message
+        integer                         :: io, date_time(8)
+        logical                         :: dasein
+        character(len=50)               :: logfile
+        character(len=12)               :: real_clock(3)
+        logfile = 'QISTLog.txt'
+        call date_and_time( &
+                           real_clock(1), &
+                           real_clock(2), &
+                           real_clock(3), &
+                           date_time      &
+                          )
+        inquire(file='QISTLog.txt', exist=dasein)
+        if (dasein) then
+            open( &
+               & newunit=io, &
+               & file=trim(adjustl(logfile)),  &
+               & position='append', &
+               & status = 'old', &
+               & action= 'write' &
+               & )
+        else
+            open( &
+               & newunit=io, &
+               & file=trim(adjustl(logfile)),  &
+               & status = 'replace', &
+               & action= 'write' &
+               & )
+        endif
+        write(io,*) real_clock(1)//":"//real_clock(2)//":"//real_clock(3)//":: "//trim(adjustl(message))
+    end subroutine writeLog
     pure function mmult_matmat_q(matA, matB) result(res)
         ! mmult_matmat_q: function handling matrix-matrix multiplication
         ! INPUTS:

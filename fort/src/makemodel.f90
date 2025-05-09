@@ -178,7 +178,6 @@ module makemodel
                 me%rot = rot
             else
                 print *, "Error: rotation history required. None provided"
-                error stop
             endif
             if (present(Cbar)) then
                 me%degord = size(Cbar,1)

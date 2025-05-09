@@ -72,19 +72,17 @@ module qist
         kvtau_filename = ""
         inquire(file=trim(adjustl(namefile)), iostat=stat)
         if (stat .ne. 0) then 
-            print *, "QIST ERROR: bad ITRAJ config namelist filename: ", &
-                     & trim(adjustl(namefile))
-            print *, "    Fortran I/O status code ", stat
-            stop
+            call writeLog("QIST ERROR: bad ITRAJ config namelist filename: ")
+            call writeLog("    "//trim(adjustl(namefile)))
+            call writeLog("    Fortran I/O status code "//char(stat))
         end if
         open(file=namefile, status="old", &
              iostat=stat,newunit=num)
         read(unit=num, nml=ITRAJ_CONFIG, iostat=stat)
         if (stat .ne. 0) then 
-            print *, "QIST ERROR: bad ITRAJ config namelist format: ", &
-                     & trim(adjustl(namefile))
-            print *, "    Fortran I/O status code ", stat
-            stop
+            call writeLog("QIST ERROR: bad ITRAJ config namelist format: ")
+            call writeLog("    "//trim(adjustl(namefile)))
+            call writeLog("    Fortran I/O status code "//char(stat))
         end if
         close(num)
         call self%init(t0,tf,qist_filename,kvtau_filename)
@@ -102,10 +100,9 @@ module qist
         self%regularized      = .false.
         inquire(file=trim(adjustl(trajfile)), iostat=stat)
         if (stat.ne.0) then
-            print *, "QIST ERROR: QIST model file not found: ", &
-                    & trim(adjustl(trajfile))
-            print *, "    Fortran I/O status code ", stat
-            stop
+            call writeLog("QIST ERROR: QIST model file not found: ")
+            call writeLog("   "//trim(adjustl(trajfile)))
+            call writeLog("    Fortran I/O status code "//char(stat))
         end if
         open(newunit=num, file=trim(adjustl(trajfile)), &
              status="old", access="stream",iostat=stat)
@@ -115,10 +112,9 @@ module qist
             self%regularized = .true.
             inquire(file=trim(adjustl(kvtaufile)), iostat=stat)
             if (stat.ne.0) then
-                print *, "QIST ERROR: QIST model file not found: ", &
-                    & trim(adjustl(kvtaufile))
-                print *, "    Fortran I/O status code ", stat
-                stop
+                call writeLog("QIST ERROR: QIST model file not found: ")
+                call writeLog("    "//trim(adjustl(kvtaufile)))
+                call writeLog("    Fortran I/O status code "//char(stat))
             end if
             open(newunit=num, file=trim(adjustl(kvtaufile)), &
                  status="old", access="stream",iostat=stat)
