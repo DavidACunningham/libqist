@@ -73,6 +73,7 @@ module globals
                & )
         endif
         write(io,*) real_clock(1)//":"//real_clock(2)//":"//real_clock(3)//":: "//trim(adjustl(message))
+        close(io)
     end subroutine writeLog
     pure function mmult_matmat_q(matA, matB) result(res)
         ! mmult_matmat_q: function handling matrix-matrix multiplication
