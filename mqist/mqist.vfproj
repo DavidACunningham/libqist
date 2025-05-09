@@ -52,13 +52,15 @@
 	</Configurations>
 	<Files>
 		<Filter Name="Header Files" Filter="fi;fd;h;inc">
-			<File RelativePath="..\fort\lib\mqist.h"/>
+			<File RelativePath="..\fort\lib\mqist.h">
+			</File>
 		</Filter>
 		<Filter Name="Resource Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"/>
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
 			<File RelativePath="..\fort\src\mqist.f90">
 			</File>
-			<File RelativePath="..\fort\src\q_inter.f90"/>
+			<File RelativePath="..\fort\src\q_inter.f90">
+			</File>
 		</Filter>
 	</Files>
 	<Globals/>

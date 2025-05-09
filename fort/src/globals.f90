@@ -43,7 +43,7 @@ module globals
     end interface 
     contains
     subroutine writeLog(message)
-        character(len=1000), intent(in) :: message
+        character(*), intent(in) :: message
         integer                         :: io, date_time(8)
         logical                         :: dasein
         character(len=50)               :: logfile

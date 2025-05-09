@@ -8,13 +8,17 @@
 clear all;
 close all;
 clc;
+
+%%%% ADD MICE TO PATH HERE IF NOT ADDED ELSEWHERE %%%%
+addpath('C:\Users\tester\Downloads\mice\lib');
+addpath('C:\Users\tester\Downloads\mice\src\mice')
 qistdir="../fort/lib/";																 % This works if you're running the script from the $LIBQIST/examples folder
 cspice_furnsh('../kernels/mk_example_with_traj.tf')
 mu_d = 0.0000985; % deimos
-nmlstring = "./curve_deimos_config_namelist_2026Nov26120000002026Nov2700000000.nml"; % the QIST configuration namelist
+nmlstring = ".\curve_deimos_config_namelist_2026Nov26120000002026Nov2700000000.nml"; % the QIST configuration namelist
 charnml = convertStringsToChars(nmlstring);											 % all text passed to the Fortran library must be of character type
-loadlibrary(strcat(qistdir,"mqist.a"),strcat(qistdir,"mqist.h"));					 % mqist.a must be on your system.
-calllib('mqist','m_init_n', charnml);
+loadlibrary(strcat(qistdir,"mqist.dll"),strcat(qistdir,"mqist.h"));					 % mqist.a must be on your system.
+calllib('mqist','M_INIT_N', charnml);
 
 % Times: These initial and final values are the ones set in the configuration namelist.
 t0_utc = convertStringsToChars("2026 Nov 26 12:00:00.00");
@@ -53,7 +57,7 @@ for i =1:1000
 	% [dx0; 0.; 0.]. the last two elements are for a change in t0 and a change in TOF and should
 	% almost always be zero. These are % supplied so that free-time optimization can be conducted 
 	% using QIST. A MATLAB convenience wrapper for QIST could hide this, but is not performed here.
-	[~,~,~,~,this_state] = calllib('mqist','m_prop_once', t0, times(i), [dx0;0.;0.], 2, this_state);
+	[~,~,~,~,this_state] = calllib('mqist','M_PROP_ONCE', t0, times(i), [dx0;0.;0.], 2, this_state);
 
 	% Assign the output state to the actual relative state variable
 	dxs(:,i) = this_state(1:6);
@@ -83,3 +87,4 @@ ylabel("\delta y (km)");
 zlabel("\delta z (km)");
 legend("Relative Trajectory", "Ref")
 title("Relative Trajectory");
+unloadlibrary mqist;

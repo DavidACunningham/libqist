@@ -42,9 +42,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "example metakernels", "exam
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "namelists", "namelists", "{9C75A604-CD17-4B1B-B4AC-FEAD62E0CE96}"
-	ProjectSection(SolutionItems) = preProject
-		examples\curve_deimos_config_namelist_2026Nov26120000002026Nov2617450000.nml = examples\curve_deimos_config_namelist_2026Nov26120000002026Nov2617450000.nml
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "batch_files", "batch_files", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 	ProjectSection(SolutionItems) = preProject

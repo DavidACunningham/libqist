@@ -13,6 +13,6 @@ REM The following command uses the initial conditions and dynamics parameters in
 REM     the namelist file to numerically integrate the reference orbit and write
 REM     the resulting trajectory to a SPICE kernel.
 
-..\fort\exe\generate_kernel.exe "./curve_deimos_config_namelist_2026Nov26120000002026Nov2617450000.nml" True True
-..\fort\exe\generate_qist_model.exe "./curve_deimos_config_namelist_2026Nov26120000002026Nov2617450000.nml" True True
+..\fort\exe\generate_kernel.exe ".\curve_deimos_config_namelist_2026Nov26120000002026Nov2700000000.nml" True True
+..\fort\exe\generate_qist_model.exe ".\curve_deimos_config_namelist_2026Nov26120000002026Nov2700000000.nml" True True
 pause

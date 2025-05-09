@@ -27,6 +27,7 @@ KPL/TF
 
 	 KERNELS_TO_LOAD = ( '$K/de440.bsp'
                        '$K/mar097.bsp'
+					   '$K/pck00011_n0066.tpc'
                        '$K/example_binary_kernel.bsp'
                        '$K/naif0012.tls.pc'
                        '$K/mdrot.tf'
