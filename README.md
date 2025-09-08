@@ -36,8 +36,10 @@ Currently, QIST compilation is documented and tested for Linux systems with the 
     * gfortran
     * SPICE
 * Optional:
-    * Python 3 (versions from 3.8 to 3.11 tested) including packages:
+    * Python 3 (versions from 3.8 to 3.13 tested) including packages:
         * numpy [https://pypi.org/project/numpy/](https://pypi.org/project/numpy/)
+            * Note if your Python version is 3.12 or later you also need the Meson and Ninja build systems due to changes in the numpy package backend
+
         * matplotlib [https://pypi.org/project/matplotlib/](https://pypi.org/project/matplotlib/)
         * spiceypy [https://pypi.org/project/spiceypy/](https://pypi.org/project/spiceypy/)
     * MATLAB (versions from R2017 to R2024 tested)
